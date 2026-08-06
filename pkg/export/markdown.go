@@ -10,6 +10,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/model"
 )
 
@@ -201,7 +202,7 @@ func GenerateMarkdown(issues []model.Issue, title string) (string, error) {
 				if dep == nil {
 					continue
 				}
-				icon := "🔗"
+				icon := icons.Get(icons.Link)
 				if dep.Type.IsBlocking() {
 					icon = "⛔"
 				}
@@ -259,18 +260,7 @@ func createSlug(text string) string {
 }
 
 func getStatusEmoji(status string) string {
-	switch status {
-	case "open":
-		return "🟢"
-	case "in_progress":
-		return "🔵"
-	case "blocked":
-		return "🔴"
-	case "closed", "tombstone":
-		return "⚫"
-	default:
-		return "⚪"
-	}
+	return icons.IssueStatus(status)
 }
 
 func isClosedLikeStatus(status model.Status) bool {
@@ -278,20 +268,7 @@ func isClosedLikeStatus(status model.Status) bool {
 }
 
 func getTypeEmoji(issueType string) string {
-	switch issueType {
-	case "bug":
-		return "🐛"
-	case "feature":
-		return "✨"
-	case "task":
-		return "📋"
-	case "epic":
-		return "🚀" // Use rocket instead of mountain - VS-16 variation selector causes width issues
-	case "chore":
-		return "🧹"
-	default:
-		return "•"
-	}
+	return icons.IssueType(issueType)
 }
 
 func getPriorityLabel(priority int) string {
@@ -412,7 +389,7 @@ func generateIssueCommands(issue model.Issue) string {
 
 	escapedID := shellEscape(issue.ID)
 
-	sb.WriteString("<details>\n<summary>📋 Commands</summary>\n\n")
+	sb.WriteString("<details>\n<summary>" + icons.Get(icons.Task) + " Commands</summary>\n\n")
 	sb.WriteString("```bash\n")
 
 	// Status transitions based on current state
@@ -509,7 +486,7 @@ func GeneratePriorityBrief(triage interface{}, config PriorityBriefConfig) strin
 	// For simplicity, we'll use direct field access assuming the types match
 
 	// Header
-	sb.WriteString("# 📊 Priority Brief\n\n")
+	sb.WriteString("# " + icons.Get(icons.Chart) + " Priority Brief\n\n")
 	sb.WriteString(fmt.Sprintf("*Generated: %s*\n\n", time.Now().Format("2006-01-02 15:04")))
 
 	// Add data hash if provided
@@ -521,7 +498,7 @@ func GeneratePriorityBrief(triage interface{}, config PriorityBriefConfig) strin
 
 	// This is a simplified implementation - in production, you'd use proper type casting
 	// For now, return a placeholder that demonstrates the structure
-	sb.WriteString("## 🎯 Top Recommendations\n\n")
+	sb.WriteString("## " + icons.Get(icons.Target) + " Top Recommendations\n\n")
 	sb.WriteString("| # | Issue | Type | Priority | Score | Top Reason |\n")
 	sb.WriteString("|---|-------|------|----------|-------|------------|\n")
 	sb.WriteString("| 1 | *Run `bv --robot-triage` for data* | - | - | - | - |\n\n")
@@ -531,7 +508,7 @@ func GeneratePriorityBrief(triage interface{}, config PriorityBriefConfig) strin
 	sb.WriteString("|-------|--------|--------|\n")
 	sb.WriteString("| *Run `bv --robot-triage` for data* | - | - |\n\n")
 
-	sb.WriteString("## 🚧 Blockers to Clear\n\n")
+	sb.WriteString("## " + icons.Get(icons.Construction) + " Blockers to Clear\n\n")
 	sb.WriteString("| Issue | Unblocks | Actionable |\n")
 	sb.WriteString("|-------|----------|------------|\n")
 	sb.WriteString("| *Run `bv --robot-triage` for data* | - | - |\n\n")
@@ -612,7 +589,7 @@ func GeneratePriorityBriefFromTriageJSON(triageJSON []byte, config PriorityBrief
 	var sb strings.Builder
 
 	// Header
-	sb.WriteString("# 📊 Priority Brief\n\n")
+	sb.WriteString("# " + icons.Get(icons.Chart) + " Priority Brief\n\n")
 	sb.WriteString(fmt.Sprintf("*Generated: %s*  \n", triage.Meta.GeneratedAt.Format("2006-01-02 15:04")))
 	sb.WriteString(fmt.Sprintf("*Version: %s | Issues: %d*\n\n", triage.Meta.Version, triage.Meta.IssueCount))
 
@@ -634,7 +611,7 @@ func GeneratePriorityBriefFromTriageJSON(triageJSON []byte, config PriorityBrief
 	sb.WriteString("---\n\n")
 
 	// Top Recommendations
-	sb.WriteString("## 🎯 Top Recommendations\n\n")
+	sb.WriteString("## " + icons.Get(icons.Target) + " Top Recommendations\n\n")
 	if len(triage.Recommendations) == 0 {
 		sb.WriteString("*No recommendations available.*\n\n")
 	} else {
@@ -694,7 +671,7 @@ func GeneratePriorityBriefFromTriageJSON(triageJSON []byte, config PriorityBrief
 	}
 
 	// Blockers
-	sb.WriteString("## 🚧 Blockers to Clear\n\n")
+	sb.WriteString("## " + icons.Get(icons.Construction) + " Blockers to Clear\n\n")
 	if len(triage.BlockersToClear) == 0 {
 		sb.WriteString("*No critical blockers.*\n\n")
 	} else {
@@ -708,9 +685,9 @@ func GeneratePriorityBriefFromTriageJSON(triageJSON []byte, config PriorityBrief
 
 		for i := 0; i < limit; i++ {
 			b := triage.BlockersToClear[i]
-			ready := "❌"
+			ready := icons.Get(icons.Cross)
 			if b.Actionable {
-				ready = "✅"
+				ready = icons.Get(icons.CheckCircle)
 			}
 			sb.WriteString(fmt.Sprintf("| **%s** %s | %d | %s |\n",
 				b.ID,
@@ -778,18 +755,5 @@ func truncateString(s string, maxLen int) string {
 
 // getTypeIcon returns a compact icon for issue type (for tables)
 func getTypeIcon(issueType string) string {
-	switch issueType {
-	case "bug":
-		return "🐛"
-	case "feature":
-		return "✨"
-	case "task":
-		return "📋"
-	case "epic":
-		return "🚀"
-	case "chore":
-		return "🧹"
-	default:
-		return "•"
-	}
+	return icons.IssueType(issueType)
 }

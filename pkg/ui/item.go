@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/model"
 )
 
@@ -21,9 +22,9 @@ const (
 func (s DiffStatus) Badge() string {
 	switch s {
 	case DiffStatusNew:
-		return "🆕"
+		return icons.Get(icons.New)
 	case DiffStatusClosed:
-		return "✅"
+		return icons.Get(icons.CheckCircle)
 	case DiffStatusModified:
 		return "~"
 	default:

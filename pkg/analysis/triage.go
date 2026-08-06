@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Dicklesworthstone/beads_viewer/pkg/correlation"
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/model"
 )
 
@@ -1431,14 +1432,16 @@ func GenerateTriageReasons(ctx TriageReasonContext) TriageReasons {
 
 	// 1. Unblock cascade (highest priority - most actionable)
 	if len(ctx.UnblocksIDs) >= 3 {
-		reason := fmt.Sprintf("🎯 Completing this unblocks %d downstream issues (%s)",
+		reason := fmt.Sprintf("%s Completing this unblocks %d downstream issues (%s)",
+			icons.Get(icons.Target),
 			len(ctx.UnblocksIDs), formatUnblockList(ctx.UnblocksIDs))
 		reasons = append(reasons, reason)
 		if primary == "" {
 			primary = reason
 		}
 	} else if len(ctx.UnblocksIDs) > 0 {
-		reason := fmt.Sprintf("🔓 Unblocks %d item(s): %s",
+		reason := fmt.Sprintf("%s Unblocks %d item(s): %s",
+			icons.Get(icons.Unlock),
 			len(ctx.UnblocksIDs), formatUnblockList(ctx.UnblocksIDs))
 		reasons = append(reasons, reason)
 	}
@@ -1448,7 +1451,7 @@ func GenerateTriageReasons(ctx TriageReasonContext) TriageReasons {
 		for _, label := range ctx.Issue.Labels {
 			health, exists := ctx.LabelHealth[label]
 			if exists && health < 60 {
-				reason := fmt.Sprintf("⚠️ Label '%s' needs attention (health: %d/100)", label, health)
+				reason := fmt.Sprintf("%s Label '%s' needs attention (health: %d/100)", icons.Get(icons.Warning), label, health)
 				reasons = append(reasons, reason)
 			}
 		}
@@ -1458,27 +1461,27 @@ func GenerateTriageReasons(ctx TriageReasonContext) TriageReasons {
 	if ctx.TriageScore != nil {
 		bd := ctx.TriageScore.Breakdown
 		if bd.BetweennessNorm > 0.5 {
-			reason := fmt.Sprintf("🔀 Critical path bottleneck (betweenness: %.0f%%)", bd.BetweennessNorm*100)
+			reason := fmt.Sprintf("%s Critical path bottleneck (betweenness: %.0f%%)", icons.Get(icons.Shuffle), bd.BetweennessNorm*100)
 			reasons = append(reasons, reason)
 			if primary == "" {
 				primary = reason
 			}
 		}
 		if bd.PageRankNorm > 0.3 {
-			reason := fmt.Sprintf("📊 High centrality in dependency graph (PageRank: %.0f%%)", bd.PageRankNorm*100)
+			reason := fmt.Sprintf("%s High centrality in dependency graph (PageRank: %.0f%%)", icons.Get(icons.Chart), bd.PageRankNorm*100)
 			reasons = append(reasons, reason)
 		}
 	}
 
 	// 4. Staleness alert
 	if ctx.DaysSinceUpdate > 14 {
-		reason := fmt.Sprintf("🕐 No activity in %d days - may need review", ctx.DaysSinceUpdate)
+		reason := fmt.Sprintf("%s No activity in %d days - may need review", icons.Get(icons.Clock), ctx.DaysSinceUpdate)
 		reasons = append(reasons, reason)
 		if ctx.Issue != nil && ctx.Issue.Status == model.StatusInProgress {
 			actionHint = "Check if this is stuck and needs help"
 		}
 	} else if ctx.DaysSinceUpdate > 7 {
-		reason := fmt.Sprintf("📅 Last updated %d days ago", ctx.DaysSinceUpdate)
+		reason := fmt.Sprintf("%s Last updated %d days ago", icons.Get(icons.Calendar), ctx.DaysSinceUpdate)
 		reasons = append(reasons, reason)
 		if ctx.Issue != nil && ctx.Issue.Status == model.StatusInProgress {
 			actionHint = "Continue work on this issue"
@@ -1487,7 +1490,7 @@ func GenerateTriageReasons(ctx TriageReasonContext) TriageReasons {
 
 	// 5. Quick-win identification
 	if ctx.IsQuickWin {
-		reason := "⚡ Low effort, high impact - good starting point"
+		reason := fmt.Sprintf("%s Low effort, high impact - good starting point", icons.Get(icons.Lightning))
 		reasons = append(reasons, reason)
 		if primary == "" && len(ctx.UnblocksIDs) > 0 {
 			primary = reason
@@ -1530,24 +1533,24 @@ func GenerateTriageReasons(ctx TriageReasonContext) TriageReasons {
 		!isOpenStatus
 	if isInProgress {
 		if ctx.ClaimedByAgent != "" {
-			reason := fmt.Sprintf("👤 Claimed by %s", ctx.ClaimedByAgent)
+			reason := fmt.Sprintf("%s Claimed by %s", icons.Get(icons.User), ctx.ClaimedByAgent)
 			reasons = append(reasons, reason)
 			actionHint = fmt.Sprintf("Contact %s if you want to help", ctx.ClaimedByAgent)
 		} else {
-			reasons = append(reasons, "🚧 In progress - already being worked")
+			reasons = append(reasons, icons.Get(icons.Construction)+" In progress - already being worked")
 		}
 	} else if isBlockedStatus {
-		reasons = append(reasons, "⛔ Status is blocked - not ready to claim")
+		reasons = append(reasons, icons.Get(icons.Blocked)+" Status is blocked - not ready to claim")
 		if ctx.ClaimedByAgent != "" {
-			reason := fmt.Sprintf("👤 Claimed by %s", ctx.ClaimedByAgent)
+			reason := fmt.Sprintf("%s Claimed by %s", icons.Get(icons.User), ctx.ClaimedByAgent)
 			reasons = append(reasons, reason)
 			actionHint = fmt.Sprintf("Contact %s or resolve blockers before claiming", ctx.ClaimedByAgent)
 		}
 	} else if isNonOpenStatus {
-		reason := fmt.Sprintf("⏸️ Status is %s - not ready to claim", ctx.Issue.Status)
+		reason := fmt.Sprintf("%s Status is %s - not ready to claim", icons.Get(icons.Pause), ctx.Issue.Status)
 		reasons = append(reasons, reason)
 		if ctx.ClaimedByAgent != "" {
-			claimReason := fmt.Sprintf("👤 Claimed by %s", ctx.ClaimedByAgent)
+			claimReason := fmt.Sprintf("%s Claimed by %s", icons.Get(icons.User), ctx.ClaimedByAgent)
 			reasons = append(reasons, claimReason)
 			actionHint = fmt.Sprintf("Contact %s if you want to help", ctx.ClaimedByAgent)
 		}
@@ -1555,9 +1558,9 @@ func GenerateTriageReasons(ctx TriageReasonContext) TriageReasons {
 		// Only emit the "available for work" hint when we positively know
 		// the issue is Open and has no assignee. Falling back to this
 		// branch on missing/unknown status surfaces a misleading hint.
-		reasons = append(reasons, "✅ Currently unclaimed - available for work")
+		reasons = append(reasons, icons.Get(icons.CheckCircle)+" Currently unclaimed - available for work")
 	} else if ctx.ClaimedByAgent != "" {
-		reason := fmt.Sprintf("👤 Claimed by %s", ctx.ClaimedByAgent)
+		reason := fmt.Sprintf("%s Claimed by %s", icons.Get(icons.User), ctx.ClaimedByAgent)
 		reasons = append(reasons, reason)
 		actionHint = fmt.Sprintf("Contact %s if you want to help", ctx.ClaimedByAgent)
 	}
@@ -1567,10 +1570,10 @@ func GenerateTriageReasons(ctx TriageReasonContext) TriageReasons {
 	// 7. Blocked status context
 	if len(ctx.BlockedByIDs) > 0 {
 		if len(ctx.BlockedByIDs) == 1 {
-			reason := fmt.Sprintf("⏳ Blocked by %s - complete that first", ctx.BlockedByIDs[0])
+			reason := fmt.Sprintf("%s Blocked by %s - complete that first", icons.Get(icons.Hourglass), ctx.BlockedByIDs[0])
 			reasons = append(reasons, reason)
 		} else {
-			reason := fmt.Sprintf("⏳ Blocked by %d items - need to clear dependencies", len(ctx.BlockedByIDs))
+			reason := fmt.Sprintf("%s Blocked by %d items - need to clear dependencies", icons.Get(icons.Hourglass), len(ctx.BlockedByIDs))
 			reasons = append(reasons, reason)
 		}
 		actionHint = fmt.Sprintf("Work on %s first to unblock this", ctx.BlockedByIDs[0])
@@ -1578,7 +1581,7 @@ func GenerateTriageReasons(ctx TriageReasonContext) TriageReasons {
 
 	// 8. Priority context
 	if ctx.Issue != nil && ctx.Issue.Priority <= 1 {
-		reason := fmt.Sprintf("🚨 High priority (P%d) - prioritize this work", ctx.Issue.Priority)
+		reason := fmt.Sprintf("%s High priority (P%d) - prioritize this work", icons.Get(icons.Siren), ctx.Issue.Priority)
 		reasons = append(reasons, reason)
 	}
 

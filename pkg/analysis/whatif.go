@@ -3,6 +3,8 @@ package analysis
 import (
 	"sort"
 	"time"
+
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 )
 
 // PriorityExplanation provides detailed reasoning for a priority recommendation
@@ -64,14 +66,14 @@ func GenerateTopReasons(score ImpactScore) []PriorityReason {
 		explanation string
 		emoji       string
 	}{
-		{"pagerank", score.Breakdown.PageRank, score.Breakdown.PageRankNorm, "Central in dependency graph", "🎯"},
-		{"betweenness", score.Breakdown.Betweenness, score.Breakdown.BetweennessNorm, "Critical path bottleneck", "🔀"},
-		{"blockers", score.Breakdown.BlockerRatio, score.Breakdown.BlockerRatioNorm, "High blocker count", "🚧"},
-		{"staleness", score.Breakdown.Staleness, score.Breakdown.StalenessNorm, "Needs attention (aging)", "⏰"},
-		{"priority", score.Breakdown.PriorityBoost, score.Breakdown.PriorityBoostNorm, "Explicit priority set", "⭐"},
-		{"time_to_impact", score.Breakdown.TimeToImpact, score.Breakdown.TimeToImpactNorm, "Fast impact potential", "⚡"},
-		{"urgency", score.Breakdown.Urgency, score.Breakdown.UrgencyNorm, "Urgent labels/timing", "🔥"},
-		{"risk", score.Breakdown.Risk, score.Breakdown.RiskNorm, "Risk/volatility factors", "⚠️"},
+		{"pagerank", score.Breakdown.PageRank, score.Breakdown.PageRankNorm, "Central in dependency graph", icons.Get(icons.Target)},
+		{"betweenness", score.Breakdown.Betweenness, score.Breakdown.BetweennessNorm, "Critical path bottleneck", icons.Get(icons.Shuffle)},
+		{"blockers", score.Breakdown.BlockerRatio, score.Breakdown.BlockerRatioNorm, "High blocker count", icons.Get(icons.Construction)},
+		{"staleness", score.Breakdown.Staleness, score.Breakdown.StalenessNorm, "Needs attention (aging)", icons.Get(icons.Alarm)},
+		{"priority", score.Breakdown.PriorityBoost, score.Breakdown.PriorityBoostNorm, "Explicit priority set", icons.Get(icons.Star)},
+		{"time_to_impact", score.Breakdown.TimeToImpact, score.Breakdown.TimeToImpactNorm, "Fast impact potential", icons.Get(icons.Lightning)},
+		{"urgency", score.Breakdown.Urgency, score.Breakdown.UrgencyNorm, "Urgent labels/timing", icons.Get(icons.Fire)},
+		{"risk", score.Breakdown.Risk, score.Breakdown.RiskNorm, "Risk/volatility factors", icons.Get(icons.Warning)},
 	}
 
 	// Sort by weighted contribution (descending)
