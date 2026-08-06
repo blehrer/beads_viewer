@@ -180,6 +180,94 @@ func TestIssueStatus_Extended(t *testing.T) {
 	}
 }
 
+func TestPriority_AllLevels(t *testing.T) {
+	useSet(t, SetEmoji)
+	want := []string{"🔥", "⚡", "🔹", "☕", "💤"}
+	for level, w := range want {
+		if got := Priority(level); got != w {
+			t.Errorf("Priority(%d) = %q, want %q", level, got, w)
+		}
+	}
+	if got := Priority(99); got != "  " {
+		t.Fatalf("Priority(99) = %q", got)
+	}
+}
+
+func TestPriorityLabel(t *testing.T) {
+	useSet(t, SetEmoji)
+	if got := PriorityLabel(0); got != "🔥 Critical (P0)" {
+		t.Fatalf("PriorityLabel(0) = %q", got)
+	}
+	if got := PriorityLabel(2); got != "🔹 Medium (P2)" {
+		t.Fatalf("PriorityLabel(2) = %q", got)
+	}
+	if got := PriorityLabel(99); got != "P99" {
+		t.Fatalf("PriorityLabel(99) = %q", got)
+	}
+}
+
+func TestDependencyType_All(t *testing.T) {
+	useSet(t, SetEmoji)
+	tests := []struct {
+		typ  string
+		want string
+	}{
+		{"root", "📍"},
+		{"blocks", "⛔"},
+		{"related", "🔗"},
+		{"parent-child", "📦"},
+		{"discovered-from", "🔍"},
+		{"unknown", "•"},
+	}
+	for _, tt := range tests {
+		if got := DependencyType(tt.typ); got != tt.want {
+			t.Errorf("DependencyType(%q) = %q, want %q", tt.typ, got, tt.want)
+		}
+	}
+}
+
+func TestIssueStatusGraph_All(t *testing.T) {
+	useSet(t, SetEmoji)
+	tests := []struct {
+		status string
+		want   string
+	}{
+		{"open", "🔵"},
+		{"in_progress", "🟡"},
+		{"blocked", "🔴"},
+		{"closed", "✅"},
+		{"tombstone", "✅"},
+		{"deferred", "⏸️"},
+		{"pinned", "📌"},
+		{"hooked", "🪝"},
+		{"review", "👁️"},
+		{"unknown", "⚪"},
+	}
+	for _, tt := range tests {
+		if got := IssueStatusGraph(tt.status); got != tt.want {
+			t.Errorf("IssueStatusGraph(%q) = %q, want %q", tt.status, got, tt.want)
+		}
+	}
+}
+
+func TestIssueStatus_ExtendedAll(t *testing.T) {
+	useSet(t, SetEmoji)
+	tests := []struct {
+		status string
+		want   string
+	}{
+		{"pinned", "📌"},
+		{"hooked", "🪝"},
+		{"review", "👁️"},
+		{"draft", "⏸️"},
+	}
+	for _, tt := range tests {
+		if got := IssueStatus(tt.status); got != tt.want {
+			t.Errorf("IssueStatus(%q) = %q, want %q", tt.status, got, tt.want)
+		}
+	}
+}
+
 func TestAllNamesHaveGlyphs(t *testing.T) {
 	names := []Name{
 		Bug, Feature, Task, Epic, Chore, Target, Unlock, Warning, Shuffle, Chart,
@@ -187,7 +275,7 @@ func TestAllNamesHaveGlyphs(t *testing.T) {
 		Hourglass, Siren, Star, Fire, Alarm, Link, New, Check, Cross,
 		StatusOpen, StatusInProgress, StatusBlocked, StatusClosed, StatusUnknown,
 		StatusDeferred, StatusPinned, StatusHooked, StatusReview,
-		StatusGraphOpen, StatusGraphWork,
+		StatusGraphOpen, StatusGraphWork, TriageScoreMid,
 		PriorityMedium, PriorityLow, PriorityBacklog,
 		DepRoot, DepParentChild, DepDiscovered,
 		SwimRefresh, SwimProhibited, Question, FileDefault,

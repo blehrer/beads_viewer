@@ -140,7 +140,8 @@ func (d IssueDelegate) Render(w io.Writer, m list.Model, index int, listItem lis
 	if i.IsQuickWin {
 		leftFixedWidth += lipgloss.Width(icons.Get(icons.Star)) + 1 // emoji + space
 	} else if i.IsBlocker && i.UnblocksCount > 0 {
-		leftFixedWidth += lipgloss.Width(fmt.Sprintf("🔓%d", i.UnblocksCount)) + 1 // emoji+count + space
+		unblocks := icons.Get(icons.Unlock) + fmt.Sprintf("%d", i.UnblocksCount)
+		leftFixedWidth += lipgloss.Width(unblocks) + 1
 	} else if i.UnblocksCount > 0 {
 		leftFixedWidth += lipgloss.Width(fmt.Sprintf("↪%d", i.UnblocksCount)) + 1 // arrow+count + space
 	}
@@ -231,7 +232,7 @@ func (d IssueDelegate) Render(w io.Writer, m list.Model, index int, listItem lis
 	if i.IsQuickWin {
 		triageIndicator = t.TriageStar.Render(icons.Get(icons.Star))
 	} else if i.IsBlocker && i.UnblocksCount > 0 {
-		triageIndicator = t.TriageUnblocks.Render(fmt.Sprintf("🔓%d", i.UnblocksCount))
+		triageIndicator = t.TriageUnblocks.Render(icons.Get(icons.Unlock) + fmt.Sprintf("%d", i.UnblocksCount))
 	} else if i.UnblocksCount > 0 {
 		triageIndicator = t.TriageUnblocksAlt.Render(fmt.Sprintf("↪%d", i.UnblocksCount))
 	}

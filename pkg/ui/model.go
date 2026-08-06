@@ -7461,7 +7461,7 @@ func (m *Model) updateViewportContent() {
 		if issueItem.TriageScore >= 0.7 {
 			scoreIcon = icons.Get(icons.StatusBlocked)
 		} else if issueItem.TriageScore >= 0.4 {
-			scoreIcon = icons.Get(icons.StatusGraphWork)
+			scoreIcon = icons.Get(icons.TriageScoreMid)
 		}
 		sb.WriteString(fmt.Sprintf("- **Triage Score:** %s %.2f/1.00\n", scoreIcon, issueItem.TriageScore))
 

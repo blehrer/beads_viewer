@@ -62,6 +62,7 @@ const (
 	StatusReview     Name = "status_review"
 	StatusGraphOpen  Name = "status_graph_open"
 	StatusGraphWork  Name = "status_graph_work"
+	TriageScoreMid   Name = "triage_score_mid"
 	PriorityMedium   Name = "priority_medium"
 	PriorityLow      Name = "priority_low"
 	PriorityBacklog  Name = "priority_backlog"
@@ -283,6 +284,7 @@ var emojiIcons = map[Name]string{
 	StatusReview:     "👁️",
 	StatusGraphOpen:  "🔵",
 	StatusGraphWork:  "🟡",
+	TriageScoreMid:   "🟠",
 	PriorityMedium:   "🔹",
 	PriorityLow:      "☕",
 	PriorityBacklog:  "💤",
@@ -331,10 +333,11 @@ var nerdIcons = map[Name]string{
 	StatusUnknown:    "\U000f0766", // md-circle-outline
 	StatusDeferred:   "\U000f03e4", // md-pause
 	StatusPinned:     "\U000f0403", // md-pin
-	StatusHooked:     "\U000f0349", // md-hook
+	StatusHooked:     "\U000f06e2", // md-hook
 	StatusReview:     "\U000f0208", // md-eye
 	StatusGraphOpen:  "\U000f0765", // md-circle
 	StatusGraphWork:  "\U000f0130", // md-progress-clock
+	TriageScoreMid:   "\U000f0425", // md-circle-medium
 	PriorityMedium:   "\U000f04a0", // md-rhombus-medium
 	PriorityLow:      "\U000f0176", // md-coffee
 	PriorityBacklog:  "\U000f03d8", // md-sleep

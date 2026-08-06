@@ -42,7 +42,8 @@ All notable changes to **Beads Viewer (`bv`)** are documented here. Versions are
 - **Centralized icon registry with optional Nerd Font mode.** New `pkg/icons` package
   consolidates emoji and Nerd Font glyphs used across triage reasons, markdown export, and
   the TUI. Set `BV_ICON_SET=nerd` (aliases: `nerdfont`, `nerd-font`, `nf`) to render
-  Material Design Icons from the Nerd Fonts PUA block; default remains emoji.
+  Material Design Icons from the Nerd Fonts PUA block; default remains emoji. Duplicate
+  status/type/priority helpers in `pkg/ui` and export now delegate to the registry.
 
 - **Reliable light/dark theme selection (bv-128, idea from PR #178).** New `--theme` flag
   (`light` | `dark` | `auto`) plus a top-level `theme:` key in `~/.config/bv/config.yaml`,
