@@ -297,55 +297,55 @@ var emojiIcons = map[Name]string{
 	FileDefault:      "📄",
 }
 
-// ponytail: NF codepoints are Material Design Icons from the Nerd Fonts 3.x PUA block.
+// ponytail: codepoints from Nerd Fonts 3.4 i_md.sh — not raw MDI webfont names (F0AFA is alpha-m, not bug).
 var nerdIcons = map[Name]string{
-	Bug:              "\U000f0afa", // md-bug
-	Feature:          "\U000f04a4", // md-shimmer
-	Task:             "\U000f014e", // md-clipboard-text
+	Bug:              "\U000f00e4", // md-bug
+	Feature:          "\U000f1545", // md-shimmer
+	Task:             "\U000f014d", // md-clipboard-text
 	Epic:             "\U000f14de", // md-rocket-launch
-	Chore:            "\U000f0823", // md-broom
-	Target:           "\U000f0f44", // md-target
-	Unlock:           "\U000f08c5", // md-lock-open-variant
+	Chore:            "\U000f00e2", // md-broom
+	Target:           "\U000f04fe", // md-target
+	Unlock:           "\U000f0fc6", // md-lock-open-variant
 	Warning:          "\U000f0026", // md-alert
-	Shuffle:          "\U000f0430", // md-shuffle
-	Chart:            "\U000f0126", // md-chart-bar
-	Clock:            "\U000f0189", // md-clock-outline
+	Shuffle:          "\U000f049d", // md-shuffle
+	Chart:            "\U000f0128", // md-chart-bar
+	Clock:            "\U000f0150", // md-clock-outline
 	Calendar:         "\U000f00ed", // md-calendar
-	Lightning:        "\U000f024b", // md-flash
-	CheckCircle:      "\U000f0133", // md-check-circle
-	Construction:     "\U000f0461", // md-road-variant
+	Lightning:        "\U000f0241", // md-flash
+	CheckCircle:      "\U000f05e0", // md-check-circle
+	Construction:     "\U000f0462", // md-road-variant
 	Blocked:          "\U000f073a", // md-cancel
 	Pause:            "\U000f03e4", // md-pause
 	User:             "\U000f0004", // md-account
-	Hourglass:        "\U000f05ad", // md-timer-sand
-	Siren:            "\U000f0078", // md-alarm-light
+	Hourglass:        "\U000f051f", // md-timer-sand
+	Siren:            "\U000f078f", // md-alarm-light
 	Star:             "\U000f04ce", // md-star
 	Fire:             "\U000f0238", // md-fire
-	Alarm:            "\U000f0120", // md-alarm
+	Alarm:            "\U000f0020", // md-alarm
 	Link:             "\U000f0337", // md-link
-	New:              "\U000f0054", // md-new-box
+	New:              "\U000f0394", // md-new-box
 	Check:            "\U000f012c", // md-check
 	Cross:            "\U000f0159", // md-close-circle
-	StatusOpen:       "\U000f0765", // md-circle
-	StatusInProgress: "\U000f0130", // md-progress-clock
+	StatusOpen:       "\U000f0ec2", // md-record-circle
+	StatusInProgress: "\U000f09de", // md-circle-medium
 	StatusBlocked:    "\U000f073a", // md-cancel
-	StatusClosed:     "\U000f0133", // md-check-circle
-	StatusUnknown:    "\U000f0766", // md-circle-outline
+	StatusClosed:     "\U000f0159", // md-close-circle
+	StatusUnknown:    "\U000f0ec3", // md-record-circle-outline
 	StatusDeferred:   "\U000f03e4", // md-pause
 	StatusPinned:     "\U000f0403", // md-pin
 	StatusHooked:     "\U000f06e2", // md-hook
 	StatusReview:     "\U000f0208", // md-eye
-	StatusGraphOpen:  "\U000f0765", // md-circle
-	StatusGraphWork:  "\U000f0130", // md-progress-clock
-	TriageScoreMid:   "\U000f0425", // md-circle-medium
-	PriorityMedium:   "\U000f04a0", // md-rhombus-medium
+	StatusGraphOpen:  "\U000f09de", // md-circle-medium
+	StatusGraphWork:  "\U000f0996", // md-progress-clock
+	TriageScoreMid:   "\U000f0a10", // md-rhombus-medium
+	PriorityMedium:   "\U000f0a10", // md-rhombus-medium
 	PriorityLow:      "\U000f0176", // md-coffee
-	PriorityBacklog:  "\U000f03d8", // md-sleep
+	PriorityBacklog:  "\U000f04b2", // md-sleep
 	DepRoot:          "\U000f034e", // md-map-marker
-	DepParentChild:   "\U000f0493", // md-package-variant
+	DepParentChild:   "\U000f03d6", // md-package-variant
 	DepDiscovered:    "\U000f0349", // md-magnify
-	SwimRefresh:      "\U000f0450", // md-sync
+	SwimRefresh:      "\U000f04e6", // md-sync
 	SwimProhibited:   "\U000f073a", // md-cancel
 	Question:         "\U000f02d7", // md-help-circle
-	FileDefault:      "\U000f0214", // md-file-document
+	FileDefault:      "\U000f0219", // md-file-document
 }

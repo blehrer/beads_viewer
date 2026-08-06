@@ -39,8 +39,8 @@ func TestIssueType_EmojiDefault(t *testing.T) {
 
 func TestIssueType_Nerd(t *testing.T) {
 	useSet(t, SetNerd)
-	if got := IssueType("bug"); got != "\U000f0afa" {
-		t.Fatalf("IssueType(bug) = %q, want nerd bug", got)
+	if got := IssueType("bug"); got != "\U000f00e4" {
+		t.Fatalf("IssueType(bug) = %q, want nerd md-bug U+F00E4", got)
 	}
 	if got := IssueType("unknown"); got != "•" {
 		t.Fatalf("IssueType(unknown) = %q, want bullet", got)
@@ -73,12 +73,12 @@ func TestIssueStatus_Nerd(t *testing.T) {
 		status string
 		want   string
 	}{
-		{"open", "\U000f0765"},
-		{"in_progress", "\U000f0130"},
+		{"open", "\U000f0ec2"},
+		{"in_progress", "\U000f09de"},
 		{"blocked", "\U000f073a"},
-		{"closed", "\U000f0133"},
-		{"tombstone", "\U000f0133"},
-		{"unknown", "\U000f0766"},
+		{"closed", "\U000f0159"},
+		{"tombstone", "\U000f0159"},
+		{"unknown", "\U000f0ec3"},
 	}
 	for _, tt := range tests {
 		if got := IssueStatus(tt.status); got != tt.want {
@@ -110,8 +110,16 @@ func TestGet_Emoji(t *testing.T) {
 
 func TestGet_Nerd(t *testing.T) {
 	useSet(t, SetNerd)
-	if got := Get(Bug); got != "\U000f0afa" {
-		t.Fatalf("Get(Bug) = %q, want nerd bug", got)
+	if got := Get(Bug); got != "\U000f00e4" {
+		t.Fatalf("Get(Bug) = %q, want md-bug U+F00E4", got)
+	}
+}
+
+func TestBugNerd_NotAlphaM(t *testing.T) {
+	useSet(t, SetNerd)
+	const alphaM = "\U000f0afa" // MDI alpha-m — was wrongly used as md-bug
+	if got := Get(Bug); got == alphaM {
+		t.Fatal("Bug nerd glyph must not be alpha-m (F0AFA)")
 	}
 }
 
@@ -160,6 +168,16 @@ func TestDependencyType(t *testing.T) {
 	useSet(t, SetEmoji)
 	if got := DependencyType("blocks"); got != "⛔" {
 		t.Fatalf("DependencyType(blocks) = %q", got)
+	}
+}
+
+func TestIssueStatusGraph_Nerd(t *testing.T) {
+	useSet(t, SetNerd)
+	if got := IssueStatusGraph("open"); got != "\U000f09de" {
+		t.Fatalf("IssueStatusGraph(open) = %q", got)
+	}
+	if got := IssueStatusGraph("closed"); got != "\U000f05e0" {
+		t.Fatalf("IssueStatusGraph(closed) = %q", got)
 	}
 }
 
