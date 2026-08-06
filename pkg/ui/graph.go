@@ -878,7 +878,7 @@ func (g *GraphModel) renderMetricsPanel(id string, width int, t Theme) string {
 // Helper functions
 
 func getStatusIcon(status model.Status) string {
-	return icons.IssueStatusGraph(string(status))
+	return RenderStatusDotGraph(string(status))
 }
 
 func getPriorityIcon(priority int) string {

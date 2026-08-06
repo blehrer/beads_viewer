@@ -894,9 +894,7 @@ func (m *InsightsModel) renderInsightRow(id string, value float64, width int, is
 		rowBuilder.WriteString(" ")
 
 		// Status indicator
-		statusColor := t.GetStatusColor(string(issue.Status))
-		statusDot := t.Renderer.NewStyle().Foreground(statusColor).Render("●")
-		rowBuilder.WriteString(statusDot)
+		rowBuilder.WriteString(RenderStatusDot(string(issue.Status)))
 		rowBuilder.WriteString(" ")
 
 		// Title (truncated) - leave room for description preview

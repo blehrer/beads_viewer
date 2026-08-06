@@ -646,10 +646,7 @@ func (t *TreeModel) renderNode(node *IssueTreeNode, isSelected bool) string {
 	sb.WriteString(title)
 
 	// Status indicator (colored dot at end)
-	statusColor := t.theme.GetStatusColor(string(issue.Status))
-	statusDot := " " + GetStatusIcon(string(issue.Status))
-	statusStyle := r.NewStyle().Foreground(statusColor)
-	sb.WriteString(statusStyle.Render(statusDot))
+	sb.WriteString(" " + GetStatusIcon(string(issue.Status)))
 
 	return sb.String()
 }

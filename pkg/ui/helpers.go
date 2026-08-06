@@ -210,12 +210,9 @@ func getDepTypeIcon(depType string) string {
 	return icons.DependencyType(depType)
 }
 
-// GetStatusIcon returns a colored icon for a status
+// GetStatusIcon returns a lipgloss-colored status dot for TUI rendering.
 func GetStatusIcon(s string) string {
-	if s == "" {
-		return icons.Get(icons.StatusUnknown)
-	}
-	return icons.IssueStatus(s)
+	return RenderStatusDot(s)
 }
 
 // GetPriorityIcon returns the emoji for a priority level

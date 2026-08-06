@@ -142,6 +142,53 @@ func RenderPriorityBadge(priority int) string {
 		Render(label)
 }
 
+// statusDotColor maps a beads status to the theme foreground used for list/graph dots.
+func statusDotColor(status string) lipgloss.AdaptiveColor {
+	switch status {
+	case "open":
+		return ColorStatusOpen
+	case "in_progress":
+		return ColorStatusInProgress
+	case "blocked":
+		return ColorStatusBlocked
+	case "deferred", "draft":
+		return ColorStatusDeferred
+	case "pinned":
+		return ColorStatusPinned
+	case "hooked":
+		return ColorStatusHooked
+	case "review":
+		return ColorStatusReview
+	case "closed":
+		return ColorStatusClosed
+	case "tombstone":
+		return ColorStatusTombstone
+	default:
+		return ColorMuted
+	}
+}
+
+// RenderStatusDot returns a lipgloss-colored status indicator for TUI views.
+// ponytail: plain ● + theme color replaces emoji circles (🟢🔵🔴) — no VS-16 width issues.
+func RenderStatusDot(status string) string {
+	if status == "" {
+		status = "unknown"
+	}
+	return lipgloss.NewStyle().
+		Foreground(statusDotColor(status)).
+		Render("●")
+}
+
+// RenderStatusDotGraph is like RenderStatusDot but uses ✓ for completed issues in graph view.
+func RenderStatusDotGraph(status string) string {
+	if status == "closed" || status == "tombstone" {
+		return lipgloss.NewStyle().
+			Foreground(statusDotColor(status)).
+			Render("✓")
+	}
+	return RenderStatusDot(status)
+}
+
 // RenderStatusBadge returns a styled status badge
 func RenderStatusBadge(status string) string {
 	var fg, bg lipgloss.AdaptiveColor

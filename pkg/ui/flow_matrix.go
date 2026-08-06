@@ -770,9 +770,7 @@ func (m FlowMatrixModel) renderDrilldown() string {
 		selected := i == m.drilldownCursor
 
 		// Status indicator
-		statusColor := m.theme.GetStatusColor(string(iss.Status))
-		statusStyle := m.theme.Renderer.NewStyle().Foreground(statusColor)
-		statusIndicator := "●"
+		statusIndicator := RenderStatusDot(string(iss.Status))
 
 		// Issue line
 		idStyle := m.theme.Renderer.NewStyle().Foreground(m.theme.Primary)
@@ -789,7 +787,7 @@ func (m FlowMatrixModel) renderDrilldown() string {
 		}
 
 		row := fmt.Sprintf("%s %s %s",
-			statusStyle.Render(statusIndicator),
+			statusIndicator,
 			idStyle.Render(iss.ID),
 			titleStyle.Render(title))
 

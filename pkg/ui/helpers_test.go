@@ -6,6 +6,7 @@ import (
 
 	"github.com/Dicklesworthstone/beads_viewer/pkg/model"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/ui"
+	"github.com/charmbracelet/lipgloss"
 )
 
 // TestTruncateRunesHelper tests UTF-8 safe truncation
@@ -249,25 +250,31 @@ func TestRenderDependencyTreeNil(t *testing.T) {
 	}
 }
 
-// TestGetStatusIcon tests status icon mapping
+// TestGetStatusIcon tests status dot rendering (lipgloss-colored ●, not emoji).
 func TestGetStatusIcon(t *testing.T) {
 	tests := []struct {
-		status   string
-		expected string
+		status string
 	}{
-		{"open", "🟢"},
-		{"in_progress", "🔵"},
-		{"blocked", "🔴"},
-		{"closed", "⚫"},
-		{"unknown", "⚪"},
-		{"", "⚪"},
+		{"open"},
+		{"in_progress"},
+		{"blocked"},
+		{"closed"},
+		{"unknown"},
+		{""},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.status, func(t *testing.T) {
 			icon := ui.GetStatusIcon(tt.status)
-			if icon != tt.expected {
-				t.Errorf("GetStatusIcon(%s) = %s; want %s", tt.status, icon, tt.expected)
+			if icon == "" {
+				t.Fatal("GetStatusIcon returned empty string")
+			}
+			// Visible glyph is always ● (styled); never legacy emoji circles.
+			if strings.Contains(icon, "🟢") || strings.Contains(icon, "🔵") || strings.Contains(icon, "🔴") {
+				t.Errorf("GetStatusIcon(%q) still uses emoji circle: %q", tt.status, icon)
+			}
+			if lipgloss.Width(icon) != 1 {
+				t.Errorf("GetStatusIcon(%q) visible width = %d, want 1", tt.status, lipgloss.Width(icon))
 			}
 		})
 	}
