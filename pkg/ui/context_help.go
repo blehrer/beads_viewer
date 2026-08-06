@@ -115,6 +115,7 @@ const contextHelpList = `## List View
   h         History view
 
 **Actions**
+  K         Symbol / icon reference
   U         Self-update bv
   V         Preview cass sessions`
 

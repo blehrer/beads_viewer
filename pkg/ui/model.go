@@ -60,6 +60,7 @@ const (
 	focusRecipePicker
 	focusRepoPicker
 	focusHelp
+	focusGlyphHelp
 	focusQuitConfirm
 	focusTimeTravelInput
 	focusHistory
@@ -479,6 +480,8 @@ type Model struct {
 	showDetails              bool
 	showHelp                 bool
 	helpScroll               int // Scroll offset for help overlay
+	showGlyphHelp            bool
+	glyphHelpScroll          int // Scroll offset for symbol reference overlay (K)
 	showQuitConfirm          bool
 	ready                    bool
 	width                    int
@@ -2775,6 +2778,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if (msg.String() == "?" || msg.String() == "f1") && m.list.FilterState() != list.Filtering {
 			m.showHelp = !m.showHelp
 			if m.showHelp {
+				m.showGlyphHelp = false
+				m.glyphHelpScroll = 0
 				m.focusBeforeHelp = m.focused // Store current focus before switching to help
 				m.focused = focusHelp
 				m.helpScroll = 0 // Reset scroll position when opening help
@@ -2782,6 +2787,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.focused = m.restoreFocusFromHelp()
 			}
 			return m, nil
+		}
+
+		// Symbol reference overlay (K) — Neovim keywordprg-style glyph docs; not in history (J/K taken).
+		if msg.String() == "K" && m.list.FilterState() != list.Filtering {
+			if m.showGlyphHelp {
+				m.showGlyphHelp = false
+				m.glyphHelpScroll = 0
+				m.focused = m.restoreFocusFromHelp()
+				return m, nil
+			}
+			if !m.isHistoryView && m.focused != focusHistory {
+				m.showGlyphHelp = true
+				m.showHelp = false
+				m.helpScroll = 0
+				m.focusBeforeHelp = m.focused
+				m.focused = focusGlyphHelp
+				m.glyphHelpScroll = 0
+				return m, nil
+			}
 		}
 
 		// Handle tutorial toggle (backtick `) - bv-8y31
@@ -2954,6 +2978,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			m.updateListDelegate()
 			return m, tea.Batch(cmds...)
+		}
+
+		// If glyph help is showing, handle navigation keys for scrolling
+		if m.focused == focusGlyphHelp {
+			m = m.handleGlyphHelpKeys(msg)
+			return m, nil
 		}
 
 		// If help is showing, handle navigation keys for scrolling
@@ -4948,6 +4978,8 @@ func (m Model) View() string {
 		body = m.labelPicker.View()
 	} else if m.showHelp {
 		body = m.renderHelpOverlay()
+	} else if m.showGlyphHelp {
+		body = m.renderGlyphHelpOverlay()
 	} else if m.showTutorial {
 		// Interactive tutorial (bv-8y31) - full screen overlay
 		body = m.tutorialModel.View()
@@ -5331,6 +5363,7 @@ func (m *Model) renderHelpOverlay() string {
 
 	globalSection := []struct{ key, desc string }{
 		{"?", "This help"},
+		{"K", "Symbol / icon reference"},
 		{";", "Shortcuts bar"},
 		{"!", "Alerts panel"},
 		{"'", "Recipes"},
@@ -6402,6 +6435,8 @@ func (m *Model) renderFooter() string {
 	var keyHints []string
 	if m.showHelp {
 		keyHints = append(keyHints, "Press any key to close")
+	} else if m.showGlyphHelp {
+		keyHints = append(keyHints, keyStyle.Render("j/k")+" scroll", keyStyle.Render("K")+"/esc close")
 	} else if m.showRecipePicker {
 		keyHints = append(keyHints, keyStyle.Render("j/k")+" nav", keyStyle.Render("⏎")+" apply", keyStyle.Render("esc")+" cancel")
 	} else if m.showRepoPicker {
@@ -6441,9 +6476,9 @@ func (m *Model) renderFooter() string {
 		} else if m.isSplitView {
 			keyHints = append(keyHints, keyStyle.Render("tab")+" focus", keyStyle.Render("C")+" copy", keyStyle.Render("x")+" export", keyStyle.Render("Ctrl+R")+" refresh", keyStyle.Render("?")+" help")
 		} else if m.showDetails {
-			keyHints = append(keyHints, keyStyle.Render("esc")+" back", keyStyle.Render("C")+" copy", keyStyle.Render("O")+" edit", keyStyle.Render("Ctrl+R")+" refresh", keyStyle.Render("?")+" help")
+			keyHints = append(keyHints, keyStyle.Render("esc")+" back", keyStyle.Render("C")+" copy", keyStyle.Render("O")+" edit", keyStyle.Render("Ctrl+R")+" refresh", keyStyle.Render("K")+" symbols", keyStyle.Render("?")+" help")
 		} else {
-			keyHints = append(keyHints, keyStyle.Render("⏎")+" details", keyStyle.Render("t")+" diff", keyStyle.Render("S")+" triage", keyStyle.Render("l")+" labels", keyStyle.Render("Ctrl+R")+" refresh", keyStyle.Render("?")+" help")
+			keyHints = append(keyHints, keyStyle.Render("⏎")+" details", keyStyle.Render("t")+" diff", keyStyle.Render("S")+" triage", keyStyle.Render("l")+" labels", keyStyle.Render("Ctrl+R")+" refresh", keyStyle.Render("K")+" symbols", keyStyle.Render("?")+" help")
 			if m.workspaceMode {
 				keyHints = append(keyHints, keyStyle.Render("w")+" repos")
 			}
@@ -7353,7 +7388,7 @@ func (m Model) handleLeftClick(x, y int) Model {
 		m.showUpdateModal || m.showLabelHealthDetail || m.showLabelGraphAnalysis ||
 		m.showLabelDrilldown || m.showAlertsPanel || m.showTimeTravelPrompt ||
 		m.showRecipePicker || m.showRepoPicker || m.showLabelPicker ||
-		m.showHelp || m.showTutorial {
+		m.showHelp || m.showGlyphHelp || m.showTutorial {
 		return m
 	}
 

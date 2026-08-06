@@ -305,6 +305,7 @@ func GetKeyBindingDocs() []KeyBindingDoc {
 		{"h", "History view", "Views", "list,detail"},
 		{"i", "Insights panel", "Views", "list,detail"},
 		{"?", "Help overlay", "Views", "all"},
+		{"K", "Symbol reference (glyph glossary)", "Views", "list,detail,board,graph,insights,actionable,tree,flow-matrix,sprint,label-dashboard"},
 		{";", "Shortcuts sidebar", "Views", "all"},
 		{"p", "Priority hints", "Views", "list,detail"},
 
