@@ -272,20 +272,7 @@ func getTypeEmoji(issueType string) string {
 }
 
 func getPriorityLabel(priority int) string {
-	switch priority {
-	case 0:
-		return "🔥 Critical (P0)"
-	case 1:
-		return "⚡ High (P1)"
-	case 2:
-		return "🔹 Medium (P2)"
-	case 3:
-		return "☕ Low (P3)"
-	case 4:
-		return "💤 Backlog (P4)"
-	default:
-		return fmt.Sprintf("P%d", priority)
-	}
+	return icons.PriorityLabel(priority)
 }
 
 // SaveMarkdownToFile writes the generated markdown to a file
@@ -503,7 +490,7 @@ func GeneratePriorityBrief(triage interface{}, config PriorityBriefConfig) strin
 	sb.WriteString("|---|-------|------|----------|-------|------------|\n")
 	sb.WriteString("| 1 | *Run `bv --robot-triage` for data* | - | - | - | - |\n\n")
 
-	sb.WriteString("## ⚡ Quick Wins\n\n")
+	sb.WriteString("## " + icons.Get(icons.Lightning) + " Quick Wins\n\n")
 	sb.WriteString("| Issue | Reason | Impact |\n")
 	sb.WriteString("|-------|--------|--------|\n")
 	sb.WriteString("| *Run `bv --robot-triage` for data* | - | - |\n\n")
@@ -647,7 +634,7 @@ func GeneratePriorityBriefFromTriageJSON(triageJSON []byte, config PriorityBrief
 	}
 
 	// Quick Wins
-	sb.WriteString("## ⚡ Quick Wins\n\n")
+	sb.WriteString("## " + icons.Get(icons.Lightning) + " Quick Wins\n\n")
 	if len(triage.QuickWins) == 0 {
 		sb.WriteString("*No quick wins identified.*\n\n")
 	} else {

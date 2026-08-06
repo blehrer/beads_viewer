@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/model"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mattn/go-runewidth"
@@ -206,54 +207,20 @@ func renderTreeNode(sb *strings.Builder, node *DependencyNode, prefix string, is
 }
 
 func getDepTypeIcon(depType string) string {
-	switch depType {
-	case "root":
-		return "📍"
-	case "blocks":
-		return "⛔"
-	case "related":
-		return "🔗"
-	case "parent-child":
-		return "📦"
-	case "discovered-from":
-		return "🔍"
-	default:
-		return "•"
-	}
+	return icons.DependencyType(depType)
 }
 
 // GetStatusIcon returns a colored icon for a status
 func GetStatusIcon(s string) string {
-	switch s {
-	case "open":
-		return "🟢"
-	case "in_progress":
-		return "🔵"
-	case "blocked":
-		return "🔴"
-	case "closed":
-		return "⚫"
-	default:
-		return "⚪"
+	if s == "" {
+		return icons.Get(icons.StatusUnknown)
 	}
+	return icons.IssueStatus(s)
 }
 
 // GetPriorityIcon returns the emoji for a priority level
 func GetPriorityIcon(priority int) string {
-	switch priority {
-	case 0:
-		return "🔥" // Critical
-	case 1:
-		return "⚡" // High
-	case 2:
-		return "🔹" // Medium
-	case 3:
-		return "☕" // Low
-	case 4:
-		return "💤" // Backlog
-	default:
-		return "  "
-	}
+	return icons.Priority(priority)
 }
 
 // GetPriorityLabel returns a compact text label for priority (P0, P1, etc.)

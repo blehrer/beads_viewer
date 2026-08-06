@@ -6,6 +6,7 @@
 package icons
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"sync"
@@ -55,6 +56,22 @@ const (
 	StatusBlocked    Name = "status_blocked"
 	StatusClosed     Name = "status_closed"
 	StatusUnknown    Name = "status_unknown"
+	StatusDeferred   Name = "status_deferred"
+	StatusPinned     Name = "status_pinned"
+	StatusHooked     Name = "status_hooked"
+	StatusReview     Name = "status_review"
+	StatusGraphOpen  Name = "status_graph_open"
+	StatusGraphWork  Name = "status_graph_work"
+	PriorityMedium   Name = "priority_medium"
+	PriorityLow      Name = "priority_low"
+	PriorityBacklog  Name = "priority_backlog"
+	DepRoot          Name = "dep_root"
+	DepParentChild   Name = "dep_parent_child"
+	DepDiscovered    Name = "dep_discovered"
+	SwimRefresh      Name = "swim_refresh"
+	SwimProhibited   Name = "swim_prohibited"
+	Question         Name = "question"
+	FileDefault      Name = "file_default"
 )
 
 var (
@@ -135,8 +152,95 @@ func IssueStatus(status string) string {
 		return Get(StatusBlocked)
 	case "closed", "tombstone":
 		return Get(StatusClosed)
+	case "deferred", "draft":
+		return Get(Pause)
+	case "pinned":
+		return Get(StatusPinned)
+	case "hooked":
+		return Get(StatusHooked)
+	case "review":
+		return Get(StatusReview)
 	default:
 		return Get(StatusUnknown)
+	}
+}
+
+// IssueStatusGraph returns status glyphs for the interactive graph view.
+// ponytail: graph uses blue/yellow circles and a checkmark for done — not the list-view circles.
+func IssueStatusGraph(status string) string {
+	switch status {
+	case "closed", "tombstone":
+		return Get(CheckCircle)
+	case "open":
+		return Get(StatusGraphOpen)
+	case "in_progress":
+		return Get(StatusGraphWork)
+	case "blocked":
+		return Get(StatusBlocked)
+	case "deferred", "draft":
+		return Get(Pause)
+	case "pinned":
+		return Get(StatusPinned)
+	case "hooked":
+		return Get(StatusHooked)
+	case "review":
+		return Get(StatusReview)
+	default:
+		return Get(StatusUnknown)
+	}
+}
+
+// Priority returns the icon for beads priority 0–4 (P0 critical … P4 backlog).
+func Priority(level int) string {
+	switch level {
+	case 0:
+		return Get(Fire)
+	case 1:
+		return Get(Lightning)
+	case 2:
+		return Get(PriorityMedium)
+	case 3:
+		return Get(PriorityLow)
+	case 4:
+		return Get(PriorityBacklog)
+	default:
+		return "  "
+	}
+}
+
+// DependencyType returns the icon for a dependency edge type string.
+func DependencyType(depType string) string {
+	switch depType {
+	case "root":
+		return Get(DepRoot)
+	case "blocks":
+		return Get(Blocked)
+	case "related":
+		return Get(Link)
+	case "parent-child":
+		return Get(DepParentChild)
+	case "discovered-from":
+		return Get(DepDiscovered)
+	default:
+		return "•"
+	}
+}
+
+// PriorityLabel returns a markdown-friendly priority line (emoji + text).
+func PriorityLabel(level int) string {
+	switch level {
+	case 0:
+		return Get(Fire) + " Critical (P0)"
+	case 1:
+		return Get(Lightning) + " High (P1)"
+	case 2:
+		return Get(PriorityMedium) + " Medium (P2)"
+	case 3:
+		return Get(PriorityLow) + " Low (P3)"
+	case 4:
+		return Get(PriorityBacklog) + " Backlog (P4)"
+	default:
+		return fmt.Sprintf("P%d", level)
 	}
 }
 
@@ -173,6 +277,22 @@ var emojiIcons = map[Name]string{
 	StatusBlocked:    "🔴",
 	StatusClosed:     "⚫",
 	StatusUnknown:    "⚪",
+	StatusDeferred:   "⏸️",
+	StatusPinned:     "📌",
+	StatusHooked:     "🪝",
+	StatusReview:     "👁️",
+	StatusGraphOpen:  "🔵",
+	StatusGraphWork:  "🟡",
+	PriorityMedium:   "🔹",
+	PriorityLow:      "☕",
+	PriorityBacklog:  "💤",
+	DepRoot:          "📍",
+	DepParentChild:   "📦",
+	DepDiscovered:    "🔍",
+	SwimRefresh:      "🔄",
+	SwimProhibited:   "🚫",
+	Question:         "❓",
+	FileDefault:      "📄",
 }
 
 // ponytail: NF codepoints are Material Design Icons from the Nerd Fonts 3.x PUA block.
@@ -209,4 +329,20 @@ var nerdIcons = map[Name]string{
 	StatusBlocked:    "\U000f073a", // md-cancel
 	StatusClosed:     "\U000f0133", // md-check-circle
 	StatusUnknown:    "\U000f0766", // md-circle-outline
+	StatusDeferred:   "\U000f03e4", // md-pause
+	StatusPinned:     "\U000f0403", // md-pin
+	StatusHooked:     "\U000f0349", // md-hook
+	StatusReview:     "\U000f0208", // md-eye
+	StatusGraphOpen:  "\U000f0765", // md-circle
+	StatusGraphWork:  "\U000f0130", // md-progress-clock
+	PriorityMedium:   "\U000f04a0", // md-rhombus-medium
+	PriorityLow:      "\U000f0176", // md-coffee
+	PriorityBacklog:  "\U000f03d8", // md-sleep
+	DepRoot:          "\U000f034e", // md-map-marker
+	DepParentChild:   "\U000f0493", // md-package-variant
+	DepDiscovered:    "\U000f0349", // md-magnify
+	SwimRefresh:      "\U000f0450", // md-sync
+	SwimProhibited:   "\U000f073a", // md-cancel
+	Question:         "\U000f02d7", // md-help-circle
+	FileDefault:      "\U000f0214", // md-file-document
 }

@@ -146,12 +146,51 @@ func TestSetFromEnv_Aliases(t *testing.T) {
 	}
 }
 
+func TestPriority(t *testing.T) {
+	useSet(t, SetEmoji)
+	if got := Priority(0); got != "🔥" {
+		t.Fatalf("Priority(0) = %q", got)
+	}
+	if got := Priority(4); got != "💤" {
+		t.Fatalf("Priority(4) = %q", got)
+	}
+}
+
+func TestDependencyType(t *testing.T) {
+	useSet(t, SetEmoji)
+	if got := DependencyType("blocks"); got != "⛔" {
+		t.Fatalf("DependencyType(blocks) = %q", got)
+	}
+}
+
+func TestIssueStatusGraph(t *testing.T) {
+	useSet(t, SetEmoji)
+	if got := IssueStatusGraph("open"); got != "🔵" {
+		t.Fatalf("IssueStatusGraph(open) = %q", got)
+	}
+	if got := IssueStatusGraph("closed"); got != "✅" {
+		t.Fatalf("IssueStatusGraph(closed) = %q", got)
+	}
+}
+
+func TestIssueStatus_Extended(t *testing.T) {
+	useSet(t, SetEmoji)
+	if got := IssueStatus("deferred"); got != "⏸️" {
+		t.Fatalf("IssueStatus(deferred) = %q", got)
+	}
+}
+
 func TestAllNamesHaveGlyphs(t *testing.T) {
 	names := []Name{
 		Bug, Feature, Task, Epic, Chore, Target, Unlock, Warning, Shuffle, Chart,
 		Clock, Calendar, Lightning, CheckCircle, Construction, Blocked, Pause, User,
 		Hourglass, Siren, Star, Fire, Alarm, Link, New, Check, Cross,
 		StatusOpen, StatusInProgress, StatusBlocked, StatusClosed, StatusUnknown,
+		StatusDeferred, StatusPinned, StatusHooked, StatusReview,
+		StatusGraphOpen, StatusGraphWork,
+		PriorityMedium, PriorityLow, PriorityBacklog,
+		DepRoot, DepParentChild, DepDiscovered,
+		SwimRefresh, SwimProhibited, Question, FileDefault,
 	}
 	for _, name := range names {
 		if _, ok := emojiIcons[name]; !ok {

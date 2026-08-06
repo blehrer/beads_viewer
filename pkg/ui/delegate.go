@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Dicklesworthstone/beads_viewer/pkg/analysis"
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -137,7 +138,7 @@ func (d IssueDelegate) Render(w io.Writer, m list.Model, index int, listItem lis
 
 	// Triage indicator width (bv-151) - use lipgloss.Width for accurate emoji measurement
 	if i.IsQuickWin {
-		leftFixedWidth += lipgloss.Width("⭐") + 1 // emoji + space
+		leftFixedWidth += lipgloss.Width(icons.Get(icons.Star)) + 1 // emoji + space
 	} else if i.IsBlocker && i.UnblocksCount > 0 {
 		leftFixedWidth += lipgloss.Width(fmt.Sprintf("🔓%d", i.UnblocksCount)) + 1 // emoji+count + space
 	} else if i.UnblocksCount > 0 {
@@ -228,7 +229,7 @@ func (d IssueDelegate) Render(w io.Writer, m list.Model, index int, listItem lis
 	// Triage indicators (bv-151): Quick win ⭐ and Unblocks count 🔓 - using pre-computed styles
 	triageIndicator := ""
 	if i.IsQuickWin {
-		triageIndicator = t.TriageStar.Render("⭐")
+		triageIndicator = t.TriageStar.Render(icons.Get(icons.Star))
 	} else if i.IsBlocker && i.UnblocksCount > 0 {
 		triageIndicator = t.TriageUnblocks.Render(fmt.Sprintf("🔓%d", i.UnblocksCount))
 	} else if i.UnblocksCount > 0 {

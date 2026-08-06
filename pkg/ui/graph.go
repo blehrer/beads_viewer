@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Dicklesworthstone/beads_viewer/pkg/analysis"
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/model"
 
 	"github.com/charmbracelet/lipgloss"
@@ -572,7 +573,7 @@ func (g *GraphModel) renderNodeBox(id string, boxWidth int, t Theme, isEgo bool)
 			title = truncateRunesHelper(issue.Title, boxWidth-4, "…")
 		}
 	} else {
-		statusIcon = "❓"
+		statusIcon = icons.Get(icons.Question)
 		statusColor = t.Secondary
 		displayID = smartTruncateID(id, boxWidth-4)
 		title = "(not in filter)"
@@ -877,26 +878,15 @@ func (g *GraphModel) renderMetricsPanel(id string, width int, t Theme) string {
 // Helper functions
 
 func getStatusIcon(status model.Status) string {
-	switch {
-	case isClosedLikeStatus(status):
-		return "✅"
-	case status == model.StatusOpen:
-		return "🔵"
-	case status == model.StatusInProgress:
-		return "🟡"
-	case status == model.StatusBlocked:
-		return "🔴"
-	case status == model.StatusDeferred || status == model.StatusDraft:
-		return "⏸️"
-	case status == model.StatusPinned:
-		return "📌"
-	case status == model.StatusHooked:
-		return "🪝"
-	case status == model.StatusReview:
-		return "👁️"
-	default:
-		return "⚪"
-	}
+	return icons.IssueStatusGraph(string(status))
+}
+
+func getPriorityIcon(priority int) string {
+	return icons.Priority(priority)
+}
+
+func getTypeIcon(itype model.IssueType) string {
+	return icons.IssueType(string(itype))
 }
 
 func getStatusColor(status model.Status, t Theme) lipgloss.AdaptiveColor {
@@ -921,38 +911,6 @@ func getStatusColor(status model.Status, t Theme) lipgloss.AdaptiveColor {
 		return t.Tombstone
 	default:
 		return t.Secondary
-	}
-}
-
-func getPriorityIcon(priority int) string {
-	switch priority {
-	case 1:
-		return "🔥"
-	case 2:
-		return "⚡"
-	case 3:
-		return "📌"
-	case 4:
-		return "📋"
-	default:
-		return "  "
-	}
-}
-
-func getTypeIcon(itype model.IssueType) string {
-	switch itype {
-	case model.TypeBug:
-		return "🐛"
-	case model.TypeFeature:
-		return "✨"
-	case model.TypeTask:
-		return "📝"
-	case model.TypeEpic:
-		return "🎯"
-	case model.TypeChore:
-		return "🔧"
-	default:
-		return "📄"
 	}
 }
 

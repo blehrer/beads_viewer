@@ -21,6 +21,7 @@ import (
 	"github.com/Dicklesworthstone/beads_viewer/pkg/debug"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/drift"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/export"
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/instance"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/loader"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/model"
@@ -7453,23 +7454,23 @@ func (m *Model) updateViewportContent() {
 
 	// Triage Insights (bv-151)
 	if issueItem.TriageScore > 0 || issueItem.TriageReason != "" || issueItem.UnblocksCount > 0 || issueItem.IsQuickWin || issueItem.IsBlocker {
-		sb.WriteString("### 🎯 Triage Insights\n")
+		sb.WriteString("### " + icons.Get(icons.Target) + " Triage Insights\n")
 
 		// Score with visual indicator
-		scoreIcon := "🔵"
+		scoreIcon := icons.Get(icons.StatusGraphOpen)
 		if issueItem.TriageScore >= 0.7 {
-			scoreIcon = "🔴"
+			scoreIcon = icons.Get(icons.StatusBlocked)
 		} else if issueItem.TriageScore >= 0.4 {
-			scoreIcon = "🟠"
+			scoreIcon = icons.Get(icons.StatusGraphWork)
 		}
 		sb.WriteString(fmt.Sprintf("- **Triage Score:** %s %.2f/1.00\n", scoreIcon, issueItem.TriageScore))
 
 		// Special flags
 		if issueItem.IsQuickWin {
-			sb.WriteString("- **⭐ Quick Win** — Low effort, high impact opportunity\n")
+			sb.WriteString("- **" + icons.Get(icons.Star) + " Quick Win** — Low effort, high impact opportunity\n")
 		}
 		if issueItem.IsBlocker {
-			sb.WriteString("- **🔴 Critical Blocker** — Completing this unblocks significant downstream work\n")
+			sb.WriteString("- **" + icons.Get(icons.StatusBlocked) + " Critical Blocker** — Completing this unblocks significant downstream work\n")
 		}
 
 		// Unblocks count
@@ -7680,20 +7681,7 @@ func truncateString(s string, maxLen int) string {
 
 // GetTypeIconMD returns the emoji icon for an issue type (for markdown)
 func GetTypeIconMD(t string) string {
-	switch t {
-	case "bug":
-		return "🐛"
-	case "feature":
-		return "✨"
-	case "task":
-		return "📋"
-	case "epic":
-		return "🚀" // Use rocket instead of mountain - VS-16 variation selector causes width issues
-	case "chore":
-		return "🧹"
-	default:
-		return "•"
-	}
+	return icons.IssueType(t)
 }
 
 // SetFilter sets the current filter and applies it (exposed for testing)

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Dicklesworthstone/beads_viewer/pkg/analysis"
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/model"
 
 	"github.com/charmbracelet/bubbles/viewport"
@@ -1631,20 +1632,7 @@ func (m *InsightsModel) renderDrillDownIssue(issueID string, isSelected bool, wi
 	}
 
 	// Type icon
-	icon := "•"
-	switch issue.IssueType {
-	case "bug":
-		icon = "🐛"
-	case "feature":
-		icon = "✨"
-	case "task":
-		icon = "📋"
-	case "chore":
-		icon = "🔧"
-	case "epic":
-		icon = "🎯"
-	}
-	sb.WriteString(icon + " ")
+	sb.WriteString(icons.IssueType(string(issue.IssueType)) + " ")
 
 	// Status indicator (matches model.Status constants)
 	statusColor := t.Secondary

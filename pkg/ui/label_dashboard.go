@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Dicklesworthstone/beads_viewer/pkg/analysis"
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -213,7 +214,7 @@ func (m LabelDashboardModel) renderLabelCell(lh analysis.LabelHealth) string {
 	if lh.HealthLevel == analysis.HealthLevelCritical {
 		indicator = " !"
 	} else if lh.Blocked > 0 {
-		indicator = " ⛔"
+		indicator = " " + icons.Get(icons.Blocked)
 	}
 	return lh.Label + indicator
 }

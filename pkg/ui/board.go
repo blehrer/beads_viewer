@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/model"
 
 	"github.com/charmbracelet/bubbles/viewport"
@@ -401,13 +402,13 @@ func (b *BoardModel) getColumnHeaders() ([]string, []string) {
 	switch b.swimLaneMode {
 	case SwimByPriority:
 		return []string{"P0 CRITICAL", "P1 HIGH", "P2 MEDIUM", "P3+ OTHER"},
-			[]string{"🔥", "⚡", "🔹", "💤"}
+			[]string{icons.Priority(0), icons.Priority(1), icons.Priority(2), icons.Priority(4)}
 	case SwimByType:
 		return []string{"BUG", "FEATURE", "TASK", "EPIC"},
-			[]string{"🐛", "✨", "📋", "🎯"}
+			[]string{icons.IssueType("bug"), icons.IssueType("feature"), icons.IssueType("task"), icons.IssueType("epic")}
 	default: // SwimByStatus
 		return []string{"OPEN", "IN PROGRESS", "BLOCKED", "CLOSED"},
-			[]string{"📋", "🔄", "🚫", "✅"}
+			[]string{icons.IssueType("task"), icons.Get(icons.SwimRefresh), icons.Get(icons.SwimProhibited), icons.Get(icons.CheckCircle)}
 	}
 }
 

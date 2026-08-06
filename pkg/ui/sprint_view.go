@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/model"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -210,15 +211,15 @@ func (m Model) renderSprintDashboard() string {
 		statusIcon := "○"
 		statusStyle := valStyle
 		if isClosedLikeStatus(iss.Status) {
-			statusIcon = "✓"
+			statusIcon = icons.Get(icons.Check)
 			statusStyle = t.Renderer.NewStyle().Foreground(t.Open)
 		} else {
 			switch iss.Status {
 			case model.StatusInProgress:
-				statusIcon = "⏳"
+				statusIcon = icons.Get(icons.Hourglass)
 				statusStyle = t.Renderer.NewStyle().Foreground(t.Feature)
 			case model.StatusBlocked:
-				statusIcon = "⛔"
+				statusIcon = icons.Get(icons.Blocked)
 				statusStyle = t.Renderer.NewStyle().Foreground(t.Blocked)
 			}
 		}
