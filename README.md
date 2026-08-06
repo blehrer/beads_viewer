@@ -3703,6 +3703,7 @@ bv has a comprehensive built-in help system:
 | `BV_DEBOUNCE_MS` | Debounce window (milliseconds) for live reload events in background mode. | `200` |
 | `BV_CHANNEL_BUFFER` | Background worker message buffer size (worker → UI). | `8` |
 | `BV_HEARTBEAT_INTERVAL_S` | Background worker heartbeat interval (seconds). | `5` |
+| `BV_ICON_SET` | Icon glyph set for TUI and export output: `emoji` (default) or `nerd` (`nerdfont`, `nerd-font`, `nf`). | `emoji` |
 | `BV_WATCHDOG_INTERVAL_S` | Background worker watchdog interval (seconds). | `10` |
 | `BV_FRESHNESS_WARN_S` | Snapshot staleness warning threshold (seconds). | `30` |
 | `BV_FRESHNESS_STALE_S` | Snapshot staleness critical threshold (seconds). | `120` |

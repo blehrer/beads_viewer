@@ -39,6 +39,7 @@ import (
 	"github.com/Dicklesworthstone/beads_viewer/pkg/drift"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/export"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/hooks"
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/loader"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/model"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/recipe"
@@ -1414,6 +1415,7 @@ func issuesFingerprint(issues []model.Issue) string {
 }
 
 func main() {
+	icons.SetFromEnv()
 	flag.CommandLine.SortFlags = false
 
 	cpuProfile := flag.String("cpu-profile", "", "Write CPU profile to file")

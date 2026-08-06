@@ -204,7 +204,7 @@ func GenerateMarkdown(issues []model.Issue, title string) (string, error) {
 				}
 				icon := icons.Get(icons.Link)
 				if dep.Type.IsBlocking() {
-					icon = "⛔"
+					icon = icons.Get(icons.Blocked)
 				}
 				sb.WriteString(fmt.Sprintf("- %s **%s**: `%s`\n", icon, dep.Type, dep.DependsOnID))
 			}
