@@ -7602,13 +7602,17 @@ func (m *Model) renderBeadHistoryMD(beadID string) string {
 	}
 
 	var sb strings.Builder
-	sb.WriteString("### 📜 History\n\n")
+	sb.WriteString(fmt.Sprintf("### %s History\n\n", icons.Get(icons.HistoryBead)))
+
+	if timeline := compactTimelineMD(*hist, 80); timeline != "" {
+		sb.WriteString(fmt.Sprintf("**Timeline:** %s\n\n", timeline))
+	}
 
 	// Lifecycle milestones from events
 	if len(hist.Events) > 0 {
 		sb.WriteString("**Lifecycle:**\n")
 		for _, event := range hist.Events {
-			icon := getEventIcon(event.EventType)
+			icon := icons.LifecycleEvent(string(event.EventType))
 			sb.WriteString(fmt.Sprintf("- %s **%s** %s by %s\n",
 				icon,
 				event.EventType,
@@ -7627,13 +7631,7 @@ func (m *Model) renderBeadHistoryMD(beadID string) string {
 			break
 		}
 
-		// Confidence indicator
-		confIcon := "🟢"
-		if commit.Confidence < 0.5 {
-			confIcon = "🟡"
-		} else if commit.Confidence < 0.8 {
-			confIcon = "🟠"
-		}
+		confIcon := commitConfidenceIcon(commit.Confidence)
 
 		sb.WriteString(fmt.Sprintf("- %s **%.0f%%** `%s` %s\n",
 			confIcon,
@@ -7654,22 +7652,15 @@ func (m *Model) renderBeadHistoryMD(beadID string) string {
 	return sb.String()
 }
 
-// getEventIcon returns an icon for bead event types
-func getEventIcon(eventType correlation.EventType) string {
-	switch eventType {
-	case correlation.EventCreated:
-		return "🟢"
-	case correlation.EventClaimed:
-		return "🔵"
-	case correlation.EventClosed:
-		return "⚫"
-	case correlation.EventReopened:
-		return "🟡"
-	case correlation.EventModified:
-		return "📝"
-	default:
-		return "•"
+// commitConfidenceIcon returns a registry glyph for commit correlation confidence.
+func commitConfidenceIcon(confidence float64) string {
+	if confidence < 0.5 {
+		return icons.Get(icons.Warning)
 	}
+	if confidence < 0.8 {
+		return icons.Get(icons.TriageScoreMid)
+	}
+	return icons.Get(icons.StatusOpen)
 }
 
 // truncateString truncates a string to maxLen runes with ellipsis.

@@ -1792,42 +1792,7 @@ func (h *HistoryModel) renderCompactTimeline(hist correlation.BeadHistory, maxWi
 	t := h.theme
 	r := t.Renderer
 
-	var markers []string
-	var startTime, endTime time.Time
-
-	// Add event markers
-	if hist.Milestones.Created != nil {
-		markers = append(markers, icons.TimelineMilestone("created"))
-		startTime = hist.Milestones.Created.Timestamp
-	}
-	if hist.Milestones.Claimed != nil {
-		markers = append(markers, icons.TimelineMilestone("claimed"))
-		if startTime.IsZero() {
-			startTime = hist.Milestones.Claimed.Timestamp
-		}
-	}
-
-	// Add commit markers (limited to avoid overflow)
-	commitCount := len(hist.Commits)
-	maxCommitMarkers := 5
-	if commitCount > maxCommitMarkers {
-		// Show first few + ellipsis indicator
-		for i := 0; i < maxCommitMarkers-1; i++ {
-			markers = append(markers, "├")
-		}
-		markers = append(markers, "…")
-	} else {
-		for i := 0; i < commitCount; i++ {
-			markers = append(markers, "├")
-		}
-	}
-
-	// Add close marker
-	if hist.Milestones.Closed != nil {
-		markers = append(markers, icons.TimelineMilestone("closed"))
-		endTime = hist.Milestones.Closed.Timestamp
-	}
-
+	markers, startTime, endTime := timelineMarkers(hist)
 	if len(markers) == 0 {
 		return r.NewStyle().Foreground(t.Subtext).Render("(no timeline data)")
 	}
@@ -1837,6 +1802,7 @@ func (h *HistoryModel) renderCompactTimeline(hist correlation.BeadHistory, maxWi
 
 	// Add summary info
 	var summary []string
+	commitCount := len(hist.Commits)
 	if hist.CycleTime != nil && hist.CycleTime.CreateToClose != nil {
 		summary = append(summary, formatDuration(*hist.CycleTime.CreateToClose)+" cycle")
 	}
@@ -1868,6 +1834,76 @@ func (h *HistoryModel) renderCompactTimeline(hist correlation.BeadHistory, maxWi
 	result = truncateRunesHelper(result, maxWidth, "...")
 
 	return result
+}
+
+// compactTimelineMD returns an ANSI-free timeline line for markdown detail views.
+func compactTimelineMD(hist correlation.BeadHistory, maxWidth int) string {
+	markers, startTime, endTime := timelineMarkers(hist)
+	if len(markers) == 0 {
+		return ""
+	}
+
+	result := strings.Join(markers, "──")
+	commitCount := len(hist.Commits)
+	var summary []string
+	if hist.CycleTime != nil && hist.CycleTime.CreateToClose != nil {
+		summary = append(summary, formatDuration(*hist.CycleTime.CreateToClose)+" cycle")
+	}
+	if commitCount > 0 {
+		if commitCount == 1 {
+			summary = append(summary, "1 commit")
+		} else {
+			summary = append(summary, fmt.Sprintf("%d commits", commitCount))
+		}
+	}
+	if len(summary) > 0 {
+		result += "  " + strings.Join(summary, ", ")
+	}
+	if !startTime.IsZero() && !endTime.IsZero() {
+		dateRange := fmt.Sprintf("%s ─ %s", startTime.Format("Jan 2"), endTime.Format("Jan 2"))
+		if len(result)+len(dateRange)+4 < maxWidth {
+			result += "\n" + dateRange
+		}
+	}
+	return truncateRunesHelper(result, maxWidth, "...")
+}
+
+// timelineMarkers builds lifecycle + commit markers shared by TUI and markdown timelines.
+func timelineMarkers(hist correlation.BeadHistory) (markers []string, startTime, endTime time.Time) {
+	milestones := hist.Milestones
+	if milestones.Created == nil && milestones.Claimed == nil && milestones.Closed == nil && len(hist.Events) > 0 {
+		milestones = correlation.GetBeadMilestones(hist.Events)
+	}
+
+	if milestones.Created != nil {
+		markers = append(markers, icons.TimelineMilestone("created"))
+		startTime = milestones.Created.Timestamp
+	}
+	if milestones.Claimed != nil {
+		markers = append(markers, icons.TimelineMilestone("claimed"))
+		if startTime.IsZero() {
+			startTime = milestones.Claimed.Timestamp
+		}
+	}
+
+	commitCount := len(hist.Commits)
+	maxCommitMarkers := 5
+	if commitCount > maxCommitMarkers {
+		for i := 0; i < maxCommitMarkers-1; i++ {
+			markers = append(markers, "├")
+		}
+		markers = append(markers, "…")
+	} else {
+		for i := 0; i < commitCount; i++ {
+			markers = append(markers, "├")
+		}
+	}
+
+	if milestones.Closed != nil {
+		markers = append(markers, icons.TimelineMilestone("closed"))
+		endTime = milestones.Closed.Timestamp
+	}
+	return markers, startTime, endTime
 }
 
 // renderEmpty renders an empty state message

@@ -8,6 +8,7 @@ import (
 
 	"github.com/Dicklesworthstone/beads_viewer/pkg/analysis"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/correlation"
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/model"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/testutil"
 )
@@ -54,12 +55,12 @@ func TestMarkdownSources_NoANSI(t *testing.T) {
 	child := model.Issue{
 		ID: "child-1", Title: "Child task", Status: model.StatusBlocked, Priority: 1,
 		IssueType: model.TypeBug, Assignee: "alice", Labels: []string{"backend", "urgent"},
-		Description:          "Do the thing",
-		Design:               "Use pattern X",
-		AcceptanceCriteria:   "Tests pass",
-		Notes:                "Watch edge cases",
-		CreatedAt:            now,
-		UpdatedAt:            now,
+		Description:        "Do the thing",
+		Design:             "Use pattern X",
+		AcceptanceCriteria: "Tests pass",
+		Notes:              "Watch edge cases",
+		CreatedAt:          now,
+		UpdatedAt:          now,
 		Dependencies: []*model.Dependency{
 			{DependsOnID: "blocker-1", Type: model.DepBlocks},
 		},
@@ -110,6 +111,25 @@ func TestMarkdownSources_NoANSI(t *testing.T) {
 		m.historyView = NewHistoryModel(childHistoryReport(now), DefaultTheme(nil))
 		md := m.renderBeadHistoryMD("child-1")
 		testutil.AssertNoANSI(t, "renderBeadHistoryMD", md)
+	})
+
+	t.Run("bead history markdown uses nerd registry", func(t *testing.T) {
+		icons.Use(icons.SetNerd)
+		t.Cleanup(func() { icons.Use(icons.SetEmoji) })
+
+		m := NewModel(issues, nil, "")
+		m.historyView = NewHistoryModel(childHistoryReport(now), DefaultTheme(nil))
+		md := m.renderBeadHistoryMD("child-1")
+
+		createdIcon := icons.LifecycleEvent("created")
+		if !strings.Contains(md, createdIcon) {
+			t.Fatalf("renderBeadHistoryMD should use registry lifecycle icon %q, got:\n%s", createdIcon, md)
+		}
+		for _, stale := range []string{"🟢", "🔵", "⚫", "🟡", "📝", "📜"} {
+			if strings.Contains(md, stale) {
+				t.Fatalf("renderBeadHistoryMD still contains hardcoded emoji %q", stale)
+			}
+		}
 	})
 
 	t.Run("insights detail markdown", func(t *testing.T) {
@@ -205,6 +225,11 @@ func childHistoryReport(now time.Time) *correlation.HistoryReport {
 					{EventType: correlation.EventClaimed, Author: "bob", Timestamp: now.Add(-time.Hour)},
 					{EventType: correlation.EventClosed, Author: "bob", Timestamp: now.Add(-2 * time.Hour)},
 				},
+				Milestones: correlation.GetBeadMilestones([]correlation.BeadEvent{
+					{EventType: correlation.EventCreated, Author: "alice", Timestamp: now},
+					{EventType: correlation.EventClaimed, Author: "bob", Timestamp: now.Add(-time.Hour)},
+					{EventType: correlation.EventClosed, Author: "bob", Timestamp: now.Add(-2 * time.Hour)},
+				}),
 				Commits: []correlation.CorrelatedCommit{
 					{
 						ShortSHA:   "abc123d",
