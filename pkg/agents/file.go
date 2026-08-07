@@ -65,7 +65,7 @@ func RemoveBlurbFromFile(filePath string) error {
 // The file is created with standard permissions (0644).
 func CreateAgentFile(filePath string) error {
 	// Create with just the blurb (no existing content)
-	content := "# AI Agent Instructions\n\n" + AgentBlurb + "\n"
+	content := "# AI Agent Instructions\n\n" + AgentInstructions() + "\n"
 
 	// Write atomically
 	if err := atomicWrite(filePath, []byte(content)); err != nil {

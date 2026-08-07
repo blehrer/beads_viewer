@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Dicklesworthstone/beads_viewer/pkg/correlation"
+	"github.com/Dicklesworthstone/beads_viewer/pkg/beadscli"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/model"
 )
@@ -1133,15 +1134,14 @@ func buildGraphHealth(stats *GraphStats) GraphHealth {
 
 // buildCommands constructs helper commands, handling empty topID gracefully
 func buildCommands(topID string) CommandHelpers {
-	base := "CI=1 "
-	listReady := base + "br ready --json"
-	listBlocked := base + "br blocked --json"
+	listReady := beadscli.CI("{tool} ready --json")
+	listBlocked := beadscli.CI("{tool} blocked --json")
 
 	claimTop := listReady + "  # No top pick available"
 	showTop := listReady + "  # No top pick available"
 	if topID != "" {
-		claimTop = fmt.Sprintf("%sbr update %s --status in_progress --json", base, topID)
-		showTop = fmt.Sprintf("%sbr show %s --json", base, topID)
+		claimTop = beadscli.CI("{tool} update %s --status in_progress --json", topID)
+		showTop = beadscli.CI("{tool} show %s --json", topID)
 	}
 
 	return CommandHelpers{
@@ -1748,7 +1748,7 @@ func buildRecommendationsByTrack(recs []Recommendation, analyzer *Analyzer, unbl
 				Reasons:  rec.Reasons,
 				Unblocks: len(unblocksMap[rec.ID]),
 			}
-			group.ClaimCommand = fmt.Sprintf("CI=1 br update %s --status in_progress --json", rec.ID)
+			group.ClaimCommand = beadscli.CI("{tool} update %s --status in_progress --json", rec.ID)
 		}
 	}
 
@@ -1808,7 +1808,7 @@ func buildRecommendationsByLabel(recs []Recommendation, unblocksMap map[string][
 				Reasons:  rec.Reasons,
 				Unblocks: len(unblocksMap[rec.ID]),
 			}
-			group.ClaimCommand = fmt.Sprintf("CI=1 br update %s --status in_progress --json", rec.ID)
+			group.ClaimCommand = beadscli.CI("{tool} update %s --status in_progress --json", rec.ID)
 		}
 	}
 

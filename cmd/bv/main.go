@@ -32,6 +32,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/Dicklesworthstone/beads_viewer/internal/datasource"
+	"github.com/Dicklesworthstone/beads_viewer/pkg/beadscli"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/agents"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/analysis"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/baseline"
@@ -1838,6 +1839,8 @@ func main() {
 			}
 			os.Setenv(loader.BeadsDBEnvVar, absDB)
 		}
+
+		beadscli.DetectFromRepo("")
 
 		// Apply --no-cache flag: set BV_NO_CACHE=1 so disk cache is bypassed.
 		if *noCache {
@@ -3994,9 +3997,9 @@ func main() {
 					}
 
 					// Claim command
-					sb.WriteString(fmt.Sprintf("# To claim: br update %s --status=in_progress\n", rec.ID))
+					sb.WriteString(fmt.Sprintf("# To claim: %s\n", beadscli.Shell("{tool} update %s --status=in_progress", rec.ID)))
 					// Show command
-					sb.WriteString(fmt.Sprintf("br show %s\n", rec.ID))
+					sb.WriteString(beadscli.Shell("{tool} show %s\n", rec.ID))
 					sb.WriteString("\n")
 				}
 
@@ -4004,12 +4007,12 @@ func main() {
 				sb.WriteString("# === Quick Actions ===\n")
 				sb.WriteString("# To claim the top pick:\n")
 				if len(recs) > 0 {
-					sb.WriteString(fmt.Sprintf("# br update %s --status=in_progress\n", recs[0].ID))
+					sb.WriteString(fmt.Sprintf("# %s\n", beadscli.Shell("{tool} update %s --status=in_progress", recs[0].ID)))
 				}
 				sb.WriteString("#\n")
 				sb.WriteString("# To claim all listed items (uncomment to enable):\n")
 				for _, rec := range recs {
-					sb.WriteString(fmt.Sprintf("# br update %s --status=in_progress\n", rec.ID))
+					sb.WriteString(fmt.Sprintf("# %s\n", beadscli.Shell("{tool} update %s --status=in_progress", rec.ID)))
 				}
 			}
 
@@ -8307,6 +8310,7 @@ func robotEnvVars() map[string]string {
 	return map[string]string{
 		"BEADS_DB":            "Path to beads database file or .beads directory (overrides BEADS_DIR; overridden by --db flag)",
 		"BEADS_DIR":           "Path to .beads directory (fallback when BEADS_DB and --db are not set)",
+		"BV_BEADS_CLI":        "Beads CLI binary for emitted shell commands: bd or br (auto-detected from workspace when unset)",
 		"BV_OUTPUT_FORMAT":    "Default output format: json or toon (overridden by --format)",
 		"TOON_DEFAULT_FORMAT": "Fallback format if BV_OUTPUT_FORMAT not set",
 		"TOON_STATS":          "Set to 1 to show JSON vs TOON token estimates on stderr",

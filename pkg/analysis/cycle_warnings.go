@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Dicklesworthstone/beads_viewer/pkg/beadscli"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/model"
 )
 
@@ -110,7 +111,7 @@ func DetectCycleWarnings(issues []model.Issue, config CycleWarningConfig) []Sugg
 			// Suggest removing the last edge in the cycle
 			from := cycle[cycleLen-1]
 			to := cycle[0]
-			sug = sug.WithAction(fmt.Sprintf("br dep remove %s %s", from, to))
+			sug = sug.WithAction(beadscli.Shell("{tool} dep remove %s %s", from, to))
 		}
 
 		// If there's a second issue, mark it as related

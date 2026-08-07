@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Dicklesworthstone/beads_viewer/pkg/beadscli"
 	"github.com/Dicklesworthstone/beads_viewer/internal/datasource"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/analysis"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/baseline"
@@ -2132,7 +2133,7 @@ func handleRobotNext(ctx RobotContext, cfg phaseThreeRobotHandlerConfig) error {
 			Code:     "no_actionable_recommendation",
 			Severity: "info",
 			Message:  "No open, unblocked, unassigned non-epic recommendation passed the robot-next claimability filter.",
-			Repair:   "Use br ready --json or scripts/br_retry.sh actionable --json for authoritative claim candidates.",
+			Repair:   beadscli.Shell("Use {tool} ready --json or scripts/br_retry.sh actionable --json for authoritative claim candidates."),
 		}}
 		if err := ctx.EncoderOrDefault().Encode(output); err != nil {
 			return fmt.Errorf("encoding robot-next: %w", err)
@@ -2177,8 +2178,8 @@ func handleRobotNext(ctx RobotContext, cfg phaseThreeRobotHandlerConfig) error {
 	output.Score = top.Score
 	output.Reasons = top.Reasons
 	output.Unblocks = top.Unblocks
-	output.ClaimCmd = fmt.Sprintf("br update %s --status=in_progress", top.ID)
-	output.ShowCmd = fmt.Sprintf("br show %s", top.ID)
+	output.ClaimCmd = beadscli.Shell("{tool} update %s --status=in_progress", top.ID)
+	output.ShowCmd = beadscli.Shell("{tool} show %s", top.ID)
 
 	if err := ctx.EncoderOrDefault().Encode(output); err != nil {
 		return fmt.Errorf("encoding robot-next: %w", err)

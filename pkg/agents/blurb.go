@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/Dicklesworthstone/beads_viewer/pkg/beadscli"
 )
 
 // BlurbVersion is the current version of the agent instructions blurb.
@@ -112,6 +114,25 @@ br sync --flush-only                  # Export DB to JSONL after Beads mutations
 
 <!-- end-bv-agent-instructions -->`
 
+// AgentInstructions returns AgentBlurb with the active Beads CLI name substituted.
+func AgentInstructions() string {
+	tool := beadscli.Tool()
+	if tool == "br" {
+		return AgentBlurb
+	}
+	return strings.NewReplacer(
+		"`br`", "`"+tool+"`",
+		"br ready", tool+" ready",
+		"br list", tool+" list",
+		"br show", tool+" show",
+		"br create", tool+" create",
+		"br update", tool+" update",
+		"br close", tool+" close",
+		"br dep add", tool+" dep add",
+		"br sync --flush-only", beadscli.ExportFlushCommand(),
+	).Replace(AgentBlurb)
+}
+
 // SupportedAgentFiles lists the filenames that can contain agent instructions.
 var SupportedAgentFiles = []string{
 	"AGENTS.md",
@@ -200,7 +221,7 @@ func AppendBlurb(content string) string {
 		content += "\n"
 	}
 	content += "\n"
-	content += AgentBlurb
+	content += AgentInstructions()
 	content += "\n"
 	return content
 }

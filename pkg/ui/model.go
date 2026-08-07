@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Dicklesworthstone/beads_viewer/internal/datasource"
+	"github.com/Dicklesworthstone/beads_viewer/pkg/beadscli"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/agents"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/analysis"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/baseline"
@@ -1113,6 +1114,7 @@ func NewModel(issues []model.Issue, activeRecipe *recipe.Recipe, beadsPath strin
 	var instLock *instance.Lock
 	if beadsPath != "" {
 		beadsDir := filepath.Dir(beadsPath)
+		beadscli.DetectFromBeadsDir(beadsDir)
 		lock, err := instance.NewLock(beadsDir)
 		if err == nil {
 			instLock = lock
@@ -1391,41 +1393,42 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		editedBody := parseBodyFromFrontmatter(editedContent)
 		originalBody := parseBodyFromFrontmatter(msg.original)
 
-		var brArgs []string
+		var updateArgs []string
 		if t, ok := editedFields["title"]; ok && t != originalIssue.Title {
-			brArgs = append(brArgs, "--title", t)
+			updateArgs = append(updateArgs, "--title", t)
 		}
 		if s, ok := editedFields["status"]; ok && model.Status(s) != originalIssue.Status {
-			brArgs = append(brArgs, "--status", s)
+			updateArgs = append(updateArgs, "--status", s)
 		}
 		if p, ok := editedFields["priority"]; ok && p != fmt.Sprintf("%d", originalIssue.Priority) {
-			brArgs = append(brArgs, "--priority", p)
+			updateArgs = append(updateArgs, "--priority", p)
 		}
 		if a, ok := editedFields["assignee"]; ok && a != originalIssue.Assignee {
-			brArgs = append(brArgs, "--assignee", a)
+			updateArgs = append(updateArgs, "--assignee", a)
 		}
 		if t, ok := editedFields["type"]; ok && model.IssueType(t) != originalIssue.IssueType {
-			brArgs = append(brArgs, "--type", t)
+			updateArgs = append(updateArgs, "--type", t)
 		}
 		if editedBody != originalBody {
-			brArgs = append(brArgs, "--description", editedBody)
+			updateArgs = append(updateArgs, "--description", editedBody)
 		}
 
-		if len(brArgs) == 0 {
+		if len(updateArgs) == 0 {
 			m.statusMsg = "No field changes detected"
 			m.statusIsError = false
 			return m, nil
 		}
 
-		cmdArgs := append([]string{"update", msg.issueID}, brArgs...)
-		brCmd := exec.Command("br", cmdArgs...)
-		output, brErr := brCmd.CombinedOutput()
-		if brErr != nil {
-			m.statusMsg = fmt.Sprintf("%s br update failed: %v — %s", icons.Get(icons.Cross), brErr, strings.TrimSpace(string(output)))
+		tool := beadscli.Tool()
+		cmdArgs := append([]string{"update", msg.issueID}, updateArgs...)
+		updateCmd := exec.Command(tool, cmdArgs...)
+		output, updateErr := updateCmd.CombinedOutput()
+		if updateErr != nil {
+			m.statusMsg = fmt.Sprintf("%s %s update failed: %v — %s", icons.Get(icons.Cross), tool, updateErr, strings.TrimSpace(string(output)))
 			m.statusIsError = true
 			return m, nil
 		}
-		fieldCount := len(brArgs) / 2
+		fieldCount := len(updateArgs) / 2
 		m.statusMsg = fmt.Sprintf("%s Updated %d field(s) for %s", icons.Get(icons.CheckCircle), fieldCount, msg.issueID)
 		m.statusIsError = false
 		return m, nil

@@ -3,6 +3,8 @@ package agents
 import (
 	"strings"
 	"testing"
+
+	"github.com/Dicklesworthstone/beads_viewer/pkg/beadscli"
 )
 
 func TestContainsBlurb(t *testing.T) {
@@ -262,6 +264,22 @@ func TestNeedsUpdate(t *testing.T) {
 				t.Errorf("NeedsUpdate() = %v, want %v", result, tt.expected)
 			}
 		})
+	}
+}
+
+func TestAgentInstructionsSubstitutesBD(t *testing.T) {
+	beadscli.SetTool("bd")
+	t.Cleanup(func() { beadscli.SetTool("br") })
+
+	got := AgentInstructions()
+	if strings.Contains(got, "br ready") {
+		t.Fatalf("AgentInstructions() should not contain br commands when tool=bd:\n%s", got)
+	}
+	if !strings.Contains(got, "bd ready --json") {
+		t.Fatalf("AgentInstructions() missing bd ready command")
+	}
+	if !strings.Contains(got, beadscli.ExportFlushCommand()) {
+		t.Fatalf("AgentInstructions() missing bd export flush command")
 	}
 }
 
