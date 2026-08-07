@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Dicklesworthstone/beads_viewer/pkg/cass"
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -130,7 +131,7 @@ func (m CassSessionModal) View() string {
 	var b strings.Builder
 
 	// Header
-	b.WriteString(headerStyle.Render("📎 Related Coding Sessions"))
+	b.WriteString(headerStyle.Render(icons.Get(icons.SessionAttach) + " Related Coding Sessions"))
 	b.WriteString("  ")
 	b.WriteString(beadIDStyle.Render(m.beadID))
 	b.WriteString("\n\n")

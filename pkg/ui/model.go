@@ -1350,13 +1350,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Terminal editor exited — parse changes and apply via br update (bv-134)
 		defer os.Remove(msg.tmpFile)
 		if msg.err != nil {
-			m.statusMsg = fmt.Sprintf("❌ Editor exited with error: %v", msg.err)
+			m.statusMsg = fmt.Sprintf("%s Editor exited with error: %v", icons.Get(icons.Cross), msg.err)
 			m.statusIsError = true
 			return m, nil
 		}
 		editedBytes, err := os.ReadFile(msg.tmpFile)
 		if err != nil {
-			m.statusMsg = fmt.Sprintf("❌ Failed to read edited file: %v", err)
+			m.statusMsg = fmt.Sprintf("%s Failed to read edited file: %v", icons.Get(icons.Cross), err)
 			m.statusIsError = true
 			return m, nil
 		}
@@ -1377,12 +1377,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if orig, ok := m.issueMap[msg.issueID]; ok {
 				originalIssue = *orig
 			} else {
-				m.statusMsg = fmt.Sprintf("❌ Issue %s no longer exists — changes not applied", msg.issueID)
+				m.statusMsg = fmt.Sprintf("%s Issue %s no longer exists — changes not applied", icons.Get(icons.Cross), msg.issueID)
 				m.statusIsError = true
 				return m, nil
 			}
 		} else {
-			m.statusMsg = "❌ Issue map not loaded — changes not applied"
+			m.statusMsg = icons.Get(icons.Cross) + " Issue map not loaded — changes not applied"
 			m.statusIsError = true
 			return m, nil
 		}
@@ -1421,12 +1421,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		brCmd := exec.Command("br", cmdArgs...)
 		output, brErr := brCmd.CombinedOutput()
 		if brErr != nil {
-			m.statusMsg = fmt.Sprintf("❌ br update failed: %v — %s", brErr, strings.TrimSpace(string(output)))
+			m.statusMsg = fmt.Sprintf("%s br update failed: %v — %s", icons.Get(icons.Cross), brErr, strings.TrimSpace(string(output)))
 			m.statusIsError = true
 			return m, nil
 		}
 		fieldCount := len(brArgs) / 2
-		m.statusMsg = fmt.Sprintf("✅ Updated %d field(s) for %s", fieldCount, msg.issueID)
+		m.statusMsg = fmt.Sprintf("%s Updated %d field(s) for %s", icons.Get(icons.CheckCircle), fieldCount, msg.issueID)
 		m.statusIsError = false
 		return m, nil
 
@@ -2513,7 +2513,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.statusMsg = "Failed to update " + filepath.Base(filePath) + ": " + err.Error()
 					m.statusIsError = true
 				} else {
-					m.statusMsg = "✓ Added beads instructions to " + filepath.Base(filePath)
+					m.statusMsg = icons.Get(icons.Check) + " Added beads instructions to " + filepath.Base(filePath)
 					// Record acceptance
 					_ = agents.RecordAccept(m.workDir)
 				}
@@ -3920,10 +3920,10 @@ func (m Model) handleBoardKeys(msg tea.KeyMsg) Model {
 	case "y":
 		if selected := m.board.SelectedIssue(); selected != nil {
 			if err := clipboard.WriteAll(selected.ID); err != nil {
-				m.statusMsg = fmt.Sprintf("❌ Clipboard error: %v", err)
+				m.statusMsg = fmt.Sprintf("%s Clipboard error: %v", icons.Get(icons.Cross), err)
 				m.statusIsError = true
 			} else {
-				m.statusMsg = fmt.Sprintf("📋 Copied %s to clipboard", selected.ID)
+				m.statusMsg = fmt.Sprintf("%s Copied %s to clipboard", icons.Get(icons.Task), selected.ID)
 				m.statusIsError = false
 			}
 		}
@@ -3949,7 +3949,7 @@ func (m Model) handleBoardKeys(msg tea.KeyMsg) Model {
 	case "s":
 		m.board.CycleSwimLaneMode()
 		modeName := m.board.GetSwimLaneModeName()
-		m.statusMsg = fmt.Sprintf("🔀 Swimlane: %s", modeName)
+		m.statusMsg = fmt.Sprintf("%s Swimlane: %s", icons.Get(icons.Shuffle), modeName)
 		m.statusIsError = false
 
 	// Empty column visibility toggle (bv-tf6j)
@@ -3958,9 +3958,9 @@ func (m Model) handleBoardKeys(msg tea.KeyMsg) Model {
 		visMode := m.board.GetEmptyColumnVisibilityMode()
 		hidden := m.board.HiddenColumnCount()
 		if hidden > 0 {
-			m.statusMsg = fmt.Sprintf("👁 Empty columns: %s (%d hidden)", visMode, hidden)
+			m.statusMsg = fmt.Sprintf("%s Empty columns: %s (%d hidden)", icons.Get(icons.Eye), visMode, hidden)
 		} else {
-			m.statusMsg = fmt.Sprintf("👁 Empty columns: %s", visMode)
+			m.statusMsg = fmt.Sprintf("%s Empty columns: %s", icons.Get(icons.Eye), visMode)
 		}
 		m.statusIsError = false
 
@@ -3968,9 +3968,9 @@ func (m Model) handleBoardKeys(msg tea.KeyMsg) Model {
 	case "d":
 		m.board.ToggleExpand()
 		if m.board.HasExpandedCard() {
-			m.statusMsg = "📋 Card expanded (d=collapse, j/k=auto-collapse)"
+			m.statusMsg = icons.Get(icons.Task) + " Card expanded (d=collapse, j/k=auto-collapse)"
 		} else {
-			m.statusMsg = "📋 Card collapsed"
+			m.statusMsg = icons.Get(icons.Task) + " Card collapsed"
 		}
 		m.statusIsError = false
 
@@ -4137,7 +4137,7 @@ func (m Model) handleHistoryKeys(msg tea.KeyMsg) Model {
 		switch msg.String() {
 		case "esc":
 			m.historyView.CancelSearch()
-			m.statusMsg = "🔍 Search cancelled"
+			m.statusMsg = icons.Get(icons.DepDiscovered) + " Search cancelled"
 			m.statusIsError = false
 			return m
 		case "enter":
@@ -4149,9 +4149,9 @@ func (m Model) handleHistoryKeys(msg tea.KeyMsg) Model {
 			m.historyView.UpdateSearchInput(msg)
 			query := m.historyView.SearchQuery()
 			if query != "" {
-				m.statusMsg = fmt.Sprintf("🔍 Filtering: %s", query)
+				m.statusMsg = fmt.Sprintf("%s Filtering: %s", icons.Get(icons.DepDiscovered), query)
 			} else {
-				m.statusMsg = "🔍 Type to search..."
+				m.statusMsg = icons.Get(icons.DepDiscovered) + " Type to search..."
 			}
 			m.statusIsError = false
 			return m
@@ -4176,7 +4176,7 @@ func (m Model) handleHistoryKeys(msg tea.KeyMsg) Model {
 				} else {
 					m.historyView.SelectFile()
 					name := m.historyView.SelectedFileName()
-					m.statusMsg = fmt.Sprintf("📁 Filtering by: %s", name)
+					m.statusMsg = fmt.Sprintf("%s Filtering by: %s", icons.Get(icons.Folder), name)
 					m.statusIsError = false
 				}
 			}
@@ -4189,10 +4189,10 @@ func (m Model) handleHistoryKeys(msg tea.KeyMsg) Model {
 			// If filter is active, clear it; otherwise close file tree
 			if m.historyView.GetFileFilter() != "" {
 				m.historyView.ClearFileFilter()
-				m.statusMsg = "📁 File filter cleared"
+				m.statusMsg = icons.Get(icons.Folder) + " File filter cleared"
 			} else {
 				m.historyView.SetFileTreeFocus(false)
-				m.statusMsg = "📁 File tree: press Tab to return focus"
+				m.statusMsg = icons.Get(icons.Folder) + " File tree: press Tab to return focus"
 			}
 			m.statusIsError = false
 			return m
@@ -4207,15 +4207,15 @@ func (m Model) handleHistoryKeys(msg tea.KeyMsg) Model {
 	case "/":
 		// Start search (bv-nkrj)
 		m.historyView.StartSearch()
-		m.statusMsg = "🔍 Type to search commits, beads, authors..."
+		m.statusMsg = icons.Get(icons.DepDiscovered) + " Type to search commits, beads, authors..."
 		m.statusIsError = false
 	case "v":
 		// Toggle between Bead mode and Git mode (bv-tl3n)
 		m.historyView.ToggleViewMode()
 		if m.historyView.IsGitMode() {
-			m.statusMsg = "🔀 Git Mode: commits on left, related beads on right"
+			m.statusMsg = icons.Get(icons.Shuffle) + " Git Mode: commits on left, related beads on right"
 		} else {
-			m.statusMsg = "📦 Bead Mode: beads on left, commits on right"
+			m.statusMsg = icons.Get(icons.DepParentChild) + " Bead Mode: beads on left, commits on right"
 		}
 		m.statusIsError = false
 	case "j", "down":
@@ -4302,14 +4302,14 @@ func (m Model) handleHistoryKeys(msg tea.KeyMsg) Model {
 		}
 		if sha != "" {
 			if err := clipboard.WriteAll(sha); err != nil {
-				m.statusMsg = fmt.Sprintf("❌ Clipboard error: %v", err)
+				m.statusMsg = fmt.Sprintf("%s Clipboard error: %v", icons.Get(icons.Cross), err)
 				m.statusIsError = true
 			} else {
-				m.statusMsg = fmt.Sprintf("📋 Copied %s to clipboard", shortSHA)
+				m.statusMsg = fmt.Sprintf("%s Copied %s to clipboard", icons.Get(icons.Task), shortSHA)
 				m.statusIsError = false
 			}
 		} else {
-			m.statusMsg = "❌ No commit selected"
+			m.statusMsg = icons.Get(icons.Cross) + " No commit selected"
 			m.statusIsError = true
 		}
 	case "c":
@@ -4318,9 +4318,9 @@ func (m Model) handleHistoryKeys(msg tea.KeyMsg) Model {
 			m.historyView.CycleConfidence()
 			conf := m.historyView.GetMinConfidence()
 			if conf == 0 {
-				m.statusMsg = "🔍 Showing all commits"
+				m.statusMsg = icons.Get(icons.DepDiscovered) + " Showing all commits"
 			} else {
-				m.statusMsg = fmt.Sprintf("🔍 Confidence filter: ≥%.0f%%", conf*100)
+				m.statusMsg = fmt.Sprintf("%s Confidence filter: ≥%.0f%%", icons.Get(icons.DepDiscovered), conf*100)
 			}
 			m.statusIsError = false
 		}
@@ -4328,9 +4328,9 @@ func (m Model) handleHistoryKeys(msg tea.KeyMsg) Model {
 		// Toggle file tree panel (bv-190l)
 		m.historyView.ToggleFileTree()
 		if m.historyView.IsFileTreeVisible() {
-			m.statusMsg = "📁 File tree: j/k navigate, Enter select, Esc close"
+			m.statusMsg = icons.Get(icons.Folder) + " File tree: j/k navigate, Enter select, Esc close"
 		} else {
-			m.statusMsg = "📁 File tree hidden"
+			m.statusMsg = icons.Get(icons.Folder) + " File tree hidden"
 		}
 		m.statusIsError = false
 	case "o":
@@ -4349,7 +4349,7 @@ func (m Model) handleHistoryKeys(msg tea.KeyMsg) Model {
 			url := m.getCommitURL(sha)
 			if url != "" {
 				if err := openBrowserURL(url); err != nil {
-					m.statusMsg = fmt.Sprintf("❌ Could not open browser: %v", err)
+					m.statusMsg = fmt.Sprintf("%s Could not open browser: %v", icons.Get(icons.Cross), err)
 					m.statusIsError = true
 				} else {
 					// Safely truncate SHA for display (bv-xf4p fix)
@@ -4357,15 +4357,15 @@ func (m Model) handleHistoryKeys(msg tea.KeyMsg) Model {
 					if len(sha) > 7 {
 						shortSHA = sha[:7]
 					}
-					m.statusMsg = fmt.Sprintf("🌐 Opened %s in browser", shortSHA)
+					m.statusMsg = fmt.Sprintf("%s Opened %s in browser", icons.Get(icons.Globe), shortSHA)
 					m.statusIsError = false
 				}
 			} else {
-				m.statusMsg = "❌ No git remote configured"
+				m.statusMsg = icons.Get(icons.Cross) + " No git remote configured"
 				m.statusIsError = true
 			}
 		} else {
-			m.statusMsg = "❌ No commit selected"
+			m.statusMsg = icons.Get(icons.Cross) + " No commit selected"
 			m.statusIsError = true
 		}
 	case "g":
@@ -4388,10 +4388,10 @@ func (m Model) handleHistoryKeys(msg tea.KeyMsg) Model {
 			m.isHistoryView = false
 			m.graphView.SelectByID(selectedID)
 			m.focused = focusGraph
-			m.statusMsg = fmt.Sprintf("📊 Graph view: %s", selectedID)
+			m.statusMsg = fmt.Sprintf("%s Graph view: %s", icons.Get(icons.Chart), selectedID)
 			m.statusIsError = false
 		} else {
-			m.statusMsg = "❌ No bead selected"
+			m.statusMsg = icons.Get(icons.Cross) + " No bead selected"
 			m.statusIsError = true
 		}
 	case "h", "esc":
@@ -4789,14 +4789,14 @@ func (m Model) handleListKeys(msg tea.KeyMsg) Model {
 		// Copy ID to clipboard (consistent with board view - bv-yg39)
 		selectedItem := m.list.SelectedItem()
 		if selectedItem == nil {
-			m.statusMsg = "❌ No issue selected"
+			m.statusMsg = icons.Get(icons.Cross) + " No issue selected"
 			m.statusIsError = true
 		} else if issueItem, ok := selectedItem.(IssueItem); ok {
 			if err := clipboard.WriteAll(issueItem.Issue.ID); err != nil {
-				m.statusMsg = fmt.Sprintf("❌ Clipboard error: %v", err)
+				m.statusMsg = fmt.Sprintf("%s Clipboard error: %v", icons.Get(icons.Cross), err)
 				m.statusIsError = true
 			} else {
-				m.statusMsg = fmt.Sprintf("📋 Copied %s to clipboard", issueItem.Issue.ID)
+				m.statusMsg = fmt.Sprintf("%s Copied %s to clipboard", icons.Get(icons.Task), issueItem.Issue.ID)
 				m.statusIsError = false
 			}
 		}
@@ -5298,7 +5298,7 @@ func (m *Model) renderHelpOverlay() string {
 	}
 
 	// Helper to render a section panel
-	renderPanel := func(title string, icon string, colorIdx int, shortcuts []struct{ key, desc string }) string {
+	renderPanel := func(title string, icon icons.Name, colorIdx int, shortcuts []struct{ key, desc string }) string {
 		color := colors[colorIdx%len(colors)]
 
 		headerStyle := t.Renderer.NewStyle().
@@ -5320,7 +5320,7 @@ func (m *Model) renderHelpOverlay() string {
 			Width(colWidth - 16)
 
 		var content strings.Builder
-		content.WriteString(headerStyle.Render(icon + " " + title))
+		content.WriteString(headerStyle.Render(icons.Get(icon) + " " + title))
 		content.WriteString("\n")
 
 		for _, s := range shortcuts {
@@ -5432,15 +5432,15 @@ func (m *Model) renderHelpOverlay() string {
 
 	// Build panels
 	panels := []string{
-		renderPanel("Navigation", "🧭", 0, navSection),
-		renderPanel("Views", "👁", 1, viewsSection),
-		renderPanel("Global", "🌐", 2, globalSection),
-		renderPanel("Filters & Sort", "🔍", 3, filterSection),
-		renderPanel("Graph View", "📊", 4, graphSection),
-		renderPanel("Insights", "💡", 5, insightsSection),
-		renderPanel("Status", "🩺", 2, statusSection),
-		renderPanel("History", "📜", 0, historySection),
-		renderPanel("Actions", "⚡", 1, actionsSection),
+		renderPanel("Navigation", icons.Navigation, 0, navSection),
+		renderPanel("Views", icons.Eye, 1, viewsSection),
+		renderPanel("Global", icons.Globe, 2, globalSection),
+		renderPanel("Filters & Sort", icons.DepDiscovered, 3, filterSection),
+		renderPanel("Graph View", icons.Chart, 4, graphSection),
+		renderPanel("Insights", icons.Lightbulb, 5, insightsSection),
+		renderPanel("Status", icons.Health, 2, statusSection),
+		renderPanel("History", icons.HistoryScroll, 0, historySection),
+		renderPanel("Actions", icons.Lightning, 1, actionsSection),
 	}
 
 	// Arrange panels into columns
@@ -5841,9 +5841,9 @@ func (m Model) renderLabelGraphAnalysis() string {
 	sb.WriteString("\n\n")
 
 	// Critical Path section
-	sb.WriteString(labelStyle.Render("🛤️  Critical Path"))
+	sb.WriteString(labelStyle.Render(icons.Get(icons.CriticalPath) + "  Critical Path"))
 	if r.CriticalPath.HasCycle {
-		sb.WriteString(valStyle.Render(" ⚠️  (cycle detected - path unreliable)"))
+		sb.WriteString(valStyle.Render(" " + icons.Get(icons.Warning) + "  (cycle detected - path unreliable)"))
 	}
 	sb.WriteString("\n")
 	if r.CriticalPath.PathLength == 0 {
@@ -5911,7 +5911,7 @@ func (m Model) renderLabelGraphAnalysis() string {
 		for i := 0; i < showPRCount; i++ {
 			item := r.PageRank.TopIssues[i]
 			title := ""
-			statusIcon := "○"
+			statusIcon := RenderStatusDotGraph("open")
 			if iss, ok := r.Subgraph.IssueMap[item.ID]; ok {
 				title = iss.Title
 				statusIcon = getStatusIcon(iss.Status)
@@ -5975,9 +5975,9 @@ func (m *Model) renderFooter() string {
 				Bold(true).
 				Padding(0, 2)
 		}
-		prefix := "✓ "
+		prefix := icons.Get(icons.Check) + " "
 		if m.statusIsError {
-			prefix = "✗ "
+			prefix = icons.Get(icons.Cross) + " "
 		}
 		msgSection := msgStyle.Render(prefix + m.statusMsg)
 		remaining := m.width - lipgloss.Width(msgSection)
@@ -5995,34 +5995,34 @@ func (m *Model) renderFooter() string {
 	var filterIcon string
 	if m.focused == focusLabelDashboard {
 		filterTxt = "LABELS: j/k nav • h detail • d drilldown • enter filter"
-		filterIcon = "🏷️"
+		filterIcon = icons.Get(icons.Label)
 	} else if m.showLabelGraphAnalysis && m.labelGraphAnalysisResult != nil {
 		filterTxt = fmt.Sprintf("GRAPH %s: esc/q/g close", m.labelGraphAnalysisResult.Label)
-		filterIcon = "📊"
+		filterIcon = icons.Get(icons.Chart)
 	} else if m.showLabelDrilldown && m.labelDrilldownLabel != "" {
 		filterTxt = fmt.Sprintf("LABEL %s: enter filter • g graph • esc/q/d close", m.labelDrilldownLabel)
-		filterIcon = "🏷️"
+		filterIcon = icons.Get(icons.Label)
 	} else {
 		switch m.currentFilter {
 		case "all":
 			filterTxt = "ALL"
-			filterIcon = "📋"
+			filterIcon = icons.Get(icons.Task)
 		case "open":
 			filterTxt = "OPEN"
-			filterIcon = "📂"
+			filterIcon = icons.Get(icons.Folder)
 		case "closed":
 			filterTxt = "CLOSED"
-			filterIcon = "✅"
+			filterIcon = icons.Get(icons.CheckCircle)
 		case "ready":
 			filterTxt = "READY"
-			filterIcon = "🚀"
+			filterIcon = icons.Get(icons.Epic)
 		default:
 			if strings.HasPrefix(m.currentFilter, "recipe:") {
 				filterTxt = strings.ToUpper(m.currentFilter[7:])
-				filterIcon = "📑"
+				filterIcon = icons.Get(icons.Books)
 			} else {
 				filterTxt = m.currentFilter
-				filterIcon = "🔍"
+				filterIcon = icons.Get(icons.DepDiscovered)
 			}
 		}
 	}
@@ -6054,7 +6054,7 @@ func (m *Model) renderFooter() string {
 			Background(ColorBgHighlight).
 			Foreground(ColorSecondary).
 			Padding(0, 1).
-			Render(fmt.Sprintf("🔎 %s", mode))
+			Render(fmt.Sprintf("%s %s", icons.Get(icons.DepDiscovered), mode))
 	}
 
 	// Sort badge - only show when not default (bv-3ita)
@@ -6128,15 +6128,15 @@ func (m *Model) renderFooter() string {
 		blockedStyle := lipgloss.NewStyle().Foreground(ColorWarning)
 		closedStyle := lipgloss.NewStyle().Foreground(ColorMuted)
 
-		statsContent := fmt.Sprintf("%s%d %s%d %s%d %s%d",
-			openStyle.Render("○"),
-			m.countOpen,
-			readyStyle.Render("◉"),
-			m.countReady,
-			blockedStyle.Render("◈"),
-			m.countBlocked,
-			closedStyle.Render("●"),
-			m.countClosed)
+		statsContent := fmt.Sprintf("%s %s %s %s %s %s %s %s",
+			openStyle.Render(icons.FooterStatIcon("open")),
+			openStyle.Render(fmt.Sprintf("%d", m.countOpen)),
+			readyStyle.Render(icons.FooterStatIcon("ready")),
+			readyStyle.Render(fmt.Sprintf("%d", m.countReady)),
+			blockedStyle.Render(icons.FooterStatIcon("blocked")),
+			blockedStyle.Render(fmt.Sprintf("%d", m.countBlocked)),
+			closedStyle.Render(icons.FooterStatIcon("closed")),
+			closedStyle.Render(fmt.Sprintf("%d", m.countClosed)))
 		statsSection = statsStyle.Render(statsContent)
 	}
 
@@ -6299,7 +6299,7 @@ func (m *Model) renderFooter() string {
 			Foreground(ColorBg).
 			Bold(true).
 			Padding(0, 1)
-		updateSection = updateStyle.Render(fmt.Sprintf("⭐ Update %s", m.updateTag))
+		updateSection = updateStyle.Render(fmt.Sprintf("%s Update %s", icons.Get(icons.Star), m.updateTag))
 	}
 
 	// ─────────────────────────────────────────────────────────────────────────
@@ -6349,20 +6349,20 @@ func (m *Model) renderFooter() string {
 				Foreground(ColorPrioCritical).
 				Bold(true).
 				Padding(0, 1)
-			alertIcon = "⚠"
+			alertIcon = icons.Get(icons.Warning)
 		} else if activeWarning > 0 {
 			alertStyle = lipgloss.NewStyle().
 				Background(ColorPrioHighBg).
 				Foreground(ColorWarning).
 				Bold(true).
 				Padding(0, 1)
-			alertIcon = "⚡"
+			alertIcon = icons.Get(icons.Lightning)
 		} else {
 			alertStyle = lipgloss.NewStyle().
 				Background(ColorBgHighlight).
 				Foreground(ColorInfo).
 				Padding(0, 1)
-			alertIcon = "ℹ"
+			alertIcon = icons.Get(icons.Bell)
 		}
 		alertsSection = alertStyle.Render(fmt.Sprintf("%s %d alerts (!)", alertIcon, activeAlerts))
 	}
@@ -6393,7 +6393,7 @@ func (m *Model) renderFooter() string {
 		if sessionCount > 9 {
 			countStr = "9+"
 		}
-		sessionSection = sessionStyle.Render(fmt.Sprintf("📎%s", countStr))
+		sessionSection = sessionStyle.Render(fmt.Sprintf("%s%s", icons.Get(icons.SessionAttach), countStr))
 	}
 
 	// ─────────────────────────────────────────────────────────────────────────
@@ -6406,7 +6406,7 @@ func (m *Model) renderFooter() string {
 			Foreground(ColorBg).
 			Bold(true).
 			Padding(0, 1)
-		workspaceSection = workspaceStyle.Render(fmt.Sprintf("📦 %s", m.workspaceSummary))
+		workspaceSection = workspaceStyle.Render(fmt.Sprintf("%s %s", icons.Get(icons.DepParentChild), m.workspaceSummary))
 	}
 
 	// ─────────────────────────────────────────────────────────────────────────
@@ -6421,7 +6421,7 @@ func (m *Model) renderFooter() string {
 			Foreground(ColorInfo).
 			Bold(true).
 			Padding(0, 1)
-		repoFilterSection = repoStyle.Render(fmt.Sprintf("🗂 %s", label))
+		repoFilterSection = repoStyle.Render(fmt.Sprintf("%s %s", icons.Get(icons.Folder), label))
 	}
 
 	// ─────────────────────────────────────────────────────────────────────────
@@ -7480,7 +7480,7 @@ func (m *Model) buildListDetailMarkdown(issueItem IssueItem, item model.Issue) s
 	var sb strings.Builder
 
 	if m.updateAvailable {
-		sb.WriteString(fmt.Sprintf("⭐ **Update Available:** [%s](%s)\n\n", m.updateTag, m.updateURL))
+		sb.WriteString(fmt.Sprintf("%s **Update Available:** [%s](%s)\n\n", icons.Get(icons.Star), m.updateTag, m.updateURL))
 	}
 
 	sb.WriteString(fmt.Sprintf("# %s %s\n", GetTypeIconMD(string(item.IssueType)), item.Title))
@@ -7513,7 +7513,7 @@ func (m *Model) buildListDetailMarkdown(issueItem IssueItem, item model.Issue) s
 			sb.WriteString("- **" + icons.Get(icons.StatusBlocked) + " Critical Blocker** — Completing this unblocks significant downstream work\n")
 		}
 		if issueItem.UnblocksCount > 0 {
-			sb.WriteString(fmt.Sprintf("- **🔓 Unblocks:** %d downstream items when completed\n", issueItem.UnblocksCount))
+			sb.WriteString(fmt.Sprintf("- **%s Unblocks:** %d downstream items when completed\n", icons.Get(icons.Unlock), issueItem.UnblocksCount))
 		}
 		if issueItem.TriageReason != "" {
 			sb.WriteString(fmt.Sprintf("- **Primary Reason:** %s\n", issueItem.TriageReason))
@@ -7528,7 +7528,7 @@ func (m *Model) buildListDetailMarkdown(issueItem IssueItem, item model.Issue) s
 	}
 
 	if m.semanticSearchEnabled && m.semanticHybridEnabled && issueItem.SearchScoreSet && m.list.FilterState() != list.Unfiltered {
-		sb.WriteString("### 🔎 Search Scores\n")
+		sb.WriteString("### " + icons.Get(icons.DepDiscovered) + " Search Scores\n")
 		sb.WriteString(fmt.Sprintf("- **Hybrid Score:** %.3f\n", issueItem.SearchScore))
 		sb.WriteString(fmt.Sprintf("- **Text Score:** %.3f\n", issueItem.SearchTextScore))
 		if len(issueItem.SearchComponents) > 0 {
@@ -7776,7 +7776,7 @@ func (m *Model) enterHistoryView() {
 func (m *Model) enterTimeTravelMode(revision string) {
 	cwd, err := os.Getwd()
 	if err != nil {
-		m.statusMsg = "❌ Time-travel failed: cannot get working directory"
+		m.statusMsg = icons.Get(icons.Cross) + " Time-travel failed: cannot get working directory"
 		m.statusIsError = true
 		return
 	}
@@ -7785,7 +7785,7 @@ func (m *Model) enterTimeTravelMode(revision string) {
 
 	// Check if we're in a git repo first
 	if _, err := gitLoader.ResolveRevision("HEAD"); err != nil {
-		m.statusMsg = "❌ Time-travel requires a git repository"
+		m.statusMsg = icons.Get(icons.Cross) + " Time-travel requires a git repository"
 		m.statusIsError = true
 		return
 	}
@@ -7793,7 +7793,7 @@ func (m *Model) enterTimeTravelMode(revision string) {
 	// Check if beads files exist at the revision
 	hasBeads, err := gitLoader.HasBeadsAtRevision(revision)
 	if err != nil || !hasBeads {
-		m.statusMsg = fmt.Sprintf("❌ No beads history at %s (try fewer commits back)", revision)
+		m.statusMsg = fmt.Sprintf("%s No beads history at %s (try fewer commits back)", icons.Get(icons.Cross), revision)
 		m.statusIsError = true
 		return
 	}
@@ -7801,7 +7801,7 @@ func (m *Model) enterTimeTravelMode(revision string) {
 	// Load historical issues
 	historicalIssues, err := gitLoader.LoadAt(revision)
 	if err != nil {
-		m.statusMsg = fmt.Sprintf("❌ Time-travel failed: %v", err)
+		m.statusMsg = fmt.Sprintf("%s Time-travel failed: %v", icons.Get(icons.Cross), err)
 		m.statusIsError = true
 		return
 	}
@@ -7832,8 +7832,8 @@ func (m *Model) enterTimeTravelMode(revision string) {
 	m.timeTravelSince = revision
 
 	// Success feedback
-	m.statusMsg = fmt.Sprintf("⏱️ Time-travel: comparing with %s (+%d ✅%d ~%d)",
-		revision, diff.Summary.IssuesAdded, diff.Summary.IssuesClosed, diff.Summary.IssuesModified)
+	m.statusMsg = fmt.Sprintf("%s Time-travel: comparing with %s (+%d %s%d ~%d)",
+		icons.Get(icons.Clock), revision, diff.Summary.IssuesAdded, icons.Get(icons.CheckCircle), diff.Summary.IssuesClosed, diff.Summary.IssuesModified)
 	m.statusIsError = false
 
 	// Rebuild list items with diff info
@@ -7850,7 +7850,7 @@ func (m *Model) exitTimeTravelMode() {
 	m.modifiedIssueIDs = nil
 
 	// Feedback
-	m.statusMsg = "⏱️ Time-travel mode disabled"
+	m.statusMsg = icons.Get(icons.Clock) + " Time-travel mode disabled"
 	m.statusIsError = false
 
 	// Rebuild list without diff info
@@ -7961,12 +7961,12 @@ func (m *Model) exportToMarkdown() {
 	// Export the issues
 	err := export.SaveMarkdownToFile(m.issues, filename)
 	if err != nil {
-		m.statusMsg = fmt.Sprintf("❌ Export failed: %v", err)
+		m.statusMsg = fmt.Sprintf("%s Export failed: %v", icons.Get(icons.Cross), err)
 		m.statusIsError = true
 		return
 	}
 
-	m.statusMsg = fmt.Sprintf("✅ Exported %d issues to %s", len(m.issues), filename)
+	m.statusMsg = fmt.Sprintf("%s Exported %d issues to %s", icons.Get(icons.CheckCircle), len(m.issues), filename)
 	m.statusIsError = false
 }
 
@@ -8041,14 +8041,14 @@ func (m Model) renderTimeTravelPrompt() string {
 func (m *Model) copyIssueToClipboard() {
 	selectedItem := m.list.SelectedItem()
 	if selectedItem == nil {
-		m.statusMsg = "❌ No issue selected"
+		m.statusMsg = icons.Get(icons.Cross) + " No issue selected"
 		m.statusIsError = true
 		return
 	}
 
 	issueItem, ok := selectedItem.(IssueItem)
 	if !ok {
-		m.statusMsg = "❌ Invalid item type"
+		m.statusMsg = icons.Get(icons.Cross) + " Invalid item type"
 		m.statusIsError = true
 		return
 	}
@@ -8092,12 +8092,12 @@ func (m *Model) copyIssueToClipboard() {
 	// Copy to clipboard
 	err := clipboard.WriteAll(sb.String())
 	if err != nil {
-		m.statusMsg = fmt.Sprintf("❌ Clipboard error: %v", err)
+		m.statusMsg = fmt.Sprintf("%s Clipboard error: %v", icons.Get(icons.Cross), err)
 		m.statusIsError = true
 		return
 	}
 
-	m.statusMsg = fmt.Sprintf("📋 Copied %s to clipboard", issue.ID)
+	m.statusMsg = fmt.Sprintf("%s Copied %s to clipboard", icons.Get(icons.Task), issue.ID)
 	m.statusIsError = false
 }
 
@@ -8120,7 +8120,7 @@ func (m *Model) showCassSessionModal() {
 		// Initialize correlator lazily
 		detector := cass.NewDetector()
 		if detector.Check() != cass.StatusHealthy {
-			m.statusMsg = "⚠️ cass not available (install it for session correlation)"
+			m.statusMsg = icons.Get(icons.Warning) + " cass not available (install it for session correlation)"
 			m.statusIsError = false
 			return
 		}
@@ -8504,12 +8504,12 @@ func (m *Model) openInEditor() tea.Cmd {
 		}
 	}
 	if beadsFile == "" {
-		m.statusMsg = "❌ No .beads directory or beads.jsonl found"
+		m.statusMsg = icons.Get(icons.Cross) + " No .beads directory or beads.jsonl found"
 		m.statusIsError = true
 		return nil
 	}
 	if _, err := os.Stat(beadsFile); os.IsNotExist(err) {
-		m.statusMsg = fmt.Sprintf("❌ Beads file not found: %s", beadsFile)
+		m.statusMsg = fmt.Sprintf("%s Beads file not found: %s", icons.Get(icons.Cross), beadsFile)
 		m.statusIsError = true
 		return nil
 	}
@@ -8525,7 +8525,7 @@ func (m *Model) openInEditor() tea.Cmd {
 	if editor != "" {
 		editorArgs, err := parseCommandLine(editor)
 		if err != nil {
-			m.statusMsg = fmt.Sprintf("❌ Invalid $EDITOR/$VISUAL: %v", err)
+			m.statusMsg = fmt.Sprintf("%s Invalid $EDITOR/$VISUAL: %v", icons.Get(icons.Cross), err)
 			m.statusIsError = true
 			return nil
 		}
@@ -8536,11 +8536,11 @@ func (m *Model) openInEditor() tea.Cmd {
 			// Smart dispatch: suspend TUI and launch terminal editor with issue markdown (bv-134)
 			return m.launchTerminalEditor(editorArgs)
 		case editorCommandForbidden:
-			m.statusMsg = fmt.Sprintf("❌ Refusing to run %s as editor (shell/interpreter). Set $EDITOR to a GUI editor", editorBase)
+			m.statusMsg = fmt.Sprintf("%s Refusing to run %s as editor (shell/interpreter). Set $EDITOR to a GUI editor", icons.Get(icons.Cross), editorBase)
 			m.statusIsError = true
 			return nil
 		case editorCommandEmpty:
-			m.statusMsg = "❌ Invalid $EDITOR/$VISUAL: empty command"
+			m.statusMsg = icons.Get(icons.Cross) + " Invalid $EDITOR/$VISUAL: empty command"
 			m.statusIsError = true
 			return nil
 		default:
@@ -8571,23 +8571,23 @@ func (m *Model) openInEditor() tea.Cmd {
 	}
 
 	if requestedEditorKind == allowlistedGUIEditorUnknown {
-		m.statusMsg = "❌ No GUI editor found. Set $EDITOR to a GUI editor"
+		m.statusMsg = icons.Get(icons.Cross) + " No GUI editor found. Set $EDITOR to a GUI editor"
 		m.statusIsError = true
 		return nil
 	}
 
 	actualKind, err := startAllowlistedGUIEditor(requestedEditorKind, beadsFile)
 	if err != nil {
-		m.statusMsg = fmt.Sprintf("❌ Failed to open editor: %v", err)
+		m.statusMsg = fmt.Sprintf("%s Failed to open editor: %v", icons.Get(icons.Cross), err)
 		m.statusIsError = true
 		return nil
 	}
 	requestedEditorKind = actualKind
 
 	if ignoredEditorBase != "" {
-		m.statusMsg = fmt.Sprintf("📝 Opened in %s (ignored $EDITOR=%s)", allowlistedGUIEditorDisplayName(requestedEditorKind), ignoredEditorBase)
+		m.statusMsg = fmt.Sprintf("%s Opened in %s (ignored $EDITOR=%s)", icons.Get(icons.FileDefault), allowlistedGUIEditorDisplayName(requestedEditorKind), ignoredEditorBase)
 	} else {
-		m.statusMsg = fmt.Sprintf("📝 Opened in %s", allowlistedGUIEditorDisplayName(requestedEditorKind))
+		m.statusMsg = fmt.Sprintf("%s Opened in %s", icons.Get(icons.FileDefault), allowlistedGUIEditorDisplayName(requestedEditorKind))
 	}
 	m.statusIsError = false
 	return nil
@@ -8599,13 +8599,13 @@ func (m *Model) launchTerminalEditor(editorArgs []string) tea.Cmd {
 	// Get the currently selected issue
 	selectedItem := m.list.SelectedItem()
 	if selectedItem == nil {
-		m.statusMsg = "❌ No issue selected"
+		m.statusMsg = icons.Get(icons.Cross) + " No issue selected"
 		m.statusIsError = true
 		return nil
 	}
 	issueItem, ok := selectedItem.(IssueItem)
 	if !ok {
-		m.statusMsg = "❌ Invalid item type"
+		m.statusMsg = icons.Get(icons.Cross) + " Invalid item type"
 		m.statusIsError = true
 		return nil
 	}
@@ -8617,14 +8617,14 @@ func (m *Model) launchTerminalEditor(editorArgs []string) tea.Cmd {
 	// Write to a temp file
 	tmpFile, err := os.CreateTemp("", "bv-edit-*.md")
 	if err != nil {
-		m.statusMsg = fmt.Sprintf("❌ Failed to create temp file: %v", err)
+		m.statusMsg = fmt.Sprintf("%s Failed to create temp file: %v", icons.Get(icons.Cross), err)
 		m.statusIsError = true
 		return nil
 	}
 	if _, err := tmpFile.WriteString(content); err != nil {
 		tmpFile.Close()
 		os.Remove(tmpFile.Name())
-		m.statusMsg = fmt.Sprintf("❌ Failed to write temp file: %v", err)
+		m.statusMsg = fmt.Sprintf("%s Failed to write temp file: %v", icons.Get(icons.Cross), err)
 		m.statusIsError = true
 		return nil
 	}
@@ -8641,7 +8641,7 @@ func (m *Model) launchTerminalEditor(editorArgs []string) tea.Cmd {
 	originalContent := content
 	tmpPath := tmpFile.Name()
 
-	m.statusMsg = fmt.Sprintf("📝 Opening %s in %s...", issue.ID, filepath.Base(editorArgs[0]))
+	m.statusMsg = fmt.Sprintf("%s Opening %s in %s...", icons.Get(icons.FileDefault), issue.ID, filepath.Base(editorArgs[0]))
 	m.statusIsError = false
 
 	return tea.ExecProcess(editorCmd, func(err error) tea.Msg {
@@ -8901,11 +8901,11 @@ func (m Model) renderAlertsPanel() string {
 	}
 
 	var sb strings.Builder
-	sb.WriteString(titleStyle.Render("🔔 Alerts Panel"))
+	sb.WriteString(titleStyle.Render(icons.Get(icons.Bell) + " Alerts Panel"))
 	sb.WriteString("\n\n")
 
 	if len(visibleAlerts) == 0 {
-		sb.WriteString(t.Renderer.NewStyle().Foreground(ColorSuccess).Render("✓ No active alerts"))
+		sb.WriteString(t.Renderer.NewStyle().Foreground(ColorSuccess).Render(icons.Get(icons.Check) + " No active alerts"))
 		sb.WriteString("\n\n")
 	} else {
 		// Summary line
@@ -8933,13 +8933,13 @@ func (m Model) renderAlertsPanel() string {
 			switch a.Severity {
 			case drift.SeverityCritical:
 				severityStyle = t.Renderer.NewStyle().Foreground(t.Blocked).Bold(true)
-				severityIcon = "⚠"
+				severityIcon = icons.Get(icons.Warning)
 			case drift.SeverityWarning:
 				severityStyle = t.Renderer.NewStyle().Foreground(t.Feature)
-				severityIcon = "⚡"
+				severityIcon = icons.Get(icons.Lightning)
 			default:
 				severityStyle = t.Renderer.NewStyle().Foreground(t.Secondary)
-				severityIcon = "ℹ"
+				severityIcon = icons.Get(icons.Bell)
 			}
 
 			// Cursor indicator

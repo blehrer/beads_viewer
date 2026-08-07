@@ -1052,10 +1052,10 @@ func (b BoardModel) View(width, height int) string {
 			// Medium: add P0/P1 indicators if any exist
 			var indicators []string
 			if stats.P0Count > 0 {
-				indicators = append(indicators, fmt.Sprintf("%d🔴", stats.P0Count))
+				indicators = append(indicators, fmt.Sprintf("%d%s", stats.P0Count, icons.Get(icons.Fire)))
 			}
 			if stats.P1Count > 0 {
-				indicators = append(indicators, fmt.Sprintf("%d🟡", stats.P1Count))
+				indicators = append(indicators, fmt.Sprintf("%d%s", stats.P1Count, icons.Get(icons.TriageScoreMid)))
 			}
 			if len(indicators) > 0 {
 				headerText = baseHeader + " " + strings.Join(indicators, " ")
@@ -1066,10 +1066,10 @@ func (b BoardModel) View(width, height int) string {
 			// Wide: full stats including oldest age
 			var indicators []string
 			if stats.P0Count > 0 {
-				indicators = append(indicators, fmt.Sprintf("%d🔴", stats.P0Count))
+				indicators = append(indicators, fmt.Sprintf("%d%s", stats.P0Count, icons.Get(icons.Fire)))
 			}
 			if stats.P1Count > 0 {
-				indicators = append(indicators, fmt.Sprintf("%d🟡", stats.P1Count))
+				indicators = append(indicators, fmt.Sprintf("%d%s", stats.P1Count, icons.Get(icons.TriageScoreMid)))
 			}
 			// Show blocked count in In Progress column (colIdx == ColInProgress when in status mode)
 			if b.swimLaneMode == SwimByStatus && colIdx == ColInProgress && stats.BlockedCount > 0 {
@@ -1409,10 +1409,10 @@ func (b BoardModel) renderCard(issue model.Issue, width int, selected bool, colI
 			blockerID := truncateRunesHelper(dep.DependsOnID, 10, "…")
 			blockedStyle := t.Renderer.NewStyle().Foreground(t.Blocked)
 			// Try to get blocker title for better context
-			blockerBadge := "🚫←" + blockerID
+			blockerBadge := icons.Get(icons.SwimProhibited) + "←" + blockerID
 			if blocker, ok := b.issueMap[dep.DependsOnID]; ok && blocker != nil {
 				titleSnippet := truncateRunesHelper(blocker.Title, 12, "…")
-				blockerBadge = fmt.Sprintf("🚫←%s (%s)", blockerID, titleSnippet)
+				blockerBadge = fmt.Sprintf("%s←%s (%s)", icons.Get(icons.SwimProhibited), blockerID, titleSnippet)
 			}
 			meta = append(meta, blockedStyle.Render(blockerBadge))
 			break // Only show first blocker
@@ -1422,7 +1422,7 @@ func (b BoardModel) renderCard(issue model.Issue, width int, selected bool, colI
 	// Blocks count: ⚡→N (this card blocks N others) - from reverse index
 	if blockedIDs, ok := b.blocksIndex[issue.ID]; ok && len(blockedIDs) > 0 {
 		blocksStyle := t.Renderer.NewStyle().Foreground(t.Feature)
-		meta = append(meta, blocksStyle.Render(fmt.Sprintf("⚡→%d", len(blockedIDs))))
+		meta = append(meta, blocksStyle.Render(fmt.Sprintf("%s→%d", icons.Get(icons.Lightning), len(blockedIDs))))
 	}
 
 	// Labels: show 2-3 label names (no "+N" count per spec)
@@ -1586,7 +1586,7 @@ func (b BoardModel) renderExpandedCard(issue model.Issue, width int, _, _ int) s
 	var labelLine string
 	if len(issue.Labels) > 0 {
 		labelStyle := t.Renderer.NewStyle().Foreground(t.InProgress)
-		labelLine = labelStyle.Render("🏷 " + strings.Join(issue.Labels, ", "))
+		labelLine = labelStyle.Render(icons.Get(icons.Label) + " " + strings.Join(issue.Labels, ", "))
 	}
 
 	// ══════════════════════════════════════════════════════════════════════════
@@ -1749,7 +1749,7 @@ func buildBoardDetailMarkdown(issue *model.Issue, issueMap map[string]*model.Iss
 				content.WriteString(fmt.Sprintf("- %s\n", blockedID))
 			}
 		}
-		content.WriteString(fmt.Sprintf("\n💡 Completing this would unblock %d issue(s)\n\n", len(blockedIDs)))
+		content.WriteString(fmt.Sprintf("\n%s Completing this would unblock %d issue(s)\n\n", icons.Get(icons.Lightbulb), len(blockedIDs)))
 	}
 
 	if issue.Description != "" {

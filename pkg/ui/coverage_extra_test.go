@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Dicklesworthstone/beads_viewer/pkg/analysis"
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/model"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/recipe"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/watcher"
@@ -766,7 +767,7 @@ func TestRenderFooterErrorStatus(t *testing.T) {
 	if !strings.Contains(out, "boom") {
 		t.Fatalf("footer should show error status")
 	}
-	if !strings.Contains(out, "✗") {
+	if !strings.Contains(out, icons.Get(icons.Cross)) {
 		t.Fatalf("footer should show error icon")
 	}
 }

@@ -503,7 +503,7 @@ func GeneratePriorityBrief(triage interface{}, config PriorityBriefConfig) strin
 	// Legend
 	if config.IncludeLegend {
 		sb.WriteString("---\n\n")
-		sb.WriteString("## 📖 Legend\n\n")
+		sb.WriteString("## " + icons.Get(icons.Legend) + " Legend\n\n")
 		sb.WriteString("| Metric | Description |\n")
 		sb.WriteString("|--------|-------------|\n")
 		sb.WriteString("| **PR** | PageRank - importance based on incoming dependencies |\n")
@@ -586,7 +586,7 @@ func GeneratePriorityBriefFromTriageJSON(triageJSON []byte, config PriorityBrief
 	}
 
 	// Summary stats
-	sb.WriteString("## 📈 Summary\n\n")
+	sb.WriteString("## " + icons.Get(icons.TrendUp) + " Summary\n\n")
 	sb.WriteString("| Open | In Progress | Blocked | Actionable |\n")
 	sb.WriteString("|:----:|:-----------:|:-------:|:----------:|\n")
 	sb.WriteString(fmt.Sprintf("| %d | %d | %d | %d |\n\n",
@@ -612,7 +612,7 @@ func GeneratePriorityBriefFromTriageJSON(triageJSON []byte, config PriorityBrief
 
 		for i := 0; i < limit; i++ {
 			rec := triage.Recommendations[i]
-			typeIcon := getTypeIcon(rec.Type)
+			typeIcon := icons.IssueType(rec.Type)
 			reason := "-"
 			if len(rec.Reasons) > 0 {
 				reason = truncateString(rec.Reasons[0], 30)
@@ -689,7 +689,7 @@ func GeneratePriorityBriefFromTriageJSON(triageJSON []byte, config PriorityBrief
 	// Legend
 	if config.IncludeLegend {
 		sb.WriteString("---\n\n")
-		sb.WriteString("## 📖 Legend\n\n")
+		sb.WriteString("## " + icons.Get(icons.Legend) + " Legend\n\n")
 		sb.WriteString("| Symbol | Meaning |\n")
 		sb.WriteString("|:------:|:--------|\n")
 		sb.WriteString("| **PR** | PageRank - dependency importance |\n")
@@ -738,9 +738,4 @@ func truncateString(s string, maxLen int) string {
 		return string(runes[:maxLen])
 	}
 	return string(runes[:maxLen-1]) + "…"
-}
-
-// getTypeIcon returns a compact icon for issue type (for tables)
-func getTypeIcon(issueType string) string {
-	return icons.IssueType(issueType)
 }

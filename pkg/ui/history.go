@@ -2862,34 +2862,13 @@ func commitTypeIndicator(msg string) string {
 
 	// Check for revert
 	if strings.HasPrefix(lowerMsg, "revert ") {
-		return "↩" // revert symbol
+		return icons.CommitRevertIcon()
 	}
 
 	// Check conventional commit type
 	cc := parseConventionalCommit(msg)
 	if cc.IsConventional {
-		switch cc.Type {
-		case "feat":
-			return "✨" // sparkles for feature
-		case "fix":
-			return "🐛" // bug for fix
-		case "docs":
-			return "📝" // docs
-		case "refactor":
-			return "♻" // refactor
-		case "perf":
-			return "⚡" // performance
-		case "test":
-			return "🧪" // test
-		case "chore":
-			return "🔧" // chore
-		case "ci":
-			return "🔄" // CI
-		case "build":
-			return "📦" // build
-		case "style":
-			return "💄" // style
-		}
+		return icons.ConventionalCommitIcon(cc.Type)
 	}
 
 	return "" // no special indicator

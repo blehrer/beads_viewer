@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Dicklesworthstone/beads_viewer/pkg/analysis"
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/model"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -37,6 +38,9 @@ func newTestIssueItem(id string) IssueItem {
 }
 
 func TestIssueDelegate_RenderWorkspaceWithPriorityHints(t *testing.T) {
+	icons.Use(icons.SetEmoji)
+	t.Cleanup(func() { icons.Use(icons.SetEmoji) })
+
 	item := newTestIssueItem("api-123")
 	item.RepoPrefix = "api"         // exercise workspace badge branch
 	item.DiffStatus = DiffStatusNew // exercise diff badge branch
@@ -68,10 +72,10 @@ func TestIssueDelegate_RenderWorkspaceWithPriorityHints(t *testing.T) {
 	if !strings.Contains(out, "[API]") {
 		t.Fatalf("render output missing repo badge [API]: %q", out)
 	}
-	if !strings.Contains(out, "🆕") {
+	if !strings.Contains(out, icons.Get(icons.New)) {
 		t.Fatalf("render output missing diff badge for new item: %q", out)
 	}
-	if !strings.Contains(out, "💬1") {
+	if !strings.Contains(out, icons.Get(icons.Comment)+"1") {
 		t.Fatalf("render output missing comment count badge: %q", out)
 	}
 }

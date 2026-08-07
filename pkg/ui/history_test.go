@@ -1129,19 +1129,22 @@ func TestParseConventionalCommit(t *testing.T) {
 }
 
 func TestCommitTypeIndicator(t *testing.T) {
+	icons.Use(icons.SetEmoji)
+	t.Cleanup(func() { icons.Use(icons.SetEmoji) })
+
 	tests := []struct {
 		msg  string
 		want string
 	}{
-		{"feat: new feature", "✨"},
-		{"fix: bug fix", "🐛"},
-		{"docs: update readme", "📝"},
-		{"refactor: clean up", "♻"},
-		{"test: add tests", "🧪"},
-		{"chore: update deps", "🔧"},
-		{"perf: optimize", "⚡"},
+		{"feat: new feature", icons.Get(icons.Feature)},
+		{"fix: bug fix", icons.Get(icons.Bug)},
+		{"docs: update readme", icons.Get(icons.FileDefault)},
+		{"refactor: clean up", icons.Get(icons.CommitRefactor)},
+		{"test: add tests", icons.Get(icons.CommitTest)},
+		{"chore: update deps", icons.Get(icons.CommitChore)},
+		{"perf: optimize", icons.Get(icons.Lightning)},
 		{"Merge branch 'main'", "⊕"},
-		{"Revert 'some commit'", "↩"},
+		{"Revert 'some commit'", icons.CommitRevertIcon()},
 		{"regular message", ""},
 	}
 

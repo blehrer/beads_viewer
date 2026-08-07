@@ -297,6 +297,11 @@ func TestAllNamesHaveGlyphs(t *testing.T) {
 		PriorityMedium, PriorityLow, PriorityBacklog,
 		DepRoot, DepParentChild, DepDiscovered,
 		SwimRefresh, SwimProhibited, Question, FileDefault,
+		HistoryGit, HistoryBead, SessionAttach, ArrowUp, ArrowDown,
+		Folder, Globe, Comment, Label, Navigation, Lightbulb, Bell,
+		Microscope, Books, Brain, Building, Satellite, CriticalPath, Health,
+		HistoryScroll, CommitRefactor, CommitTest, CommitChore, CommitStyle, CommitRevert,
+		Legend, TrendUp, Eye,
 	}
 	for _, name := range names {
 		if _, ok := emojiIcons[name]; !ok {

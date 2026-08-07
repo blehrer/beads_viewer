@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/Dicklesworthstone/beads_viewer/pkg/agents"
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -133,7 +134,7 @@ func (m AgentPromptModal) View() string {
 	var b strings.Builder
 
 	// Title
-	b.WriteString(titleStyle.Render("📝 Enhance AI Agent Integration?"))
+	b.WriteString(titleStyle.Render(icons.Get(icons.FileDefault) + " Enhance AI Agent Integration?"))
 	b.WriteString("\n\n")
 
 	// Body

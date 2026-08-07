@@ -28,7 +28,7 @@ func (m Model) renderSprintDashboard() string {
 
 	// Title
 	titleStyle := t.Renderer.NewStyle().Bold(true).Foreground(t.Primary)
-	sb.WriteString(titleStyle.Render(fmt.Sprintf("📅 Sprint: %s", sprint.Name)))
+	sb.WriteString(titleStyle.Render(fmt.Sprintf("%s Sprint: %s", icons.Get(icons.Calendar), sprint.Name)))
 	sb.WriteString("\n\n")
 
 	// Date range and days remaining
@@ -123,10 +123,10 @@ func (m Model) renderSprintDashboard() string {
 
 	// Status breakdown
 	sb.WriteString(labelStyle.Render("Status:   "))
-	sb.WriteString(t.Renderer.NewStyle().Foreground(t.Open).Render(fmt.Sprintf("✓%d ", closedBeads)))
+	sb.WriteString(t.Renderer.NewStyle().Foreground(t.Open).Render(fmt.Sprintf("%s%d ", icons.Get(icons.Check), closedBeads)))
 	sb.WriteString(t.Renderer.NewStyle().Foreground(t.Feature).Render(fmt.Sprintf("⏳%d ", inProgressBeads)))
 	sb.WriteString(t.Renderer.NewStyle().Foreground(t.Blocked).Render(fmt.Sprintf("⛔%d ", blockedBeads)))
-	sb.WriteString(valStyle.Render(fmt.Sprintf("○%d", openBeads-inProgressBeads-blockedBeads)))
+	sb.WriteString(valStyle.Render(fmt.Sprintf("%s%d", icons.FooterStatIcon("open"), openBeads-inProgressBeads-blockedBeads)))
 	sb.WriteString("\n\n")
 
 	// Simple burndown chart (ASCII)
@@ -186,7 +186,7 @@ func (m Model) renderSprintDashboard() string {
 		}
 	}
 	if len(atRisk) == 0 {
-		sb.WriteString(t.Renderer.NewStyle().Foreground(t.Open).Render("  ✓ No at-risk items"))
+		sb.WriteString(t.Renderer.NewStyle().Foreground(t.Open).Render("  " + icons.Get(icons.Check) + " No at-risk items"))
 		sb.WriteString("\n")
 	} else {
 		for i, iss := range atRisk {
@@ -208,7 +208,7 @@ func (m Model) renderSprintDashboard() string {
 	displayLimit := min(10, len(sprintIssues))
 	for i := 0; i < displayLimit; i++ {
 		iss := sprintIssues[i]
-		statusIcon := "○"
+		statusIcon := icons.FooterStatIcon("open")
 		statusStyle := valStyle
 		if isClosedLikeStatus(iss.Status) {
 			statusIcon = icons.Get(icons.Check)

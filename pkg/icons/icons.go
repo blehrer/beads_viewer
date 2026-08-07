@@ -78,6 +78,29 @@ const (
 	SessionAttach    Name = "session_attach"
 	ArrowUp          Name = "arrow_up"
 	ArrowDown        Name = "arrow_down"
+	Folder           Name = "folder"
+	Globe            Name = "globe"
+	Comment          Name = "comment"
+	Label            Name = "label"
+	Navigation       Name = "navigation"
+	Lightbulb        Name = "lightbulb"
+	Bell             Name = "bell"
+	Microscope       Name = "microscope"
+	Books            Name = "books"
+	Brain            Name = "brain"
+	Building         Name = "building"
+	Satellite        Name = "satellite"
+	CriticalPath     Name = "critical_path"
+	Health           Name = "health"
+	HistoryScroll    Name = "history_scroll"
+	CommitRefactor   Name = "commit_refactor"
+	CommitTest       Name = "commit_test"
+	CommitChore      Name = "commit_chore"
+	CommitStyle      Name = "commit_style"
+	CommitRevert     Name = "commit_revert"
+	Legend           Name = "legend"
+	TrendUp          Name = "trend_up"
+	Eye              Name = "eye"
 )
 
 var (
@@ -306,6 +329,29 @@ var emojiIcons = map[Name]string{
 	SessionAttach:    "📎",
 	ArrowUp:          "⬆",
 	ArrowDown:        "⬇",
+	Folder:           "📁",
+	Globe:            "🌐",
+	Comment:          "💬",
+	Label:            "🏷",
+	Navigation:       "🧭",
+	Lightbulb:        "💡",
+	Bell:             "🔔",
+	Microscope:       "🔬",
+	Books:            "📚",
+	Brain:            "🧠",
+	Building:         "🏛️",
+	Satellite:        "🛰️",
+	CriticalPath:     "🛤️",
+	Health:           "🩺",
+	HistoryScroll:    "📜",
+	CommitRefactor:   "♻",
+	CommitTest:       "🧪",
+	CommitChore:      "🔧",
+	CommitStyle:      "💄",
+	CommitRevert:     "↩",
+	Legend:           "📖",
+	TrendUp:          "📈",
+	Eye:              "👁",
 }
 
 // ponytail: codepoints from Nerd Fonts 3.4 i_md.sh — not raw MDI webfont names (F0AFA is alpha-m, not bug).
@@ -364,4 +410,27 @@ var nerdIcons = map[Name]string{
 	SessionAttach:    "\U000f0207", // md-paperclip
 	ArrowUp:          "\U000f005d", // md-arrow-up
 	ArrowDown:        "\U000f0045", // md-arrow-down
+	Folder:           "\U000f024b", // nf-md-folder
+	Globe:            "\U000f01e7", // nf-md-web
+	Comment:          "\U000f017a", // nf-md-comment-text-outline
+	Label:            "\U000f0315", // nf-md-label
+	Navigation:       "\U000f0142", // nf-md-compass-outline
+	Lightbulb:        "\U000f0335", // nf-md-lightbulb
+	Bell:             "\U000f009a", // nf-md-bell
+	Microscope:       "\U000f0650", // nf-md-microscope
+	Books:            "\U000f00f6", // nf-md-book-multiple
+	Brain:            "\U000f09e7", // nf-md-brain
+	Building:         "\U000f01ad", // nf-md-office-building
+	Satellite:        "\U000f0420", // nf-md-satellite-variant
+	CriticalPath:     "\U000f0462", // nf-md-road-variant
+	Health:           "\U000f0fa4", // nf-md-stethoscope
+	HistoryScroll:    "\U000f018f", // nf-md-history
+	CommitRefactor:   "\U000f012a", // nf-md-recycle
+	CommitTest:       "\U000f0669", // nf-md-test-tube
+	CommitChore:      "\U000f05b7", // nf-md-wrench
+	CommitStyle:      "\U000f0154", // nf-md-brush
+	CommitRevert:     "\U000f045a", // nf-md-undo
+	Legend:           "\U000f02f7", // nf-md-book-open-page-variant
+	TrendUp:          "\U000f053a", // nf-md-chart-line
+	Eye:              "\U000f0208", // nf-md-eye
 }

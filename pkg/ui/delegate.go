@@ -77,7 +77,7 @@ func (d IssueDelegate) Render(w io.Writer, m list.Model, index int, listItem lis
 
 		// Comments with icon - use lipgloss.Width for accurate emoji measurement
 		if commentCount > 0 {
-			commentStr := fmt.Sprintf("💬%d", commentCount)
+			commentStr := fmt.Sprintf("%s%d", icons.Get(icons.Comment), commentCount)
 			rightParts = append(rightParts, t.InfoText.Render(commentStr))
 			rightWidth += lipgloss.Width(commentStr) + 1 // +1 for spacing
 		} else {

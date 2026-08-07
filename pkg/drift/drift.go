@@ -9,6 +9,7 @@ import (
 
 	"github.com/Dicklesworthstone/beads_viewer/pkg/analysis"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/baseline"
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/model"
 )
 
@@ -574,7 +575,7 @@ func (r *Result) Summary() string {
 		sb.WriteString(fmt.Sprintf("🟡 WARNING: %d issue(s)\n", r.WarningCount))
 	}
 	if r.InfoCount > 0 {
-		sb.WriteString(fmt.Sprintf("🔵 INFO: %d issue(s)\n", r.InfoCount))
+		sb.WriteString(fmt.Sprintf("%s INFO: %d issue(s)\n", icons.Get(icons.StatusInProgress), r.InfoCount))
 	}
 
 	sb.WriteString("\nDetails:\n")

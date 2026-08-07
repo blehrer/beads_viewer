@@ -31,7 +31,7 @@ const (
 
 // MetricInfo contains explanation for each metric
 type MetricInfo struct {
-	Icon        string
+	Icon        icons.Name
 	Title       string
 	ShortDesc   string
 	WhatIs      string
@@ -42,7 +42,7 @@ type MetricInfo struct {
 
 var metricDescriptions = map[MetricPanel]MetricInfo{
 	PanelBottlenecks: {
-		Icon:        "🚧",
+		Icon:        icons.Construction,
 		Title:       "Bottlenecks",
 		ShortDesc:   "Betweenness Centrality",
 		WhatIs:      "Measures how often a bead lies on **shortest paths** between other beads in the dependency graph.",
@@ -51,7 +51,7 @@ var metricDescriptions = map[MetricPanel]MetricInfo{
 		FormulaHint: "`BW(v) = Σ (σst(v) / σst)` for all s≠v≠t",
 	},
 	PanelKeystones: {
-		Icon:        "🏛️",
+		Icon:        icons.Building,
 		Title:       "Keystones",
 		ShortDesc:   "Impact Depth",
 		WhatIs:      "Measures how **deep** in the dependency chain a bead sits (downstream chain length).",
@@ -60,7 +60,7 @@ var metricDescriptions = map[MetricPanel]MetricInfo{
 		FormulaHint: "`Impact(v) = 1 + max(Impact(u))` for all u depending on v",
 	},
 	PanelInfluencers: {
-		Icon:        "🌐",
+		Icon:        icons.Globe,
 		Title:       "Influencers",
 		ShortDesc:   "Eigenvector Centrality",
 		WhatIs:      "Scores beads by their connections to other **well-connected** beads.",
@@ -69,7 +69,7 @@ var metricDescriptions = map[MetricPanel]MetricInfo{
 		FormulaHint: "`EV(v) = (1/λ) × Σ A[v,u] × EV(u)`",
 	},
 	PanelHubs: {
-		Icon:        "🛰️",
+		Icon:        icons.Satellite,
 		Title:       "Hubs",
 		ShortDesc:   "HITS Hub Score",
 		WhatIs:      "Beads that **depend on** many important authorities (aggregators).",
@@ -78,7 +78,7 @@ var metricDescriptions = map[MetricPanel]MetricInfo{
 		FormulaHint: "`Hub(v) = Σ Authority(u)` for all u where v→u",
 	},
 	PanelAuthorities: {
-		Icon:        "📚",
+		Icon:        icons.Books,
 		Title:       "Authorities",
 		ShortDesc:   "HITS Authority Score",
 		WhatIs:      "Beads that are **depended upon** by many important hubs (providers).",
@@ -87,7 +87,7 @@ var metricDescriptions = map[MetricPanel]MetricInfo{
 		FormulaHint: "`Auth(v) = Σ Hub(u)` for all u where u→v",
 	},
 	PanelCores: {
-		Icon:        "🧠",
+		Icon:        icons.Brain,
 		Title:       "Cores",
 		ShortDesc:   "k-core Cohesion",
 		WhatIs:      "Nodes with highest **k-core numbers** (embedded in dense subgraphs).",
@@ -96,7 +96,7 @@ var metricDescriptions = map[MetricPanel]MetricInfo{
 		FormulaHint: "Max `k` such that node remains in k-core after peeling",
 	},
 	PanelArticulation: {
-		Icon:        "🪢",
+		Icon:        icons.Link,
 		Title:       "Cut Points",
 		ShortDesc:   "Articulation Vertices",
 		WhatIs:      "Nodes whose **removal disconnects** the undirected graph.",
@@ -105,7 +105,7 @@ var metricDescriptions = map[MetricPanel]MetricInfo{
 		FormulaHint: "Tarjan articulation detection on undirected view",
 	},
 	PanelSlack: {
-		Icon:        "⏳",
+		Icon:        icons.Hourglass,
 		Title:       "Slack",
 		ShortDesc:   "Longest-path slack",
 		WhatIs:      "Distance from **critical chain** (`0` = critical path; higher = parallel-friendly).",
@@ -114,7 +114,7 @@ var metricDescriptions = map[MetricPanel]MetricInfo{
 		FormulaHint: "`Slack(v) = max_path_len - dist_start(v) - dist_end(v)`",
 	},
 	PanelCycles: {
-		Icon:        "🔄",
+		Icon:        icons.SwimRefresh,
 		Title:       "Cycles",
 		ShortDesc:   "Circular Dependencies",
 		WhatIs:      "Groups of beads forming **dependency loops** (A→B→C→A).",
@@ -123,7 +123,7 @@ var metricDescriptions = map[MetricPanel]MetricInfo{
 		FormulaHint: "Detected via Tarjan's SCC algorithm",
 	},
 	PanelPriority: {
-		Icon:        "🎯",
+		Icon:        icons.Target,
 		Title:       "Priority",
 		ShortDesc:   "Agent-First Triage",
 		WhatIs:      "AI-computed recommendations combining **multiple signals** into actionable picks.",
@@ -768,9 +768,9 @@ func (m *InsightsModel) renderMetricPanel(panel MetricPanel, width, height int, 
 	// Header line: Icon Title (count) or [Skipped]
 	var headerLine string
 	if skipped {
-		headerLine = fmt.Sprintf("%s %s [Skipped]", info.Icon, info.Title)
+		headerLine = fmt.Sprintf("%s %s [Skipped]", icons.Get(info.Icon), info.Title)
 	} else {
-		headerLine = fmt.Sprintf("%s %s (%d)", info.Icon, info.Title, len(items))
+		headerLine = fmt.Sprintf("%s %s (%d)", icons.Get(info.Icon), info.Title, len(items))
 	}
 	lines = append(lines, titleStyle.Render(headerLine))
 
@@ -980,9 +980,9 @@ func (m *InsightsModel) renderCyclesPanel(width, height int, t Theme) string {
 	// Header
 	var headerLine string
 	if skipped {
-		headerLine = fmt.Sprintf("%s %s [Skipped]", info.Icon, info.Title)
+		headerLine = fmt.Sprintf("%s %s [Skipped]", icons.Get(info.Icon), info.Title)
 	} else {
-		headerLine = fmt.Sprintf("%s %s (%d)", info.Icon, info.Title, len(cycles))
+		headerLine = fmt.Sprintf("%s %s (%d)", icons.Get(info.Icon), info.Title, len(cycles))
 	}
 	lines = append(lines, titleStyle.Render(headerLine))
 
@@ -1017,7 +1017,7 @@ func (m *InsightsModel) renderCyclesPanel(width, height int, t Theme) string {
 		healthyStyle := t.Renderer.NewStyle().
 			Foreground(t.Open).
 			Bold(true)
-		lines = append(lines, healthyStyle.Render("✓ No cycles detected"))
+		lines = append(lines, healthyStyle.Render(icons.Get(icons.Check)+" No cycles detected"))
 		lines = append(lines, t.Renderer.NewStyle().Foreground(t.Subtext).Render("Graph is acyclic (DAG)"))
 	} else {
 		selectedIdx := m.selectedIndex[PanelCycles]
@@ -1106,7 +1106,7 @@ func (m *InsightsModel) renderPriorityPanel(width, height int, t Theme) string {
 	var lines []string
 
 	// Header with inline subtitle
-	headerLine := fmt.Sprintf("%s %s (%d)", info.Icon, info.Title, len(picks))
+	headerLine := fmt.Sprintf("%s %s (%d)", icons.Get(info.Icon), info.Title, len(picks))
 	subtitleStyle := t.Renderer.NewStyle().Foreground(t.Subtext).Italic(true)
 	headerWithSubtitle := titleStyle.Render(headerLine) + "  " + subtitleStyle.Render(info.ShortDesc)
 	lines = append(lines, headerWithSubtitle)
@@ -1171,7 +1171,7 @@ func (m *InsightsModel) renderPriorityPanel(width, height int, t Theme) string {
 			Italic(true).
 			Align(lipgloss.Right).
 			Width(width - 4)
-		lines = append(lines, hashStyle.Render("📊 "+m.triageDataHash))
+		lines = append(lines, hashStyle.Render(icons.Get(icons.Chart)+" "+m.triageDataHash))
 	}
 
 	return panelStyle.Render(lipgloss.JoinVertical(lipgloss.Left, lines...))
@@ -1367,7 +1367,7 @@ func (m *InsightsModel) renderHeatmapPanel(width, height int, t Theme) string {
 	} else {
 		titleStyle = titleStyle.Foreground(t.Secondary)
 	}
-	sb.WriteString(strings.TrimRight(titleStyle.Render("📊 Priority Heatmap"), "\n\r"))
+	sb.WriteString(strings.TrimRight(titleStyle.Render(icons.Get(icons.Chart)+" Priority Heatmap"), "\n\r"))
 	sb.WriteString("  ")
 	subtitleStyle := t.Renderer.NewStyle().Foreground(t.Subtext).Italic(true)
 	sb.WriteString(strings.TrimRight(subtitleStyle.Render("j/k/h/l=navigate Enter=drill H=toggle"), "\n\r"))
@@ -1568,7 +1568,8 @@ func (m *InsightsModel) renderHeatmapDrillDown(width int, t Theme) string {
 		scoreLabel = scoreLabels[m.heatmapCol]
 	}
 	titleStyle := t.Renderer.NewStyle().Bold(true).Foreground(t.Primary)
-	sb.WriteString(titleStyle.Render(fmt.Sprintf("📋 Issues in %s × %s (%d items)",
+	sb.WriteString(titleStyle.Render(fmt.Sprintf("%s Issues in %s × %s (%d items)",
+		icons.Get(icons.Task),
 		depthLabel, scoreLabel, len(m.heatmapIssues))))
 	sb.WriteString("\n")
 
@@ -1733,7 +1734,7 @@ func (m *InsightsModel) buildDetailMarkdown(selectedID string) string {
 	// === Graph Metrics Section ===
 	if m.insights.Stats != nil {
 		stats := m.insights.Stats
-		sb.WriteString("### 📊 Graph Analysis\n\n")
+		sb.WriteString("### " + icons.Get(icons.Chart) + " Graph Analysis\n\n")
 
 		// Core metrics in a compact format
 		pr := stats.GetPageRankScore(selectedID)
@@ -1805,7 +1806,7 @@ func (m *InsightsModel) renderCalculationProofMD(selectedID string) string {
 	info := metricDescriptions[m.focusedPanel]
 
 	sb.WriteString("---\n\n")
-	sb.WriteString("### 🔬 Calculation Proof\n\n")
+	sb.WriteString("### " + icons.Get(icons.Microscope) + " Calculation Proof\n\n")
 	sb.WriteString(fmt.Sprintf("**Formula:** %s\n\n", info.FormulaHint))
 
 	switch m.focusedPanel {
@@ -1903,7 +1904,7 @@ func (m *InsightsModel) renderCalculationProofMD(selectedID string) string {
 			for i, id := range cycle {
 				arrow := "→"
 				if i == len(cycle)-1 {
-					arrow = "↺"
+					arrow = icons.Get(icons.SwimRefresh)
 				}
 				sb.WriteString(fmt.Sprintf("%s %s\n", arrow, m.getBeadTitle(id, 35)))
 			}
