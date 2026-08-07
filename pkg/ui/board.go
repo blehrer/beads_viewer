@@ -1654,79 +1654,9 @@ func (b *BoardModel) renderDetailPanel(width, height int) string {
 		if b.lastDetailID != issue.ID {
 			b.lastDetailID = issue.ID
 
-			var content strings.Builder
-
-			// Header with ID and type
 			icon, _ := t.GetTypeIcon(string(issue.IssueType))
-			content.WriteString(fmt.Sprintf("## %s %s\n\n", icon, issue.ID))
+			rendered := buildBoardDetailMarkdown(issue, b.issueMap, b.blocksIndex, icon)
 
-			// Title
-			content.WriteString(fmt.Sprintf("**%s**\n\n", issue.Title))
-
-			// Status and Priority
-			statusIcon := GetStatusIcon(string(issue.Status))
-			prioIcon := GetPriorityIcon(issue.Priority)
-			content.WriteString(fmt.Sprintf("%s %s  %s P%d\n\n",
-				statusIcon, issue.Status, prioIcon, issue.Priority))
-
-			// Metadata section
-			if issue.Assignee != "" {
-				content.WriteString(fmt.Sprintf("**Assignee:** @%s\n\n", issue.Assignee))
-			}
-
-			if len(issue.Labels) > 0 {
-				content.WriteString(fmt.Sprintf("**Labels:** %s\n\n", strings.Join(issue.Labels, ", ")))
-			}
-
-			// Dependencies - show with titles and status (bv-kklp)
-			// First count blocking deps to avoid empty "Blocked by:" header
-			var blockingDeps []*model.Dependency
-			for _, dep := range issue.Dependencies {
-				if dep != nil && dep.Type.IsBlocking() {
-					blockingDeps = append(blockingDeps, dep)
-				}
-			}
-			if len(blockingDeps) > 0 {
-				content.WriteString("**Blocked by:**\n")
-				for _, dep := range blockingDeps {
-					// Look up blocker info for richer display
-					if blocker, ok := b.issueMap[dep.DependsOnID]; ok && blocker != nil {
-						content.WriteString(fmt.Sprintf("- %s: %s (%s)\n",
-							dep.DependsOnID, blocker.Title, blocker.Status))
-					} else {
-						content.WriteString(fmt.Sprintf("- %s\n", dep.DependsOnID))
-					}
-				}
-				content.WriteString("\n")
-			}
-
-			// Show what this issue blocks (bv-kklp)
-			if blockedIDs, ok := b.blocksIndex[issue.ID]; ok && len(blockedIDs) > 0 {
-				content.WriteString("**Blocks:**\n")
-				for _, blockedID := range blockedIDs {
-					if blocked, ok := b.issueMap[blockedID]; ok && blocked != nil {
-						content.WriteString(fmt.Sprintf("- %s: %s\n", blockedID, blocked.Title))
-					} else {
-						content.WriteString(fmt.Sprintf("- %s\n", blockedID))
-					}
-				}
-				content.WriteString(fmt.Sprintf("\n💡 Completing this would unblock %d issue(s)\n\n", len(blockedIDs)))
-			}
-
-			// Description
-			if issue.Description != "" {
-				content.WriteString("---\n\n")
-				content.WriteString(issue.Description)
-				content.WriteString("\n")
-			}
-
-			// Timestamps
-			content.WriteString("\n---\n\n")
-			content.WriteString(fmt.Sprintf("*Created: %s*\n", FormatTimeRel(issue.CreatedAt)))
-			content.WriteString(fmt.Sprintf("*Updated: %s*\n", FormatTimeRel(issue.UpdatedAt)))
-
-			// Render with markdown
-			rendered := content.String()
 			if b.mdRenderer != nil {
 				if md, err := b.mdRenderer.Render(rendered); err == nil {
 					rendered = md
@@ -1768,4 +1698,69 @@ func (b *BoardModel) renderDetailPanel(width, height int) string {
 		Render("DETAILS")
 
 	return panelStyle.Render(lipgloss.JoinVertical(lipgloss.Left, titleBar, sb.String()))
+}
+
+// buildBoardDetailMarkdown assembles markdown for the board detail viewport (glamour input).
+// ponytail: must stay ANSI-free — use *IconMD helpers, never RenderPriorityIcon/GetStatusIcon.
+func buildBoardDetailMarkdown(issue *model.Issue, issueMap map[string]*model.Issue, blocksIndex map[string][]string, typeIcon string) string {
+	var content strings.Builder
+
+	content.WriteString(fmt.Sprintf("## %s %s\n\n", typeIcon, issue.ID))
+	content.WriteString(fmt.Sprintf("**%s**\n\n", issue.Title))
+
+	statusIcon := GetStatusIconMD(string(issue.Status))
+	prioIcon := GetPriorityIconMD(issue.Priority)
+	content.WriteString(fmt.Sprintf("%s %s  %s P%d\n\n",
+		statusIcon, issue.Status, prioIcon, issue.Priority))
+
+	if issue.Assignee != "" {
+		content.WriteString(fmt.Sprintf("**Assignee:** @%s\n\n", issue.Assignee))
+	}
+
+	if len(issue.Labels) > 0 {
+		content.WriteString(fmt.Sprintf("**Labels:** %s\n\n", strings.Join(issue.Labels, ", ")))
+	}
+
+	var blockingDeps []*model.Dependency
+	for _, dep := range issue.Dependencies {
+		if dep != nil && dep.Type.IsBlocking() {
+			blockingDeps = append(blockingDeps, dep)
+		}
+	}
+	if len(blockingDeps) > 0 {
+		content.WriteString("**Blocked by:**\n")
+		for _, dep := range blockingDeps {
+			if blocker, ok := issueMap[dep.DependsOnID]; ok && blocker != nil {
+				content.WriteString(fmt.Sprintf("- %s: %s (%s)\n",
+					dep.DependsOnID, blocker.Title, blocker.Status))
+			} else {
+				content.WriteString(fmt.Sprintf("- %s\n", dep.DependsOnID))
+			}
+		}
+		content.WriteString("\n")
+	}
+
+	if blockedIDs, ok := blocksIndex[issue.ID]; ok && len(blockedIDs) > 0 {
+		content.WriteString("**Blocks:**\n")
+		for _, blockedID := range blockedIDs {
+			if blocked, ok := issueMap[blockedID]; ok && blocked != nil {
+				content.WriteString(fmt.Sprintf("- %s: %s\n", blockedID, blocked.Title))
+			} else {
+				content.WriteString(fmt.Sprintf("- %s\n", blockedID))
+			}
+		}
+		content.WriteString(fmt.Sprintf("\n💡 Completing this would unblock %d issue(s)\n\n", len(blockedIDs)))
+	}
+
+	if issue.Description != "" {
+		content.WriteString("---\n\n")
+		content.WriteString(issue.Description)
+		content.WriteString("\n")
+	}
+
+	content.WriteString("\n---\n\n")
+	content.WriteString(fmt.Sprintf("*Created: %s*\n", FormatTimeRel(issue.CreatedAt)))
+	content.WriteString(fmt.Sprintf("*Updated: %s*\n", FormatTimeRel(issue.UpdatedAt)))
+
+	return content.String()
 }

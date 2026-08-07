@@ -170,8 +170,8 @@ func renderTreeNode(sb *strings.Builder, node *DependencyNode, prefix string, is
 		connector = "├── "
 	}
 
-	// Get icons
-	statusIcon := GetStatusIcon(node.Status)
+	// Get icons (plain — dependency tree is embedded in markdown code blocks)
+	statusIcon := GetStatusIconMD(node.Status)
 	typeIcon := getDepTypeIcon(node.Type)
 
 	// Truncate title if too long (UTF-8 safe)
@@ -210,14 +210,35 @@ func getDepTypeIcon(depType string) string {
 	return icons.DependencyType(depType)
 }
 
-// GetStatusIcon returns a lipgloss-colored status dot for TUI rendering (alias of RenderStatusDot).
+// GetStatusIcon returns a lipgloss-colored status dot for interactive TUI views.
+// It is an alias of RenderStatusDot. Do not embed the result in markdown passed to
+// glamour or static export; use GetStatusIconMD for plain glyphs without ANSI escapes.
 func GetStatusIcon(s string) string {
 	return RenderStatusDot(s)
 }
 
-// GetPriorityIcon returns a lipgloss-colored priority glyph for TUI rendering.
+// GetStatusIconMD returns a plain status glyph from pkg/icons for markdown and export.
+// Use this in build*Markdown paths and anywhere glamour renders the string.
+// Never substitute GetStatusIcon or RenderStatusDot — lipgloss color breaks markdown layout.
+func GetStatusIconMD(s string) string {
+	if s == "" {
+		return icons.Get(icons.StatusUnknown)
+	}
+	return icons.IssueStatus(s)
+}
+
+// GetPriorityIcon returns a lipgloss-colored priority glyph for interactive TUI views.
+// It wraps RenderPriorityIcon. Do not embed the result in markdown passed to glamour
+// or static export; use GetPriorityIconMD for plain glyphs without ANSI escapes.
 func GetPriorityIcon(priority int) string {
 	return RenderPriorityIcon(priority)
+}
+
+// GetPriorityIconMD returns a plain priority glyph from pkg/icons for markdown and export.
+// Use this in build*Markdown paths and anywhere glamour renders the string.
+// Never substitute GetPriorityIcon or RenderPriorityIcon — lipgloss color breaks markdown layout.
+func GetPriorityIconMD(priority int) string {
+	return icons.Priority(priority)
 }
 
 // GetPriorityLabel returns a compact text label for priority (P0, P1, etc.)

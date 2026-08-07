@@ -1,0 +1,22 @@
+id: no-styled-icons-in-markdown
+message: Markdown builders must use *IconMD helpers, not lipgloss-styled icons (GetPriorityIconMD / GetStatusIconMD)
+severity: error
+language: Go
+files:
+  - pkg/ui/*.go
+ignores:
+  - pkg/ui/styles.go
+  - pkg/ui/helpers.go
+  - pkg/ui/*_test.go
+rule:
+  any:
+    - pattern: GetPriorityIcon($$$)
+    - pattern: GetStatusIcon($$$)
+    - pattern: RenderPriorityIcon($$$)
+    - pattern: RenderStatusDot($$$)
+    - pattern: RenderTriageScoreIcon($$$)
+  inside:
+    kind: function_declaration
+    any:
+      - regex: ^build.*Markdown$
+      - regex: ^renderBeadHistoryMD$

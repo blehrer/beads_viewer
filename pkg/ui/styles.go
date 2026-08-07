@@ -169,7 +169,11 @@ func statusDotColor(status string) lipgloss.AdaptiveColor {
 	}
 }
 
-// RenderStatusDot returns a lipgloss-colored status indicator for TUI views.
+// RenderStatusDot returns a lipgloss-colored status dot for interactive TUI views.
+// The glyph is a plain ● with theme foreground color (not emoji status circles).
+// Do not embed the result in markdown passed to glamour or static export;
+// use GetStatusIconMD for plain glyphs without ANSI escapes.
+//
 // ponytail: plain ● + theme color replaces emoji circles (🟢🔵🔴) — no VS-16 width issues.
 func RenderStatusDot(status string) string {
 	if status == "" {
@@ -208,7 +212,11 @@ func priorityIconColor(priority int) lipgloss.AdaptiveColor {
 	}
 }
 
-// RenderPriorityIcon returns a lipgloss-colored priority glyph for TUI views.
+// RenderPriorityIcon returns a lipgloss-colored priority glyph for interactive TUI views.
+// The base glyph comes from pkg/icons; lipgloss adds theme foreground color.
+// Do not embed the result in markdown passed to glamour or static export;
+// use GetPriorityIconMD for plain glyphs without ANSI escapes.
+//
 // ponytail: emoji/nerd glyph + theme color replaces raw 🔹/⚡ (P2 rhombus is blue).
 func RenderPriorityIcon(priority int) string {
 	glyph := icons.Priority(priority)

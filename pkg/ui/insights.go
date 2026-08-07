@@ -1712,7 +1712,7 @@ func (m *InsightsModel) buildDetailMarkdown(selectedID string) string {
 	sb.WriteString("| Field | Value |\n|---|---|\n")
 	sb.WriteString(fmt.Sprintf("| **ID** | `%s` |\n", issue.ID))
 	sb.WriteString(fmt.Sprintf("| **Status** | **%s** |\n", strings.ToUpper(string(issue.Status))))
-	sb.WriteString(fmt.Sprintf("| **Priority** | %s P%d |\n", GetPriorityIcon(issue.Priority), issue.Priority))
+	sb.WriteString(fmt.Sprintf("| **Priority** | %s P%d |\n", GetPriorityIconMD(issue.Priority), issue.Priority))
 	if issue.Assignee != "" {
 		sb.WriteString(fmt.Sprintf("| **Assignee** | @%s |\n", issue.Assignee))
 	}

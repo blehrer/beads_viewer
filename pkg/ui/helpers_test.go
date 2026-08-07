@@ -1,10 +1,12 @@
 package ui_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/Dicklesworthstone/beads_viewer/pkg/model"
+	"github.com/Dicklesworthstone/beads_viewer/pkg/testutil"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/ui"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -247,6 +249,20 @@ func TestRenderDependencyTreeNil(t *testing.T) {
 
 	if rendered != "No dependency data." {
 		t.Errorf("Expected 'No dependency data.', got %s", rendered)
+	}
+}
+
+func TestGetPriorityIconMD_NoANSI(t *testing.T) {
+	for _, prio := range []int{0, 1, 2, 3, 4} {
+		got := ui.GetPriorityIconMD(prio)
+		testutil.AssertNoANSI(t, fmt.Sprintf("GetPriorityIconMD(%d)", prio), got)
+	}
+}
+
+func TestGetStatusIconMD_NoANSI(t *testing.T) {
+	for _, st := range []string{"open", "in_progress", "blocked", "closed", ""} {
+		got := ui.GetStatusIconMD(st)
+		testutil.AssertNoANSI(t, fmt.Sprintf("GetStatusIconMD(%q)", st), got)
 	}
 }
 

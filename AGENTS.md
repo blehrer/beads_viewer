@@ -309,6 +309,23 @@ beads_viewer/
 - Robot mode (`--robot-*`) outputs JSON to stdout; human mode uses styled TUI
 - Errors should be wrapped with `fmt.Errorf("context: %w", err)` for traceability
 
+### TUI vs markdown icons (pkg/ui)
+
+Issue status, priority, and type icons have two paths. Lipgloss helpers add ANSI color for bubbletea views. Markdown helpers return plain glyphs from `pkg/icons` for strings that go through glamour or static export.
+
+| Context | Helpers | Notes |
+|---------|---------|-------|
+| TUI / lipgloss inline | `GetStatusIcon`, `RenderStatusDot`, `RenderPriorityIcon`, `GetPriorityIcon` | Colored dots and glyphs; safe in terminal views |
+| Markdown / glamour / export | `GetStatusIconMD`, `GetPriorityIconMD`, `GetTypeIconMD` | No ANSI escapes; use in `build*Markdown` and export HTML |
+
+Do not pass lipgloss-styled strings into glamour. ANSI in markdown shows up as raw escape codes or broken layout. Functions named `build*Markdown` and `renderBeadHistoryMD` must call only the `*MD` helpers (see `TestMarkdownBuilders_NoStyledIcons` in `pkg/ui`).
+
+Optional local check (requires [ast-grep](https://ast-grep.github.io/)):
+
+```bash
+ast-grep scan -r .ast-grep/rules/no-styled-icons-in-markdown.yml pkg/ui
+```
+
 ### Hybrid Semantic Search (CLI)
 
 `bv --search` supports hybrid ranking (text + graph metrics).
