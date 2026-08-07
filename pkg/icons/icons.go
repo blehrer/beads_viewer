@@ -1,8 +1,9 @@
 // Package icons centralizes UI glyphs for emoji and Nerd Font terminals.
 //
-// Set BV_ICON_SET=nerd (also nerdfont, nerd-font, nf) for Private Use Area icons.
-// emoji or unset defaults to Unicode emoji for markdown export, robot JSON, and
-// non-Nerd terminals. cmd/bv calls SetFromEnv at startup; library tests default to emoji.
+// Set BV_ICON_SET=nerd (also nerdfont, nerd-font, nf) or experimental.icon_set: nerd in
+// ~/.config/bv/config.yaml for Private Use Area icons. emoji or unset defaults to
+// Unicode emoji for markdown export, robot JSON, and non-Nerd terminals. cmd/bv
+// calls ApplyPreference at startup; library tests default to emoji.
 package icons
 
 import (
@@ -108,18 +109,37 @@ var (
 	currentSet = SetEmoji
 )
 
-// Default is emoji. Call SetFromEnv from cmd/bv main before rendering.
+// Default is emoji. Call ApplyPreference from cmd/bv main before rendering.
 
-// SetFromEnv reads BV_ICON_SET. Safe to call again after changing the env var in tests.
-func SetFromEnv() {
-	mu.Lock()
-	defer mu.Unlock()
-	switch strings.ToLower(strings.TrimSpace(os.Getenv("BV_ICON_SET"))) {
+// ParseSet maps a preference string to a Set. Returns (set, true) when s is
+// non-empty and recognized (nerd aliases or emoji).
+func ParseSet(s string) (Set, bool) {
+	switch strings.ToLower(strings.TrimSpace(s)) {
 	case "nerd", "nerdfont", "nerd-font", "nf":
-		currentSet = SetNerd
+		return SetNerd, true
+	case "emoji":
+		return SetEmoji, true
 	default:
-		currentSet = SetEmoji
+		return SetEmoji, false
 	}
+}
+
+// ApplyPreference sets the active icon set with precedence: envVal > configVal > emoji.
+func ApplyPreference(envVal, configVal string) {
+	if set, ok := ParseSet(envVal); ok {
+		Use(set)
+		return
+	}
+	if set, ok := ParseSet(configVal); ok {
+		Use(set)
+		return
+	}
+	Use(SetEmoji)
+}
+
+// SetFromEnv reads BV_ICON_SET only. Safe to call again after changing the env var in tests.
+func SetFromEnv() {
+	ApplyPreference(os.Getenv("BV_ICON_SET"), "")
 }
 
 // ActiveSet returns the active icon set.

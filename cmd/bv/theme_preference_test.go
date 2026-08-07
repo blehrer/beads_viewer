@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 )
 
 func TestCanonicalTheme(t *testing.T) {
@@ -29,9 +31,9 @@ func TestCanonicalTheme(t *testing.T) {
 	}
 }
 
-// withThemeConfig points HOME at a fresh temp dir containing
+// withUserConfig points HOME at a fresh temp dir containing
 // ~/.config/bv/config.yaml with the given body, and returns that HOME.
-func withThemeConfig(t *testing.T, body string) string {
+func withUserConfig(t *testing.T, body string) string {
 	t.Helper()
 	home := t.TempDir()
 	dir := filepath.Join(home, ".config", "bv")
@@ -43,6 +45,11 @@ func withThemeConfig(t *testing.T, body string) string {
 	}
 	t.Setenv("HOME", home)
 	return home
+}
+
+func withThemeConfig(t *testing.T, body string) string {
+	t.Helper()
+	return withUserConfig(t, body)
 }
 
 func TestLoadThemeFromUserConfig(t *testing.T) {
@@ -133,5 +140,56 @@ func TestEffectiveThemePreference(t *testing.T) {
 	t.Setenv("BV_THEME", "")
 	if got := effectiveThemePreference("", false, nil); got != "" {
 		t.Errorf("no source: got %q, want empty (auto-detect)", got)
+	}
+}
+
+func TestLoadIconSetFromUserConfig(t *testing.T) {
+	withUserConfig(t, "experimental:\n  icon_set: nerd\n")
+	if v, ok := loadIconSetFromUserConfig(); !ok || v != "nerd" {
+		t.Fatalf("loadIconSetFromUserConfig() = (%q, %v), want (nerd, true)", v, ok)
+	}
+
+	withUserConfig(t, "theme: light\nexperimental:\n  icon_set: nf\n")
+	if v, ok := loadIconSetFromUserConfig(); !ok || v != "nf" {
+		t.Fatalf("with other keys: loadIconSetFromUserConfig() = (%q, %v), want (nf, true)", v, ok)
+	}
+
+	withUserConfig(t, "theme: light\n")
+	if v, ok := loadIconSetFromUserConfig(); ok {
+		t.Errorf("key absent: loadIconSetFromUserConfig() = (%q, %v), want (_, false)", v, ok)
+	}
+
+	withUserConfig(t, "experimental:\n  icon_set: \"\"\n")
+	if v, ok := loadIconSetFromUserConfig(); ok {
+		t.Errorf("blank value: loadIconSetFromUserConfig() = (%q, %v), want (_, false)", v, ok)
+	}
+
+	t.Setenv("HOME", t.TempDir())
+	if v, ok := loadIconSetFromUserConfig(); ok {
+		t.Errorf("no file: loadIconSetFromUserConfig() = (%q, %v), want (_, false)", v, ok)
+	}
+}
+
+func TestInitIconSet(t *testing.T) {
+	withUserConfig(t, "experimental:\n  icon_set: nerd\n")
+	t.Setenv("BV_ICON_SET", "")
+	initIconSet()
+	t.Cleanup(func() { icons.Use(icons.SetEmoji) })
+	if icons.ActiveSet() != icons.SetNerd {
+		t.Fatalf("config nerd: ActiveSet() = %v, want SetNerd", icons.ActiveSet())
+	}
+
+	withUserConfig(t, "experimental:\n  icon_set: nerd\n")
+	t.Setenv("BV_ICON_SET", "emoji")
+	initIconSet()
+	if icons.ActiveSet() != icons.SetEmoji {
+		t.Fatalf("env over config: ActiveSet() = %v, want SetEmoji", icons.ActiveSet())
+	}
+
+	withUserConfig(t, "experimental:\n  icon_set: banana\n")
+	t.Setenv("BV_ICON_SET", "")
+	initIconSet()
+	if icons.ActiveSet() != icons.SetEmoji {
+		t.Fatalf("invalid config: ActiveSet() = %v, want SetEmoji", icons.ActiveSet())
 	}
 }

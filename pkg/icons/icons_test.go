@@ -101,6 +101,56 @@ func TestSetFromEnv(t *testing.T) {
 	}
 }
 
+func TestApplyPreference(t *testing.T) {
+	t.Cleanup(func() { Use(SetEmoji) })
+
+	ApplyPreference("nerd", "emoji")
+	if ActiveSet() != SetNerd {
+		t.Fatalf("env over config: ActiveSet() = %v, want SetNerd", ActiveSet())
+	}
+
+	ApplyPreference("", "nf")
+	if ActiveSet() != SetNerd {
+		t.Fatalf("config nerd: ActiveSet() = %v, want SetNerd", ActiveSet())
+	}
+
+	ApplyPreference("", "emoji")
+	if ActiveSet() != SetEmoji {
+		t.Fatalf("config emoji: ActiveSet() = %v, want SetEmoji", ActiveSet())
+	}
+
+	ApplyPreference("", "")
+	if ActiveSet() != SetEmoji {
+		t.Fatalf("default: ActiveSet() = %v, want SetEmoji", ActiveSet())
+	}
+
+	ApplyPreference("banana", "nerd")
+	if ActiveSet() != SetNerd {
+		t.Fatalf("invalid env falls through to config: ActiveSet() = %v, want SetNerd", ActiveSet())
+	}
+}
+
+func TestParseSet(t *testing.T) {
+	cases := []struct {
+		in      string
+		wantSet Set
+		wantOK  bool
+	}{
+		{"nerd", SetNerd, true},
+		{"NERD-FONT", SetNerd, true},
+		{" nf ", SetNerd, true},
+		{"emoji", SetEmoji, true},
+		{"", SetEmoji, false},
+		{"banana", SetEmoji, false},
+	}
+	for _, tc := range cases {
+		gotSet, gotOK := ParseSet(tc.in)
+		if gotSet != tc.wantSet || gotOK != tc.wantOK {
+			t.Errorf("ParseSet(%q) = (%v, %v), want (%v, %v)", tc.in, gotSet, gotOK, tc.wantSet, tc.wantOK)
+		}
+	}
+}
+
 func TestGet_Emoji(t *testing.T) {
 	useSet(t, SetEmoji)
 	if Get(Target) != "🎯" {

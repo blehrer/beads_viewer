@@ -1416,7 +1416,7 @@ func issuesFingerprint(issues []model.Issue) string {
 }
 
 func main() {
-	icons.SetFromEnv()
+	initIconSet()
 	flag.CommandLine.SortFlags = false
 
 	cpuProfile := flag.String("cpu-profile", "", "Write CPU profile to file")
@@ -5636,6 +5636,44 @@ func effectiveThemePreference(flagVal string, flagSet bool, warnTo io.Writer) st
 		}
 	}
 	return ""
+}
+
+// initIconSet resolves icon glyphs: BV_ICON_SET > experimental.icon_set in config > emoji.
+func initIconSet() {
+	var configVal string
+	if raw, ok := loadIconSetFromUserConfig(); ok {
+		configVal = raw
+	}
+	icons.ApplyPreference(os.Getenv("BV_ICON_SET"), configVal)
+}
+
+// loadIconSetFromUserConfig reads `experimental.icon_set` from
+// ~/.config/bv/config.yaml. Value validation is icons.ParseSet's job.
+func loadIconSetFromUserConfig() (string, bool) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil || homeDir == "" {
+		return "", false
+	}
+	configPath := filepath.Join(homeDir, ".config", "bv", "config.yaml")
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return "", false
+	}
+
+	var cfg struct {
+		Experimental struct {
+			IconSet string `yaml:"icon_set"`
+		} `yaml:"experimental"`
+	}
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return "", false
+	}
+	iconSet := strings.TrimSpace(cfg.Experimental.IconSet)
+	if iconSet == "" {
+		return "", false
+	}
+	return iconSet, true
 }
 
 // loadThemeFromUserConfig reads the top-level `theme:` key from

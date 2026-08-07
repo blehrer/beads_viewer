@@ -74,7 +74,7 @@ func (m Model) renderGlyphHelpOverlay() string {
 
 	var lines []string
 	lines = append(lines, titleStyle.Render("Symbol Reference"))
-	lines = append(lines, subStyle.Render("K keyword help — j/k scroll · esc close · BV_ICON_SET=nerd swaps glyphs"))
+	lines = append(lines, subStyle.Render("K keyword help — j/k scroll · esc close · experimental.icon_set: nerd in config"))
 	lines = append(lines, "")
 
 	if issue := m.glyphHelpContextIssue(); issue != nil {
