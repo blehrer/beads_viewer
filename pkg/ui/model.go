@@ -6129,13 +6129,13 @@ func (m *Model) renderFooter() string {
 		closedStyle := lipgloss.NewStyle().Foreground(ColorMuted)
 
 		statsContent := fmt.Sprintf("%s %s %s %s %s %s %s %s",
-			openStyle.Render(icons.FooterStatIcon("open")),
+			RenderFooterStatIcon("open"),
 			openStyle.Render(fmt.Sprintf("%d", m.countOpen)),
-			readyStyle.Render(icons.FooterStatIcon("ready")),
+			RenderFooterStatIcon("ready"),
 			readyStyle.Render(fmt.Sprintf("%d", m.countReady)),
-			blockedStyle.Render(icons.FooterStatIcon("blocked")),
+			RenderFooterStatIcon("blocked"),
 			blockedStyle.Render(fmt.Sprintf("%d", m.countBlocked)),
-			closedStyle.Render(icons.FooterStatIcon("closed")),
+			RenderFooterStatIcon("closed"),
 			closedStyle.Render(fmt.Sprintf("%d", m.countClosed)))
 		statsSection = statsStyle.Render(statsContent)
 	}

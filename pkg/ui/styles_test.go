@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -162,5 +163,33 @@ func TestRenderStatusDotGraph(t *testing.T) {
 	}
 	if lipgloss.Width(RenderStatusDotGraph("open")) != 1 {
 		t.Fatal("open should render single-width dot")
+	}
+}
+
+func TestRenderStatusDot_NerdModeUsesColoredGlyph(t *testing.T) {
+	icons.Use(icons.SetNerd)
+	t.Cleanup(func() { icons.Use(icons.SetEmoji) })
+
+	got := RenderStatusDot("open")
+	if got == "●" {
+		t.Fatalf("RenderStatusDot nerd mode should not use plain bullet, got %q", got)
+	}
+	want := icons.Get(icons.StatusGraphOpen)
+	if !strings.Contains(got, want) {
+		t.Fatalf("RenderStatusDot nerd mode should use %q, got %q", want, got)
+	}
+}
+
+func TestRenderFooterStatIcon_ColorsNerdGlyph(t *testing.T) {
+	icons.Use(icons.SetNerd)
+	t.Cleanup(func() { icons.Use(icons.SetEmoji) })
+
+	got := RenderFooterStatIcon("open")
+	if got == "○" {
+		t.Fatalf("RenderFooterStatIcon nerd mode should not use plain circle, got %q", got)
+	}
+	want := icons.Get(icons.StatusGraphOpen)
+	if !strings.Contains(got, want) {
+		t.Fatalf("RenderFooterStatIcon nerd mode should use %q, got %q", want, got)
 	}
 }

@@ -126,7 +126,9 @@ func (m Model) renderSprintDashboard() string {
 	sb.WriteString(t.Renderer.NewStyle().Foreground(t.Open).Render(fmt.Sprintf("%s%d ", icons.Get(icons.Check), closedBeads)))
 	sb.WriteString(t.Renderer.NewStyle().Foreground(t.Feature).Render(fmt.Sprintf("⏳%d ", inProgressBeads)))
 	sb.WriteString(t.Renderer.NewStyle().Foreground(t.Blocked).Render(fmt.Sprintf("⛔%d ", blockedBeads)))
-	sb.WriteString(valStyle.Render(fmt.Sprintf("%s%d", icons.FooterStatIcon("open"), openBeads-inProgressBeads-blockedBeads)))
+	openCountStyle := t.Renderer.NewStyle().Foreground(t.Secondary)
+	sb.WriteString(RenderFooterStatIcon("open"))
+	sb.WriteString(openCountStyle.Render(fmt.Sprintf("%d ", openBeads-inProgressBeads-blockedBeads)))
 	sb.WriteString("\n\n")
 
 	// Simple burndown chart (ASCII)
@@ -208,22 +210,18 @@ func (m Model) renderSprintDashboard() string {
 	displayLimit := min(10, len(sprintIssues))
 	for i := 0; i < displayLimit; i++ {
 		iss := sprintIssues[i]
-		statusIcon := icons.FooterStatIcon("open")
-		statusStyle := valStyle
+		statusPart := RenderFooterStatIcon("open")
 		if isClosedLikeStatus(iss.Status) {
-			statusIcon = icons.Get(icons.Check)
-			statusStyle = t.Renderer.NewStyle().Foreground(t.Open)
+			statusPart = t.Renderer.NewStyle().Foreground(t.Open).Render(icons.Get(icons.Check))
 		} else {
 			switch iss.Status {
 			case model.StatusInProgress:
-				statusIcon = icons.Get(icons.Hourglass)
-				statusStyle = t.Renderer.NewStyle().Foreground(t.Feature)
+				statusPart = t.Renderer.NewStyle().Foreground(t.Feature).Render(icons.Get(icons.Hourglass))
 			case model.StatusBlocked:
-				statusIcon = icons.Get(icons.Blocked)
-				statusStyle = t.Renderer.NewStyle().Foreground(t.Blocked)
+				statusPart = t.Renderer.NewStyle().Foreground(t.Blocked).Render(icons.Get(icons.Blocked))
 			}
 		}
-		sb.WriteString(statusStyle.Render(fmt.Sprintf("  %s %s - %s\n", statusIcon, iss.ID, truncateStrSprint(iss.Title, 40))))
+		sb.WriteString(fmt.Sprintf("  %s %s - %s\n", statusPart, iss.ID, truncateStrSprint(iss.Title, 40)))
 	}
 	if len(sprintIssues) > displayLimit {
 		sb.WriteString(valStyle.Render(fmt.Sprintf("  … +%d more", len(sprintIssues)-displayLimit)))

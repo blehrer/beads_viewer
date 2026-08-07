@@ -1464,7 +1464,7 @@ func (h *HistoryModel) buildTimeline(hist correlation.BeadHistory) []TimelineEnt
 		entries = append(entries, TimelineEntry{
 			Timestamp: hist.Milestones.Created.Timestamp,
 			EntryType: timelineEntryEvent,
-			Label:     fmt.Sprintf("%s Created", icons.TimelineMilestone("created")),
+			Label:     "Created",
 			Detail:    hist.Title,
 			EventType: "created",
 		})
@@ -1473,7 +1473,7 @@ func (h *HistoryModel) buildTimeline(hist correlation.BeadHistory) []TimelineEnt
 		entries = append(entries, TimelineEntry{
 			Timestamp: hist.Milestones.Claimed.Timestamp,
 			EntryType: timelineEntryEvent,
-			Label:     fmt.Sprintf("%s Claimed", icons.TimelineMilestone("claimed")),
+			Label:     "Claimed",
 			Detail:    fmt.Sprintf("by %s", hist.Milestones.Claimed.Author),
 			EventType: "claimed",
 		})
@@ -1482,7 +1482,7 @@ func (h *HistoryModel) buildTimeline(hist correlation.BeadHistory) []TimelineEnt
 		entries = append(entries, TimelineEntry{
 			Timestamp: hist.Milestones.Reopened.Timestamp,
 			EntryType: timelineEntryEvent,
-			Label:     fmt.Sprintf("%s Reopened", icons.LifecycleEvent("reopened")),
+			Label:     "Reopened",
 			Detail:    "",
 			EventType: "reopened",
 		})
@@ -1491,7 +1491,7 @@ func (h *HistoryModel) buildTimeline(hist correlation.BeadHistory) []TimelineEnt
 		entries = append(entries, TimelineEntry{
 			Timestamp: hist.Milestones.Closed.Timestamp,
 			EntryType: timelineEntryEvent,
-			Label:     fmt.Sprintf("%s Closed", icons.TimelineMilestone("closed")),
+			Label:     "Closed",
 			Detail:    "",
 			EventType: "closed",
 		})
@@ -1652,7 +1652,6 @@ func (h *HistoryModel) renderTimelinePanel(width, height int) string {
 			// Entry content
 			switch entry.EntryType {
 			case timelineEntryEvent:
-				// Event marker with appropriate color
 				var eventColor lipgloss.TerminalColor
 				switch entry.EventType {
 				case "created":
@@ -1666,7 +1665,14 @@ func (h *HistoryModel) renderTimelinePanel(width, height int) string {
 				default:
 					eventColor = t.Secondary
 				}
+				icon := RenderLifecycleEvent(entry.EventType)
+				switch entry.EventType {
+				case "created", "claimed", "closed":
+					icon = RenderTimelineMilestone(entry.EventType)
+				}
 				eventStyle := r.NewStyle().Foreground(eventColor).Bold(true)
+				b.WriteString(icon)
+				b.WriteString(" ")
 				b.WriteString(eventStyle.Render(entry.Label))
 				if entry.Detail != "" {
 					b.WriteString(" ")
@@ -1786,19 +1792,33 @@ func formatDuration(d time.Duration) string {
 	return fmt.Sprintf("%dd", days)
 }
 
+// timelineMarkerEntry describes one segment of the compact lifecycle timeline.
+type timelineMarkerEntry struct {
+	milestone string // "created", "claimed", "closed", or "" for connectors
+	text      string // plain glyph for markdown export
+}
+
 // renderCompactTimeline generates a single-line timeline visualization (bv-1x6o)
 // Example: ○──●──├──├──├──✓  5d cycle, 3 commits
 func (h *HistoryModel) renderCompactTimeline(hist correlation.BeadHistory, maxWidth int) string {
 	t := h.theme
 	r := t.Renderer
 
-	markers, startTime, endTime := timelineMarkers(hist)
-	if len(markers) == 0 {
+	entries, startTime, endTime := timelineMarkerEntries(hist)
+	if len(entries) == 0 {
 		return r.NewStyle().Foreground(t.Subtext).Render("(no timeline data)")
 	}
 
-	// Build the timeline string
-	timeline := strings.Join(markers, "──")
+	connStyle := r.NewStyle().Foreground(t.Secondary)
+	parts := make([]string, len(entries))
+	for i, entry := range entries {
+		if entry.milestone != "" {
+			parts[i] = RenderTimelineMilestone(entry.milestone)
+		} else {
+			parts[i] = connStyle.Render(entry.text)
+		}
+	}
+	timeline := strings.Join(parts, "──")
 
 	// Add summary info
 	var summary []string
@@ -1838,11 +1858,15 @@ func (h *HistoryModel) renderCompactTimeline(hist correlation.BeadHistory, maxWi
 
 // compactTimelineMD returns an ANSI-free timeline line for markdown detail views.
 func compactTimelineMD(hist correlation.BeadHistory, maxWidth int) string {
-	markers, startTime, endTime := timelineMarkers(hist)
-	if len(markers) == 0 {
+	entries, startTime, endTime := timelineMarkerEntries(hist)
+	if len(entries) == 0 {
 		return ""
 	}
 
+	markers := make([]string, len(entries))
+	for i, entry := range entries {
+		markers[i] = entry.text
+	}
 	result := strings.Join(markers, "──")
 	commitCount := len(hist.Commits)
 	var summary []string
@@ -1868,19 +1892,25 @@ func compactTimelineMD(hist correlation.BeadHistory, maxWidth int) string {
 	return truncateRunesHelper(result, maxWidth, "...")
 }
 
-// timelineMarkers builds lifecycle + commit markers shared by TUI and markdown timelines.
-func timelineMarkers(hist correlation.BeadHistory) (markers []string, startTime, endTime time.Time) {
+// timelineMarkerEntries builds lifecycle + commit markers shared by TUI and markdown timelines.
+func timelineMarkerEntries(hist correlation.BeadHistory) (entries []timelineMarkerEntry, startTime, endTime time.Time) {
 	milestones := hist.Milestones
 	if milestones.Created == nil && milestones.Claimed == nil && milestones.Closed == nil && len(hist.Events) > 0 {
 		milestones = correlation.GetBeadMilestones(hist.Events)
 	}
 
 	if milestones.Created != nil {
-		markers = append(markers, icons.TimelineMilestone("created"))
+		entries = append(entries, timelineMarkerEntry{
+			milestone: "created",
+			text:      icons.TimelineMilestone("created"),
+		})
 		startTime = milestones.Created.Timestamp
 	}
 	if milestones.Claimed != nil {
-		markers = append(markers, icons.TimelineMilestone("claimed"))
+		entries = append(entries, timelineMarkerEntry{
+			milestone: "claimed",
+			text:      icons.TimelineMilestone("claimed"),
+		})
 		if startTime.IsZero() {
 			startTime = milestones.Claimed.Timestamp
 		}
@@ -1890,20 +1920,23 @@ func timelineMarkers(hist correlation.BeadHistory) (markers []string, startTime,
 	maxCommitMarkers := 5
 	if commitCount > maxCommitMarkers {
 		for i := 0; i < maxCommitMarkers-1; i++ {
-			markers = append(markers, "├")
+			entries = append(entries, timelineMarkerEntry{text: "├"})
 		}
-		markers = append(markers, "…")
+		entries = append(entries, timelineMarkerEntry{text: "…"})
 	} else {
 		for i := 0; i < commitCount; i++ {
-			markers = append(markers, "├")
+			entries = append(entries, timelineMarkerEntry{text: "├"})
 		}
 	}
 
 	if milestones.Closed != nil {
-		markers = append(markers, icons.TimelineMilestone("closed"))
+		entries = append(entries, timelineMarkerEntry{
+			milestone: "closed",
+			text:      icons.TimelineMilestone("closed"),
+		})
 		endTime = milestones.Closed.Timestamp
 	}
-	return markers, startTime, endTime
+	return entries, startTime, endTime
 }
 
 // renderEmpty renders an empty state message
@@ -2208,7 +2241,7 @@ func (h *HistoryModel) renderBeadLine(idx int, hist correlation.BeadHistory, wid
 	}
 
 	// Status icon
-	statusIcon := icons.HistoryBeadStatus(hist.Status)
+	statusIcon := RenderHistoryBeadStatus(hist.Status)
 
 	// Commit count
 	commitCount := fmt.Sprintf("%d commits", len(hist.Commits))
@@ -2422,7 +2455,7 @@ func (h *HistoryModel) renderDetailPanel(width, height int) string {
 	header := headerStyle.Render("COMMIT DETAILS")
 
 	// Bead info with status indicator
-	statusIcon := icons.HistoryBeadStatus(hist.Status)
+	statusIcon := RenderHistoryBeadStatus(hist.Status)
 	beadInfo := fmt.Sprintf("%s %s: %s", statusIcon, hist.BeadID, hist.Title)
 	if width > 10 {
 		beadInfo = truncateRunesHelper(beadInfo, width-6, "…")
@@ -2943,7 +2976,7 @@ func fileActionIcon(action string) string {
 
 // eventTypeIcon returns an icon for a lifecycle event type
 func eventTypeIcon(et correlation.EventType) string {
-	return icons.LifecycleEvent(string(et))
+	return RenderLifecycleEvent(string(et))
 }
 
 // eventTypeColor returns the appropriate theme color for an event type
@@ -3017,11 +3050,8 @@ func (h *HistoryModel) renderEventsSection(events []correlation.BeadEvent, width
 	for i := len(events) - 1; i >= 0 && displayed < availableForEvents; i-- {
 		event := events[i]
 
-		// Event icon with color
-		icon := eventTypeIcon(event.EventType)
-		iconColor := eventTypeColor(event.EventType, t)
-		iconStyle := t.Renderer.NewStyle().Foreground(iconColor)
-		coloredIcon := iconStyle.Render(icon)
+		// Event icon (pre-colored)
+		coloredIcon := eventTypeIcon(event.EventType)
 
 		// Relative time
 		timeStr := relativeTime(event.Timestamp)
@@ -3226,13 +3256,13 @@ func (h *HistoryModel) renderGitDetailPanel(width, height int) string {
 
 		// Get bead info from report
 		beadStyle := t.Renderer.NewStyle()
-		statusIcon := icons.HistoryBeadStatus("open")
+		statusIcon := RenderHistoryBeadStatus("open")
 		title := beadID
 
 		if h.report != nil {
 			if hist, ok := h.report.Histories[beadID]; ok {
 				title = hist.Title
-				statusIcon = icons.HistoryBeadStatus(hist.Status)
+				statusIcon = RenderHistoryBeadStatus(hist.Status)
 			}
 		}
 
@@ -3453,13 +3483,13 @@ func (h *HistoryModel) renderGitBeadListPanel(width, height int) string {
 		}
 
 		beadStyle := t.Renderer.NewStyle()
-		statusIcon := icons.HistoryBeadStatus("open")
+		statusIcon := RenderHistoryBeadStatus("open")
 		title := beadID
 
 		if h.report != nil {
 			if hist, ok := h.report.Histories[beadID]; ok {
 				title = hist.Title
-				statusIcon = icons.HistoryBeadStatus(hist.Status)
+				statusIcon = RenderHistoryBeadStatus(hist.Status)
 			}
 		}
 
