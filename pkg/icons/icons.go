@@ -142,7 +142,8 @@ func IssueType(typ string) string {
 	}
 }
 
-// IssueStatus returns the icon for a beads status string.
+// IssueStatus returns export/robot/markdown glyphs for a beads status string.
+// For TUI list views use ui.RenderStatusDot; for graph view use ui.RenderStatusDotGraph.
 func IssueStatus(status string) string {
 	switch status {
 	case "open":
@@ -166,8 +167,8 @@ func IssueStatus(status string) string {
 	}
 }
 
-// IssueStatusGraph returns status glyphs for the interactive graph view.
-// ponytail: graph uses blue/yellow circles and a checkmark for done — not the list-view circles.
+// IssueStatusGraph returns export-oriented status glyphs (emoji/nerd) for graph-style labeling.
+// The interactive TUI graph uses ui.RenderStatusDotGraph (theme-colored ●/✓) instead.
 func IssueStatusGraph(status string) string {
 	switch status {
 	case "closed", "tombstone":

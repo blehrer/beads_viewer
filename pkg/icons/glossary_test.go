@@ -35,14 +35,34 @@ func TestContextualGlossary(t *testing.T) {
 	}
 }
 
+func TestGlossaryByCategory(t *testing.T) {
+	grouped := GlossaryByCategory()
+	if len(grouped) == 0 {
+		t.Fatal("GlossaryByCategory returned empty map")
+	}
+	total := 0
+	for _, entries := range grouped {
+		total += len(entries)
+	}
+	if total != len(Glossary()) {
+		t.Fatalf("category totals %d != Glossary len %d", total, len(Glossary()))
+	}
+}
+
+func TestContextualGlossaryExtended(t *testing.T) {
+	ctx := ContextualGlossary("review", "feature", 2)
+	if len(ctx) < 3 {
+		t.Fatalf("expected status+type+priority entries, got %d", len(ctx))
+	}
+}
+
 func TestGlossaryGlyphUsesActiveSet(t *testing.T) {
-	Use(SetEmoji)
+	useSet(t, SetEmoji)
 	if got := Get(Bug); got != "🐛" {
 		t.Fatalf("emoji bug = %q", got)
 	}
-	Use(SetNerd)
+	useSet(t, SetNerd)
 	if Get(Bug) == "🐛" {
 		t.Fatal("nerd set should not return emoji bug")
 	}
-	Use(SetEmoji)
 }

@@ -135,3 +135,19 @@ func TestRenderRankBadge(t *testing.T) {
 		}
 	}
 }
+
+func TestRenderStatusDot(t *testing.T) {
+	got := RenderStatusDot("open")
+	if lipgloss.Width(got) != 1 {
+		t.Fatalf("RenderStatusDot width = %d, want 1", lipgloss.Width(got))
+	}
+}
+
+func TestRenderStatusDotGraph(t *testing.T) {
+	if lipgloss.Width(RenderStatusDotGraph("closed")) != 1 {
+		t.Fatal("closed should render single-width check glyph")
+	}
+	if lipgloss.Width(RenderStatusDotGraph("open")) != 1 {
+		t.Fatal("open should render single-width dot")
+	}
+}

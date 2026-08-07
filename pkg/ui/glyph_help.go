@@ -81,7 +81,7 @@ func (m Model) renderGlyphHelpOverlay() string {
 		lines = append(lines, sectionStyle.Render("Selected issue"))
 		ctx := icons.ContextualGlossary(string(issue.Status), string(issue.IssueType), issue.Priority)
 		for _, e := range ctx {
-			lines = append(lines, formatGlossaryLine(t, e, glyphStyle, descStyle, width))
+			lines = append(lines, formatGlossaryLine(e, glyphStyle, descStyle, width))
 		}
 		lines = append(lines, "")
 	}
@@ -97,7 +97,7 @@ func (m Model) renderGlyphHelpOverlay() string {
 		entries := grouped[cat]
 		lines = append(lines, sectionStyle.Render(cat))
 		for _, e := range entries {
-			lines = append(lines, formatGlossaryLine(t, e, glyphStyle, descStyle, width))
+			lines = append(lines, formatGlossaryLine(e, glyphStyle, descStyle, width))
 		}
 		lines = append(lines, "")
 	}
@@ -136,7 +136,7 @@ func (m Model) renderGlyphHelpOverlay() string {
 	return lipgloss.Place(m.width, m.height-1, lipgloss.Center, lipgloss.Center, rendered)
 }
 
-func formatGlossaryLine(t Theme, e icons.GlossaryEntry, glyphStyle, descStyle lipgloss.Style, width int) string {
+func formatGlossaryLine(e icons.GlossaryEntry, glyphStyle, descStyle lipgloss.Style, width int) string {
 	glyph := icons.Get(e.Name)
 	if st := statusForIconName(e.Name); st != "" {
 		glyph = RenderStatusDot(st)

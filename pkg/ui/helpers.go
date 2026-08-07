@@ -210,7 +210,7 @@ func getDepTypeIcon(depType string) string {
 	return icons.DependencyType(depType)
 }
 
-// GetStatusIcon returns a lipgloss-colored status dot for TUI rendering.
+// GetStatusIcon returns a lipgloss-colored status dot for TUI rendering (alias of RenderStatusDot).
 func GetStatusIcon(s string) string {
 	return RenderStatusDot(s)
 }

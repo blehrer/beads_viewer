@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Dicklesworthstone/beads_viewer/pkg/analysis"
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/model"
 )
 
@@ -260,6 +261,18 @@ func TestGetStatusEmoji(t *testing.T) {
 				t.Errorf("getStatusEmoji(%q) = %q; want %q", tt.status, got, tt.expected)
 			}
 		})
+	}
+}
+
+func TestGetStatusEmojiNerd(t *testing.T) {
+	t.Cleanup(func() { icons.Use(icons.SetEmoji) })
+	icons.Use(icons.SetNerd)
+	got := getStatusEmoji("open")
+	if got == "🟢" || got == "" {
+		t.Fatalf("nerd mode should not return emoji open circle, got %q", got)
+	}
+	if got != icons.Get(icons.StatusOpen) {
+		t.Fatalf("getStatusEmoji should delegate to icons registry, got %q", got)
 	}
 }
 

@@ -44,6 +44,8 @@ All notable changes to **Beads Viewer (`bv`)** are documented here. Versions are
   the TUI. Set `BV_ICON_SET=nerd` (aliases: `nerdfont`, `nerd-font`, `nf`) to render
   Material Design Icons from the Nerd Fonts PUA block; default remains emoji. Duplicate
   status/type/priority helpers in `pkg/ui` and export now delegate to the registry.
+  TUI status indicators use theme-colored ● dots (not affected by `BV_ICON_SET`). Press **K**
+  in the TUI (except History view) for an in-app symbol glossary.
 
 - **Reliable light/dark theme selection (bv-128, idea from PR #178).** New `--theme` flag
   (`light` | `dark` | `auto`) plus a top-level `theme:` key in `~/.config/bv/config.yaml`,
