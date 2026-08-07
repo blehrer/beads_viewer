@@ -170,4 +170,7 @@ var glossaryEntries = []GlossaryEntry{
 	{Name: Chart, Category: "UI", Description: "Metrics or analytics panel."},
 	{Name: Clock, Category: "UI", Description: "Time-related — age, staleness, schedule."},
 	{Name: User, Category: "UI", Description: "Assignee or agent."},
+	{Name: HistoryGit, Category: "History", Description: "Git-centric history mode — commits on the left."},
+	{Name: HistoryBead, Category: "History", Description: "Bead-centric history mode — issues on the left."},
+	{Name: SessionAttach, Category: "History", Description: "Correlated agent session on a bead timeline."},
 }

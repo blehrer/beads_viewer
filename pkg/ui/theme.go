@@ -243,3 +243,9 @@ func (t Theme) GetTypeIcon(typ string) (string, lipgloss.AdaptiveColor) {
 		return "•", t.Subtext
 	}
 }
+
+// RenderTypeIcon returns the issue-type glyph with theme foreground color applied.
+func (t Theme) RenderTypeIcon(typ string) string {
+	icon, color := t.GetTypeIcon(typ)
+	return t.Renderer.NewStyle().Foreground(color).Render(icon)
+}

@@ -73,6 +73,11 @@ const (
 	SwimProhibited   Name = "swim_prohibited"
 	Question         Name = "question"
 	FileDefault      Name = "file_default"
+	HistoryGit       Name = "history_git"
+	HistoryBead      Name = "history_bead"
+	SessionAttach    Name = "session_attach"
+	ArrowUp          Name = "arrow_up"
+	ArrowDown        Name = "arrow_down"
 )
 
 var (
@@ -296,6 +301,11 @@ var emojiIcons = map[Name]string{
 	SwimProhibited:   "🚫",
 	Question:         "❓",
 	FileDefault:      "📄",
+	HistoryGit:       "◉",
+	HistoryBead:      "◈",
+	SessionAttach:    "📎",
+	ArrowUp:          "⬆",
+	ArrowDown:        "⬇",
 }
 
 // ponytail: codepoints from Nerd Fonts 3.4 i_md.sh — not raw MDI webfont names (F0AFA is alpha-m, not bug).
@@ -324,7 +334,7 @@ var nerdIcons = map[Name]string{
 	Fire:             "\U000f0238", // md-fire
 	Alarm:            "\U000f0020", // md-alarm
 	Link:             "\U000f0337", // md-link
-	New:              "\U000f0394", // md-new-box
+	New:              "\U000f0394", // nf-md-new_box
 	Check:            "\U000f012c", // md-check
 	Cross:            "\U000f0159", // md-close-circle
 	StatusOpen:       "\U000f0ec2", // md-record-circle
@@ -349,4 +359,9 @@ var nerdIcons = map[Name]string{
 	SwimProhibited:   "\U000f073a", // md-cancel
 	Question:         "\U000f02d7", // md-help-circle
 	FileDefault:      "\U000f0219", // md-file-document
+	HistoryGit:       "\U000f02a2", // md-git
+	HistoryBead:      "\U000f04fe", // md-target
+	SessionAttach:    "\U000f0207", // md-paperclip
+	ArrowUp:          "\U000f005d", // md-arrow-up
+	ArrowDown:        "\U000f0045", // md-arrow-down
 }

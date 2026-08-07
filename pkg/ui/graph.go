@@ -346,7 +346,7 @@ func (g *GraphModel) renderNodeList(width, height int, t Theme) string {
 		Bold(true).
 		Foreground(t.Primary).
 		Width(width)
-	lines = append(lines, headerStyle.Render(fmt.Sprintf("📊 Nodes (%d)", len(g.sortedIDs))))
+	lines = append(lines, headerStyle.Render(fmt.Sprintf("%s Nodes (%d)", icons.Get(icons.Chart), len(g.sortedIDs))))
 	lines = append(lines, strings.Repeat("─", width))
 
 	visibleItems := height - 4
@@ -378,21 +378,18 @@ func (g *GraphModel) renderNodeList(width, height int, t Theme) string {
 		statusIcon := getStatusIcon(issue.Status)
 		maxIDLen := width - 4
 		displayID := smartTruncateID(id, maxIDLen)
-		line := fmt.Sprintf("%s %s", statusIcon, displayID)
 
-		var style lipgloss.Style
+		var idStyle lipgloss.Style
+		var rowStyle lipgloss.Style
 		if isSelected {
-			style = t.Renderer.NewStyle().
-				Bold(true).
-				Foreground(t.Primary).
-				Background(t.Highlight).
-				Width(width)
+			idStyle = t.Renderer.NewStyle().Bold(true).Foreground(t.Primary)
+			rowStyle = t.Renderer.NewStyle().Background(t.Highlight).Width(width)
 		} else {
-			style = t.Renderer.NewStyle().
-				Foreground(getStatusColor(issue.Status, t)).
-				Width(width)
+			idStyle = t.Renderer.NewStyle().Foreground(t.Secondary)
+			rowStyle = t.Renderer.NewStyle().Width(width)
 		}
-		lines = append(lines, style.Render(line))
+		line := statusIcon + " " + idStyle.Render(displayID)
+		lines = append(lines, rowStyle.Render(line))
 	}
 
 	if len(g.sortedIDs) > visibleItems {
@@ -579,17 +576,15 @@ func (g *GraphModel) renderNodeBox(id string, boxWidth int, t Theme, isEgo bool)
 		title = "(not in filter)"
 	}
 
-	// Build box content
-	line1 := fmt.Sprintf("%s %s", statusIcon, displayID)
+	// Build box content — icons keep their own colors; only border/text use statusColor.
+	idStyled := t.Renderer.NewStyle().Foreground(statusColor).Bold(isEgo).Render(displayID)
+	line1 := statusIcon + " " + idStyled
 
 	var boxStyle lipgloss.Style
 	if isEgo {
-		// Ego node gets double-line border and highlight
 		boxStyle = t.Renderer.NewStyle().
 			Border(lipgloss.DoubleBorder()).
 			BorderForeground(t.Primary).
-			Foreground(t.Primary).
-			Bold(true).
 			Width(boxWidth).
 			Align(lipgloss.Center).
 			Padding(0, 1)
@@ -597,7 +592,6 @@ func (g *GraphModel) renderNodeBox(id string, boxWidth int, t Theme, isEgo bool)
 		boxStyle = t.Renderer.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(statusColor).
-			Foreground(statusColor).
 			Width(boxWidth).
 			Align(lipgloss.Center).
 			Padding(0, 0)
@@ -605,7 +599,8 @@ func (g *GraphModel) renderNodeBox(id string, boxWidth int, t Theme, isEgo bool)
 
 	content := line1
 	if title != "" && boxWidth > 14 {
-		content = line1 + "\n" + title
+		titleStyled := t.Renderer.NewStyle().Foreground(t.Muted).Render(title)
+		content = line1 + "\n" + titleStyled
 	}
 
 	return boxStyle.Render(content)
@@ -613,9 +608,7 @@ func (g *GraphModel) renderNodeBox(id string, boxWidth int, t Theme, isEgo bool)
 
 // renderEgoNode renders the selected/ego node prominently
 func (g *GraphModel) renderEgoNode(id string, issue *model.Issue, width int, t Theme) string {
-	statusIcon := getStatusIcon(issue.Status)
-	prioIcon := getPriorityIcon(issue.Priority)
-	typeIcon := getTypeIcon(issue.IssueType)
+	glyphs := RenderGraphIssueGlyphs(string(issue.Status), issue.Priority, string(issue.IssueType), t)
 
 	egoWidth := width / 2
 	if egoWidth > 50 {
@@ -632,28 +625,29 @@ func (g *GraphModel) renderEgoNode(id string, issue *model.Issue, width int, t T
 		egoWidth = 10
 	}
 
-	icons := fmt.Sprintf("%s %s %s", statusIcon, prioIcon, typeIcon)
 	displayID := smartTruncateID(id, egoWidth-4)
 	title := ""
 	if issue.Title != "" {
 		title = truncateRunesHelper(issue.Title, egoWidth-4, "…")
 	}
 
-	content := icons + " " + displayID
+	idLine := t.Renderer.NewStyle().Bold(true).Foreground(t.Primary).Render(displayID)
+	content := glyphs + " " + idLine
 	if title != "" {
-		content += "\n" + title
+		content += "\n" + t.Renderer.NewStyle().Foreground(t.Base.GetForeground()).Render(title)
 	}
 
 	// Add connection counts
 	blockerCount := len(g.blockers[id])
 	dependentCount := len(g.dependents[id])
-	content += fmt.Sprintf("\n⬆%d  ⬇%d", blockerCount, dependentCount)
+	counts := fmt.Sprintf("%s%d  %s%d",
+		icons.Get(icons.ArrowUp), blockerCount,
+		icons.Get(icons.ArrowDown), dependentCount)
+	content += "\n" + t.Renderer.NewStyle().Foreground(t.Secondary).Render(counts)
 
 	egoStyle := t.Renderer.NewStyle().
 		Border(lipgloss.DoubleBorder()).
 		BorderForeground(t.Primary).
-		Foreground(t.Primary).
-		Bold(true).
 		Width(egoWidth).
 		Align(lipgloss.Center).
 		Padding(0, 1)
@@ -715,7 +709,7 @@ func (g *GraphModel) renderMetricsPanel(id string, width int, t Theme) string {
 		Padding(0, 2).
 		Width(width - 4)
 
-	panelTitle := panelHeaderStyle.Render("📊 GRAPH METRICS")
+	panelTitle := panelHeaderStyle.Render(fmt.Sprintf("%s GRAPH METRICS", icons.Get(icons.Chart)))
 
 	if g.insights == nil || g.insights.Stats == nil {
 		noDataStyle := t.Renderer.NewStyle().
@@ -879,14 +873,6 @@ func (g *GraphModel) renderMetricsPanel(id string, width int, t Theme) string {
 
 func getStatusIcon(status model.Status) string {
 	return RenderStatusDotGraph(string(status))
-}
-
-func getPriorityIcon(priority int) string {
-	return RenderPriorityIcon(priority)
-}
-
-func getTypeIcon(itype model.IssueType) string {
-	return icons.IssueType(string(itype))
 }
 
 func getStatusColor(status model.Status, t Theme) lipgloss.AdaptiveColor {

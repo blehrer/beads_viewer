@@ -242,6 +242,14 @@ func RenderTriageScoreIcon(name icons.Name) string {
 	return lipgloss.NewStyle().Foreground(color).Render(icons.Get(name))
 }
 
+// RenderGraphIssueGlyphs returns status + priority + type icons for the dependency graph view.
+// Each segment keeps its own lipgloss color — do not wrap the result in another Foreground style.
+func RenderGraphIssueGlyphs(status string, priority int, issueType string, t Theme) string {
+	return RenderStatusDotGraph(status) + " " +
+		RenderPriorityIcon(priority) + " " +
+		t.RenderTypeIcon(issueType)
+}
+
 // RenderStatusBadge returns a styled status badge
 func RenderStatusBadge(status string) string {
 	var fg, bg lipgloss.AdaptiveColor

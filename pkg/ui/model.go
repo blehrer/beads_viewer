@@ -5749,8 +5749,9 @@ func (m Model) renderLabelDrilldown() string {
 		sb.WriteString(labelStyle.Render("Top issues by PageRank:"))
 		sb.WriteString("\n")
 		for _, si := range scoredIssues {
-			line := fmt.Sprintf("  %s  %-10s  PR=%.3f  %s", getStatusIcon(si.issue.Status), si.issue.ID, si.score, si.issue.Title)
-			sb.WriteString(valStyle.Render(line))
+			rest := fmt.Sprintf(" %-10s  PR=%.3f  %s", si.issue.ID, si.score, si.issue.Title)
+			sb.WriteString(getStatusIcon(si.issue.Status))
+			sb.WriteString(valStyle.Render(rest))
 			sb.WriteString("\n")
 		}
 		sb.WriteString("\n")
@@ -5896,7 +5897,7 @@ func (m Model) renderLabelGraphAnalysis() string {
 	sb.WriteString("\n")
 
 	// PageRank section
-	sb.WriteString(labelStyle.Render("📊 PageRank (Top Issues)"))
+	sb.WriteString(labelStyle.Render(fmt.Sprintf("%s PageRank (Top Issues)", icons.Get(icons.Chart))))
 	sb.WriteString("\n")
 	if len(r.PageRank.TopIssues) == 0 {
 		sb.WriteString(subtextStyle.Render("  No issues to rank"))
@@ -5927,9 +5928,10 @@ func (m Model) renderLabelGraphAnalysis() string {
 			title = truncateRunesHelper(title, maxTitleLen, "…")
 
 			normalized := r.PageRank.Normalized[item.ID]
-			line := fmt.Sprintf("  %s %-12s PR=%.4f (%.0f%%) %s",
-				statusIcon, item.ID, item.Score, normalized*100, title)
-			sb.WriteString(valStyle.Render(line))
+			rest := fmt.Sprintf(" %-12s PR=%.4f (%.0f%%) %s",
+				item.ID, item.Score, normalized*100, title)
+			sb.WriteString(statusIcon)
+			sb.WriteString(valStyle.Render(rest))
 			sb.WriteString("\n")
 		}
 		if len(r.PageRank.TopIssues) > showPRCount {

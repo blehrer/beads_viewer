@@ -7,6 +7,7 @@ import (
 
 	"github.com/Dicklesworthstone/beads_viewer/pkg/cass"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/correlation"
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -1219,15 +1220,18 @@ func TestGroupFilesByDirectory(t *testing.T) {
 }
 
 func TestEventTypeIcon(t *testing.T) {
+	icons.Use(icons.SetEmoji)
+	t.Cleanup(func() { icons.Use(icons.SetEmoji) })
+
 	tests := []struct {
 		et   correlation.EventType
 		want string
 	}{
-		{correlation.EventCreated, "🆕"},
-		{correlation.EventClaimed, "👤"},
-		{correlation.EventClosed, "✓"},
-		{correlation.EventReopened, "↺"},
-		{correlation.EventModified, "✎"},
+		{correlation.EventCreated, icons.Get(icons.New)},
+		{correlation.EventClaimed, icons.Get(icons.User)},
+		{correlation.EventClosed, icons.Get(icons.Check)},
+		{correlation.EventReopened, icons.Get(icons.SwimRefresh)},
+		{correlation.EventModified, icons.Get(icons.FileDefault)},
 		{correlation.EventType("unknown"), "•"},
 	}
 
@@ -1945,6 +1949,9 @@ func TestFormatDuration(t *testing.T) {
 }
 
 func TestRenderCompactTimeline(t *testing.T) {
+	icons.Use(icons.SetEmoji)
+	t.Cleanup(func() { icons.Use(icons.SetEmoji) })
+
 	theme := testTheme()
 	now := time.Now()
 
@@ -1973,7 +1980,7 @@ func TestRenderCompactTimeline(t *testing.T) {
 				},
 			},
 			maxWidth:     100,
-			wantContains: []string{"○", "●", "✓", "├", "3d cycle", "1 commit"},
+			wantContains: []string{icons.TimelineMilestone("created"), icons.TimelineMilestone("claimed"), icons.TimelineMilestone("closed"), "├", "3d cycle", "1 commit"},
 		},
 		{
 			name: "many commits truncated",
@@ -1994,7 +2001,7 @@ func TestRenderCompactTimeline(t *testing.T) {
 				},
 			},
 			maxWidth:     100,
-			wantContains: []string{"○", "├", "…", "7 commits"},
+			wantContains: []string{icons.TimelineMilestone("created"), "├", "…", "7 commits"},
 		},
 		{
 			name: "empty history",
@@ -2086,6 +2093,12 @@ func TestHistoryModel_ToggleViewMode_SetsTimestamp(t *testing.T) {
 }
 
 func TestHistoryModel_ModeIndicator_UsesIcons(t *testing.T) {
+	icons.Use(icons.SetEmoji)
+	t.Cleanup(func() { icons.Use(icons.SetEmoji) })
+
+	beadIcon := icons.Get(icons.HistoryBead)
+	gitIcon := icons.Get(icons.HistoryGit)
+
 	report := createTestHistoryReport()
 	theme := testTheme()
 	h := NewHistoryModel(report, theme)
@@ -2097,8 +2110,8 @@ func TestHistoryModel_ModeIndicator_UsesIcons(t *testing.T) {
 	h.modeChangedAt = time.Time{} // Clear to avoid flash
 	header := h.renderHeader()
 
-	if !strings.Contains(header, "◈") {
-		t.Error("Expected ◈ icon for bead mode in header")
+	if !strings.Contains(header, beadIcon) {
+		t.Errorf("Expected %q icon for bead mode in header", beadIcon)
 	}
 	if !strings.Contains(header, "Beads") {
 		t.Error("Expected 'Beads' label in header")
@@ -2109,8 +2122,8 @@ func TestHistoryModel_ModeIndicator_UsesIcons(t *testing.T) {
 	h.modeChangedAt = time.Time{} // Clear to avoid flash
 	header = h.renderHeader()
 
-	if !strings.Contains(header, "◉") {
-		t.Error("Expected ◉ icon for git mode in header")
+	if !strings.Contains(header, gitIcon) {
+		t.Errorf("Expected %q icon for git mode in header", gitIcon)
 	}
 	if !strings.Contains(header, "Git") {
 		t.Error("Expected 'Git' label in header")
@@ -2118,6 +2131,12 @@ func TestHistoryModel_ModeIndicator_UsesIcons(t *testing.T) {
 }
 
 func TestHistoryModel_ModeTransition_FlashEffect(t *testing.T) {
+	icons.Use(icons.SetEmoji)
+	t.Cleanup(func() { icons.Use(icons.SetEmoji) })
+
+	beadIcon := icons.Get(icons.HistoryBead)
+	gitIcon := icons.Get(icons.HistoryGit)
+
 	report := createTestHistoryReport()
 	theme := testTheme()
 	h := NewHistoryModel(report, theme)
@@ -2135,15 +2154,21 @@ func TestHistoryModel_ModeTransition_FlashEffect(t *testing.T) {
 	// The headers should be different (flash vs no flash)
 	// Both contain the same text, but styling differs
 	// We verify by checking that both contain mode indicator
-	if !strings.Contains(header1, "◈") && !strings.Contains(header1, "◉") {
+	if !strings.Contains(header1, beadIcon) && !strings.Contains(header1, gitIcon) {
 		t.Error("Expected mode icon in header during transition")
 	}
-	if !strings.Contains(header2, "◈") && !strings.Contains(header2, "◉") {
+	if !strings.Contains(header2, beadIcon) && !strings.Contains(header2, gitIcon) {
 		t.Error("Expected mode icon in header after transition")
 	}
 }
 
 func TestHistoryModel_ViewModeToggle_PreservesIcon(t *testing.T) {
+	icons.Use(icons.SetEmoji)
+	t.Cleanup(func() { icons.Use(icons.SetEmoji) })
+
+	beadIcon := icons.Get(icons.HistoryBead)
+	gitIcon := icons.Get(icons.HistoryGit)
+
 	report := createTestHistoryReport()
 	theme := testTheme()
 	h := NewHistoryModel(report, theme)
@@ -2164,8 +2189,8 @@ func TestHistoryModel_ViewModeToggle_PreservesIcon(t *testing.T) {
 	// Clear transition flash
 	h.modeChangedAt = time.Time{}
 	header := h.renderHeader()
-	if !strings.Contains(header, "◉") {
-		t.Error("Expected ◉ icon for git mode")
+	if !strings.Contains(header, gitIcon) {
+		t.Errorf("Expected %q icon for git mode", gitIcon)
 	}
 
 	// Toggle back to bead mode
@@ -2177,8 +2202,8 @@ func TestHistoryModel_ViewModeToggle_PreservesIcon(t *testing.T) {
 	// Clear transition flash
 	h.modeChangedAt = time.Time{}
 	header = h.renderHeader()
-	if !strings.Contains(header, "◈") {
-		t.Error("Expected ◈ icon for bead mode")
+	if !strings.Contains(header, beadIcon) {
+		t.Errorf("Expected %q icon for bead mode", beadIcon)
 	}
 }
 

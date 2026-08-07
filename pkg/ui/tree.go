@@ -617,15 +617,8 @@ func (t *TreeModel) renderNode(node *IssueTreeNode, isSelected bool) string {
 	sb.WriteString(iconStyle.Render(icon))
 	sb.WriteString(" ")
 
-	// Priority badge (P0, P1, P2, etc.)
-	prioText := fmt.Sprintf("P%d", issue.Priority)
-	prioStyle := r.NewStyle().Bold(true)
-	if issue.Priority <= 1 {
-		prioStyle = prioStyle.Foreground(t.theme.Primary)
-	} else {
-		prioStyle = prioStyle.Foreground(t.theme.Muted)
-	}
-	sb.WriteString(prioStyle.Render(prioText))
+	// Priority icon (colored P0–P4 glyph)
+	sb.WriteString(RenderPriorityIcon(issue.Priority))
 	sb.WriteString(" ")
 
 	// Issue ID

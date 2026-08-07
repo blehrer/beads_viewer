@@ -9,6 +9,7 @@ import (
 
 	"github.com/Dicklesworthstone/beads_viewer/pkg/cass"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/correlation"
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -1463,7 +1464,7 @@ func (h *HistoryModel) buildTimeline(hist correlation.BeadHistory) []TimelineEnt
 		entries = append(entries, TimelineEntry{
 			Timestamp: hist.Milestones.Created.Timestamp,
 			EntryType: timelineEntryEvent,
-			Label:     "○ Created",
+			Label:     fmt.Sprintf("%s Created", icons.TimelineMilestone("created")),
 			Detail:    hist.Title,
 			EventType: "created",
 		})
@@ -1472,7 +1473,7 @@ func (h *HistoryModel) buildTimeline(hist correlation.BeadHistory) []TimelineEnt
 		entries = append(entries, TimelineEntry{
 			Timestamp: hist.Milestones.Claimed.Timestamp,
 			EntryType: timelineEntryEvent,
-			Label:     "● Claimed",
+			Label:     fmt.Sprintf("%s Claimed", icons.TimelineMilestone("claimed")),
 			Detail:    fmt.Sprintf("by %s", hist.Milestones.Claimed.Author),
 			EventType: "claimed",
 		})
@@ -1481,7 +1482,7 @@ func (h *HistoryModel) buildTimeline(hist correlation.BeadHistory) []TimelineEnt
 		entries = append(entries, TimelineEntry{
 			Timestamp: hist.Milestones.Reopened.Timestamp,
 			EntryType: timelineEntryEvent,
-			Label:     "↻ Reopened",
+			Label:     fmt.Sprintf("%s Reopened", icons.LifecycleEvent("reopened")),
 			Detail:    "",
 			EventType: "reopened",
 		})
@@ -1490,7 +1491,7 @@ func (h *HistoryModel) buildTimeline(hist correlation.BeadHistory) []TimelineEnt
 		entries = append(entries, TimelineEntry{
 			Timestamp: hist.Milestones.Closed.Timestamp,
 			EntryType: timelineEntryEvent,
-			Label:     "✓ Closed",
+			Label:     fmt.Sprintf("%s Closed", icons.TimelineMilestone("closed")),
 			Detail:    "",
 			EventType: "closed",
 		})
@@ -1513,7 +1514,7 @@ func (h *HistoryModel) buildTimeline(hist correlation.BeadHistory) []TimelineEnt
 			entries = append(entries, TimelineEntry{
 				Timestamp:           session.Timestamp,
 				EntryType:           timelineEntrySession,
-				Label:               fmt.Sprintf("📎 %s session", capitalizeFirst(session.Agent)),
+				Label:               fmt.Sprintf("%s %s session", icons.Get(icons.SessionAttach), capitalizeFirst(session.Agent)),
 				Detail:              session.Title,
 				SessionAgent:        session.Agent,
 				SessionMessageCount: 0, // Message count not available from SearchResult
@@ -1796,11 +1797,11 @@ func (h *HistoryModel) renderCompactTimeline(hist correlation.BeadHistory, maxWi
 
 	// Add event markers
 	if hist.Milestones.Created != nil {
-		markers = append(markers, "○")
+		markers = append(markers, icons.TimelineMilestone("created"))
 		startTime = hist.Milestones.Created.Timestamp
 	}
 	if hist.Milestones.Claimed != nil {
-		markers = append(markers, "●")
+		markers = append(markers, icons.TimelineMilestone("claimed"))
 		if startTime.IsZero() {
 			startTime = hist.Milestones.Claimed.Timestamp
 		}
@@ -1823,7 +1824,7 @@ func (h *HistoryModel) renderCompactTimeline(hist correlation.BeadHistory, maxWi
 
 	// Add close marker
 	if hist.Milestones.Closed != nil {
-		markers = append(markers, "✓")
+		markers = append(markers, icons.TimelineMilestone("closed"))
 		endTime = hist.Milestones.Closed.Timestamp
 	}
 
@@ -1894,10 +1895,10 @@ func (h *HistoryModel) renderHeader() string {
 	// Icons: ◉ for git-centric (commits), ◈ for bead-centric (beads)
 	var modeIcon, modeLabel string
 	if h.viewMode == historyModeGit {
-		modeIcon = "◉"
+		modeIcon = icons.HistoryViewModeIcon(true)
 		modeLabel = "Git"
 	} else {
-		modeIcon = "◈"
+		modeIcon = icons.HistoryViewModeIcon(false)
 		modeLabel = "Beads"
 	}
 
@@ -2171,13 +2172,7 @@ func (h *HistoryModel) renderBeadLine(idx int, hist correlation.BeadHistory, wid
 	}
 
 	// Status icon
-	statusIcon := "○"
-	switch hist.Status {
-	case "closed":
-		statusIcon = "✓"
-	case "in_progress":
-		statusIcon = "●"
-	}
+	statusIcon := icons.HistoryBeadStatus(hist.Status)
 
 	// Commit count
 	commitCount := fmt.Sprintf("%d commits", len(hist.Commits))
@@ -2391,13 +2386,7 @@ func (h *HistoryModel) renderDetailPanel(width, height int) string {
 	header := headerStyle.Render("COMMIT DETAILS")
 
 	// Bead info with status indicator
-	statusIcon := "○"
-	switch hist.Status {
-	case "closed":
-		statusIcon = "✓"
-	case "in_progress":
-		statusIcon = "●"
-	}
+	statusIcon := icons.HistoryBeadStatus(hist.Status)
 	beadInfo := fmt.Sprintf("%s %s: %s", statusIcon, hist.BeadID, hist.Title)
 	if width > 10 {
 		beadInfo = truncateRunesHelper(beadInfo, width-6, "…")
@@ -2939,20 +2928,7 @@ func fileActionIcon(action string) string {
 
 // eventTypeIcon returns an icon for a lifecycle event type
 func eventTypeIcon(et correlation.EventType) string {
-	switch et {
-	case correlation.EventCreated:
-		return "🆕"
-	case correlation.EventClaimed:
-		return "👤"
-	case correlation.EventClosed:
-		return "✓"
-	case correlation.EventReopened:
-		return "↺"
-	case correlation.EventModified:
-		return "✎"
-	default:
-		return "•"
-	}
+	return icons.LifecycleEvent(string(et))
 }
 
 // eventTypeColor returns the appropriate theme color for an event type
@@ -3088,7 +3064,7 @@ func renderCompactEventBadge(eventCount int, t Theme) string {
 	badgeStyle := t.Renderer.NewStyle().
 		Foreground(t.Secondary)
 
-	return badgeStyle.Render(fmt.Sprintf("⚡%d", eventCount))
+	return badgeStyle.Render(fmt.Sprintf("%s%d", icons.Get(icons.Lightning), eventCount))
 }
 
 // Git Mode rendering functions (bv-tl3n)
@@ -3235,18 +3211,13 @@ func (h *HistoryModel) renderGitDetailPanel(width, height int) string {
 
 		// Get bead info from report
 		beadStyle := t.Renderer.NewStyle()
-		statusIcon := "○"
+		statusIcon := icons.HistoryBeadStatus("open")
 		title := beadID
 
 		if h.report != nil {
 			if hist, ok := h.report.Histories[beadID]; ok {
 				title = hist.Title
-				switch hist.Status {
-				case "closed":
-					statusIcon = "✓"
-				case "in_progress":
-					statusIcon = "●"
-				}
+				statusIcon = icons.HistoryBeadStatus(hist.Status)
 			}
 		}
 
@@ -3467,18 +3438,13 @@ func (h *HistoryModel) renderGitBeadListPanel(width, height int) string {
 		}
 
 		beadStyle := t.Renderer.NewStyle()
-		statusIcon := "○"
+		statusIcon := icons.HistoryBeadStatus("open")
 		title := beadID
 
 		if h.report != nil {
 			if hist, ok := h.report.Histories[beadID]; ok {
 				title = hist.Title
-				switch hist.Status {
-				case "closed":
-					statusIcon = "✓"
-				case "in_progress":
-					statusIcon = "●"
-				}
+				statusIcon = icons.HistoryBeadStatus(hist.Status)
 			}
 		}
 

@@ -1198,8 +1198,13 @@ func TestOverlaysAndWorkspaceHelpers(t *testing.T) {
 }
 
 func TestGraphIconsAndTruncation(t *testing.T) {
-	if getTypeIcon(model.TypeBug) == "" || getPriorityIcon(1) == "" {
+	tm := createTheme()
+	if tm.RenderTypeIcon(string(model.TypeBug)) == "" || RenderPriorityIcon(1) == "" {
 		t.Fatalf("graph icons should not be empty")
+	}
+	glyphs := RenderGraphIssueGlyphs(string(model.StatusOpen), 1, string(model.TypeBug), tm)
+	if glyphs == "" || !strings.Contains(glyphs, "●") {
+		t.Fatalf("graph glyphs should include status/type markers, got %q", glyphs)
 	}
 	if got := smartTruncateID("very_long_identifier_with_parts", 8); len([]rune(got)) > 8 {
 		t.Fatalf("smartTruncateID should respect max length, got %s", got)
