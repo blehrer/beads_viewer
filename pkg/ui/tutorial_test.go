@@ -1025,6 +1025,22 @@ func TestNarrowTerminalRendering(t *testing.T) {
 			if !strings.Contains(view, "Welcome") {
 				t.Errorf("View at width %d should contain page title", width)
 			}
+
+			for i, line := range strings.Split(view, "\n") {
+				if got := lipgloss.Width(line); got > width {
+					t.Errorf("line %d width %d exceeds terminal width %d", i, got, width)
+				}
+			}
+
+			m.tocVisible = true
+			m.SetSize(width, 30)
+			viewTOC := m.View()
+			for i, line := range strings.Split(viewTOC, "\n") {
+				if got := lipgloss.Width(line); got > width {
+					t.Errorf("toc visible: line %d width %d exceeds terminal width %d", i, got, width)
+				}
+			}
+			m.tocVisible = false
 		})
 	}
 }

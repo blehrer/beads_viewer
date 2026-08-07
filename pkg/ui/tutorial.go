@@ -209,6 +209,31 @@ func (m TutorialModel) handleTOCKeys(msg tea.KeyMsg) TutorialModel {
 	return m
 }
 
+const (
+	tutorialHorizontalPad = 4  // Padding(1, 2): 2 left + 2 right
+	tutorialBorderCols    = 2  // lipgloss draws the border outside Style.Width
+	tutorialTOCReserve    = 26 // TOC width (22) + borders (2) + gap (2)
+)
+
+func tutorialModalWidth(termWidth int) int {
+	w := termWidth - tutorialBorderCols
+	if w < 20 {
+		return 20
+	}
+	return w
+}
+
+func tutorialContentWidth(termWidth int, tocVisible bool) int {
+	w := tutorialModalWidth(termWidth) - tutorialHorizontalPad
+	if tocVisible {
+		w -= tutorialTOCReserve
+	}
+	if w < 20 {
+		return 20
+	}
+	return w
+}
+
 // View renders the tutorial overlay.
 func (m TutorialModel) View() string {
 	pages := m.visiblePages()
@@ -231,14 +256,8 @@ func (m TutorialModel) View() string {
 
 	r := m.theme.Renderer
 
-	// Calculate dimensions
-	contentWidth := m.width - 6 // padding and borders
-	if m.tocVisible {
-		contentWidth -= 24 // TOC sidebar width
-	}
-	if contentWidth < 40 {
-		contentWidth = 40
-	}
+	contentWidth := tutorialContentWidth(m.width, m.tocVisible)
+	modalWidth := tutorialModalWidth(m.width)
 
 	// Build the view
 	var b strings.Builder
@@ -250,7 +269,7 @@ func (m TutorialModel) View() string {
 
 	// Separator line
 	sepStyle := r.NewStyle().Foreground(m.theme.Border)
-	b.WriteString(sepStyle.Render(strings.Repeat("─", contentWidth+4)))
+	b.WriteString(sepStyle.Render(strings.Repeat("─", contentWidth)))
 	b.WriteString("\n")
 
 	// Page title and section
@@ -285,7 +304,7 @@ func (m TutorialModel) View() string {
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(m.theme.Primary).
 		Padding(1, 2).
-		Width(m.width).
+		Width(modalWidth).
 		MaxHeight(m.height)
 
 	return modalStyle.Render(b.String())
@@ -601,7 +620,7 @@ func (m TutorialModel) renderEmptyState() string {
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(m.theme.Primary).
 		Padding(2, 4).
-		Width(m.width)
+		Width(tutorialModalWidth(m.width))
 
 	return style.Render("No tutorial pages available for this context.")
 }
@@ -666,14 +685,7 @@ func (m *TutorialModel) SetSize(width, height int) {
 	m.width = width
 	m.height = height
 
-	// Update markdown renderer width to match content area
-	contentWidth := width - 6 // padding and borders
-	if m.tocVisible {
-		contentWidth -= 24 // TOC sidebar width
-	}
-	if contentWidth < 40 {
-		contentWidth = 40
-	}
+	contentWidth := tutorialContentWidth(width, m.tocVisible)
 
 	if m.markdownRenderer != nil {
 		m.markdownRenderer.SetWidthWithTheme(contentWidth, m.theme)
