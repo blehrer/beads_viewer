@@ -1243,14 +1243,24 @@ func TestHelpOverlayScroll(t *testing.T) {
 
 	// Test page down
 	m = m.handleHelpKeys(tea.KeyMsg{Type: tea.KeyCtrlD})
-	if m.helpScroll != 10 {
-		t.Fatalf("expected helpScroll=10 after ctrl+d, got %d", m.helpScroll)
+	if m.helpScroll != 12 {
+		t.Fatalf("expected helpScroll=12 after ctrl+d, got %d", m.helpScroll)
 	}
 
 	// Test page up
 	m = m.handleHelpKeys(tea.KeyMsg{Type: tea.KeyCtrlU})
 	if m.helpScroll != 0 {
 		t.Fatalf("expected helpScroll=0 after ctrl+u, got %d", m.helpScroll)
+	}
+
+	// Test pgdown/pgup
+	m = m.handleHelpKeys(tea.KeyMsg{Type: tea.KeyPgDown})
+	if m.helpScroll != 12 {
+		t.Fatalf("expected helpScroll=12 after pgdown, got %d", m.helpScroll)
+	}
+	m = m.handleHelpKeys(tea.KeyMsg{Type: tea.KeyPgUp})
+	if m.helpScroll != 0 {
+		t.Fatalf("expected helpScroll=0 after pgup, got %d", m.helpScroll)
 	}
 
 	// Test home
@@ -1275,13 +1285,13 @@ func TestHelpOverlayScroll(t *testing.T) {
 		t.Fatalf("expected helpScroll=0 after closing, got %d", m.helpScroll)
 	}
 
-	// Test any other key closes help
+	// Unknown keys are ignored while help is open
 	m.showHelp = true
 	m.focused = focusHelp
 	m.helpScroll = 5
 	m = m.handleHelpKeys(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("x")})
-	if m.showHelp {
-		t.Fatalf("expected showHelp=false after x")
+	if !m.showHelp || m.helpScroll != 5 {
+		t.Fatalf("expected help to stay open on unknown key, show=%v scroll=%d", m.showHelp, m.helpScroll)
 	}
 
 	// Test render help overlay

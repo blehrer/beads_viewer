@@ -74,7 +74,7 @@ func (m Model) renderGlyphHelpOverlay() string {
 
 	var lines []string
 	lines = append(lines, titleStyle.Render("Symbol Reference"))
-	lines = append(lines, subStyle.Render("K keyword help — j/k scroll · esc close · experimental.icon_set: nerd in config"))
+	lines = append(lines, subStyle.Render("K keyword help — j/k ↑/↓ scroll · pgup/pgdn page · esc close · experimental.icon_set: nerd in config"))
 	lines = append(lines, "")
 
 	if issue := m.glyphHelpContextIssue(); issue != nil {
@@ -194,7 +194,16 @@ func priorityForIconName(name icons.Name) (int, bool) {
 	}
 }
 
+func (m Model) glyphHelpVisibleLines() int {
+	visible := m.height - 8 // overlay border, padding, title
+	if visible < 1 {
+		return 1
+	}
+	return visible
+}
+
 func (m Model) handleGlyphHelpKeys(msg tea.KeyMsg) Model {
+	page := m.glyphHelpVisibleLines()
 	switch msg.String() {
 	case "j", "down":
 		m.glyphHelpScroll++
@@ -202,11 +211,11 @@ func (m Model) handleGlyphHelpKeys(msg tea.KeyMsg) Model {
 		if m.glyphHelpScroll > 0 {
 			m.glyphHelpScroll--
 		}
-	case "ctrl+d":
-		m.glyphHelpScroll += 10
-	case "ctrl+u":
-		if m.glyphHelpScroll > 10 {
-			m.glyphHelpScroll -= 10
+	case "pgdown", "ctrl+d":
+		m.glyphHelpScroll += page
+	case "pgup", "ctrl+u":
+		if m.glyphHelpScroll > page {
+			m.glyphHelpScroll -= page
 		} else {
 			m.glyphHelpScroll = 0
 		}
@@ -215,10 +224,6 @@ func (m Model) handleGlyphHelpKeys(msg tea.KeyMsg) Model {
 	case "G", "end":
 		m.glyphHelpScroll = 9999
 	case "q", "esc", "K":
-		m.showGlyphHelp = false
-		m.glyphHelpScroll = 0
-		m.focused = m.restoreFocusFromHelp()
-	default:
 		m.showGlyphHelp = false
 		m.glyphHelpScroll = 0
 		m.focused = m.restoreFocusFromHelp()

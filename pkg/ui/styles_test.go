@@ -180,6 +180,20 @@ func TestRenderStatusDot_NerdModeUsesColoredGlyph(t *testing.T) {
 	}
 }
 
+func TestRenderStatusDot_NerdModeClosedUsesGreenCheck(t *testing.T) {
+	icons.Use(icons.SetNerd)
+	t.Cleanup(func() { icons.Use(icons.SetEmoji) })
+
+	got := RenderStatusDot("closed")
+	want := icons.Get(icons.Check)
+	if !strings.Contains(got, want) {
+		t.Fatalf("RenderStatusDot(closed) nerd mode should use %q, got %q", want, got)
+	}
+	if lipgloss.Width(got) != 1 {
+		t.Fatalf("RenderStatusDot(closed) width = %d, want 1", lipgloss.Width(got))
+	}
+}
+
 func TestRenderFooterStatIcon_ColorsNerdGlyph(t *testing.T) {
 	icons.Use(icons.SetNerd)
 	t.Cleanup(func() { icons.Use(icons.SetEmoji) })

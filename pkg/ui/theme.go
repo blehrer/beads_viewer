@@ -91,9 +91,11 @@ type Theme struct {
 	Renderer *lipgloss.Renderer
 
 	// Colors
-	Primary   lipgloss.AdaptiveColor
-	Secondary lipgloss.AdaptiveColor
-	Subtext   lipgloss.AdaptiveColor
+	Primary         lipgloss.AdaptiveColor
+	Secondary       lipgloss.AdaptiveColor
+	Subtext         lipgloss.AdaptiveColor
+	Text            lipgloss.AdaptiveColor
+	HeaderOnPrimary lipgloss.AdaptiveColor
 
 	// Status
 	Open       lipgloss.AdaptiveColor
@@ -148,37 +150,38 @@ func DefaultTheme(r *lipgloss.Renderer) Theme {
 	if r != nil && BVThemeOverride != "" {
 		r.SetHasDarkBackground(BVThemeOverride == "dark")
 	}
+	p := ActivePalette()
 	t := Theme{
 		Renderer: r,
 
-		// Dracula / Light Mode equivalent
-		// Light mode colors improved for WCAG AA compliance (bv-3fcg)
-		Primary:   lipgloss.AdaptiveColor{Light: "#6B47D9", Dark: "#BD93F9"}, // Purple (darker for contrast)
-		Secondary: lipgloss.AdaptiveColor{Light: "#555555", Dark: "#6272A4"}, // Gray
-		Subtext:   lipgloss.AdaptiveColor{Light: "#666666", Dark: "#BFBFBF"}, // Dim (was #999999, now ~6:1)
+		Primary:         p.Primary,
+		Secondary:       p.Secondary,
+		Subtext:         p.Subtext,
+		Text:            p.Text,
+		HeaderOnPrimary: p.HeaderOnPrimary,
 
-		Open:       lipgloss.AdaptiveColor{Light: "#007700", Dark: "#50FA7B"}, // Green (was #00A800, now ~4.6:1)
-		InProgress: lipgloss.AdaptiveColor{Light: "#006080", Dark: "#8BE9FD"}, // Cyan (darker for contrast)
-		Blocked:    lipgloss.AdaptiveColor{Light: "#CC0000", Dark: "#FF5555"}, // Red (slightly adjusted)
-		Deferred:   lipgloss.AdaptiveColor{Light: "#B06800", Dark: "#FFB86C"}, // Orange - on ice
-		Pinned:     lipgloss.AdaptiveColor{Light: "#0066CC", Dark: "#6699FF"}, // Blue - persistent
-		Hooked:     lipgloss.AdaptiveColor{Light: "#008080", Dark: "#00CED1"}, // Teal - agent-attached
-		Review:     lipgloss.AdaptiveColor{Light: "#6B47D9", Dark: "#BD93F9"}, // Purple - awaiting review
-		Closed:     lipgloss.AdaptiveColor{Light: "#555555", Dark: "#6272A4"}, // Gray
-		Tombstone:  lipgloss.AdaptiveColor{Light: "#888888", Dark: "#44475A"}, // Muted gray - deleted
+		Open:       p.StatusOpen,
+		InProgress: p.StatusInProgress,
+		Blocked:    p.StatusBlocked,
+		Deferred:   p.StatusDeferred,
+		Pinned:     p.StatusPinned,
+		Hooked:     p.StatusHooked,
+		Review:     p.StatusReview,
+		Closed:     p.StatusClosed,
+		Tombstone:  p.StatusTombstone,
 
-		Bug:     lipgloss.AdaptiveColor{Light: "#CC0000", Dark: "#FF5555"}, // Red
-		Feature: lipgloss.AdaptiveColor{Light: "#B06800", Dark: "#FFB86C"}, // Orange (darker for contrast)
-		Epic:    lipgloss.AdaptiveColor{Light: "#6B47D9", Dark: "#BD93F9"}, // Purple (darker)
-		Task:    lipgloss.AdaptiveColor{Light: "#808000", Dark: "#F1FA8C"}, // Yellow/olive (darker for contrast)
-		Chore:   lipgloss.AdaptiveColor{Light: "#006080", Dark: "#8BE9FD"}, // Cyan (darker)
+		Bug:     p.TypeBug,
+		Feature: p.TypeFeature,
+		Epic:    p.TypeEpic,
+		Task:    p.TypeTask,
+		Chore:   p.TypeChore,
 
-		Border:    lipgloss.AdaptiveColor{Light: "#AAAAAA", Dark: "#44475A"}, // Border (was #DDDDDD)
-		Highlight: lipgloss.AdaptiveColor{Light: "#E0E0E0", Dark: "#44475A"}, // Slightly darker
-		Muted:     lipgloss.AdaptiveColor{Light: "#555555", Dark: "#6272A4"}, // Dimmed text (was #888888, now ~7:1)
+		Border:    p.Border,
+		Highlight: p.Highlight,
+		Muted:     p.Muted,
 	}
 
-	t.Base = r.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#000000", Dark: "#F8F8F2"})
+	t.Base = r.NewStyle().Foreground(p.TextBase)
 
 	t.Selected = r.NewStyle().
 		Background(t.Highlight).
@@ -189,22 +192,22 @@ func DefaultTheme(r *lipgloss.Renderer) Theme {
 
 	t.Header = r.NewStyle().
 		Background(t.Primary).
-		Foreground(lipgloss.AdaptiveColor{Light: "#FFFFFF", Dark: "#282A36"}).
+		Foreground(p.HeaderOnPrimary).
 		Bold(true).
 		Padding(0, 1)
 
 	// Pre-computed delegate styles (bv-o4cj optimization)
 	// Reduces ~16 NewStyle() allocations per visible item per frame
-	t.MutedText = r.NewStyle().Foreground(ColorMuted)
-	t.InfoText = r.NewStyle().Foreground(ColorInfo)
-	t.InfoBold = r.NewStyle().Foreground(ColorInfo).Bold(true)
+	t.MutedText = r.NewStyle().Foreground(p.Muted)
+	t.InfoText = r.NewStyle().Foreground(p.Info)
+	t.InfoBold = r.NewStyle().Foreground(p.Info).Bold(true)
 	t.SecondaryText = r.NewStyle().Foreground(t.Secondary)
 	t.PrimaryBold = r.NewStyle().Foreground(t.Primary).Bold(true)
-	t.PriorityUpArrow = r.NewStyle().Foreground(ThemeFg("#FF6B6B")).Bold(true)
-	t.PriorityDownArrow = r.NewStyle().Foreground(ThemeFg("#4ECDC4")).Bold(true)
-	t.TriageStar = r.NewStyle().Foreground(ThemeFg("#FFD700"))
-	t.TriageUnblocks = r.NewStyle().Foreground(ThemeFg("#50FA7B"))
-	t.TriageUnblocksAlt = r.NewStyle().Foreground(ThemeFg("#6272A4"))
+	t.PriorityUpArrow = r.NewStyle().Foreground(ThemeFg(p.TriagePriorityUp)).Bold(true)
+	t.PriorityDownArrow = r.NewStyle().Foreground(ThemeFg(p.TriagePriorityDown)).Bold(true)
+	t.TriageStar = r.NewStyle().Foreground(ThemeFg(p.TriageStar))
+	t.TriageUnblocks = r.NewStyle().Foreground(ThemeFg(p.TriageUnblocks))
+	t.TriageUnblocksAlt = r.NewStyle().Foreground(ThemeFg(p.TriageUnblocksAlt))
 
 	return t
 }

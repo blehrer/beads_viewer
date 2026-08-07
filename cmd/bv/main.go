@@ -32,10 +32,10 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/Dicklesworthstone/beads_viewer/internal/datasource"
-	"github.com/Dicklesworthstone/beads_viewer/pkg/beadscli"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/agents"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/analysis"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/baseline"
+	"github.com/Dicklesworthstone/beads_viewer/pkg/beadscli"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/correlation"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/drift"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/export"
@@ -1588,6 +1588,7 @@ func main() {
 	// Explicit light/dark palette selection for terminals where background
 	// auto-detection fails, e.g. over SSH or inside tmux (bv-128)
 	themeFlag := flag.String("theme", "", "Color theme: light, dark, or auto (default: detect terminal background)")
+	paletteFlag := flag.String("palette", "", "Color palette: dracula, kanagawa, or kanso (default: dracula)")
 	// Experimental background snapshot worker (bv-o11l)
 	backgroundMode := flag.Bool("background-mode", false, "Enable experimental background snapshot loading (TUI only)")
 	noBackgroundMode := flag.Bool("no-background-mode", false, "Disable experimental background snapshot loading (TUI only)")
@@ -1695,10 +1696,10 @@ func main() {
 		NotReadyLabels:          robotNotReadyLabels,
 	})
 	rootCmd := newRootCommand(func() error {
-		// Resolve and pin the color theme before anything renders, so every
-		// adaptive color — package-global styles, per-model renderers, and
-		// glamour markdown — agrees on light vs dark. Precedence:
-		// --theme > BV_THEME > ~/.config/bv/config.yaml > auto-detect. (bv-128)
+		// Resolve palette overrides and light/dark mode before anything renders.
+		// Palette: ~/.config/bv/config.yaml colors: section.
+		// Light/dark: --theme > BV_THEME > config theme: > auto-detect. (bv-128)
+		initPalette(os.Stderr, *paletteFlag, flag.CommandLine.Changed("palette"))
 		ui.SetThemeOverride(effectiveThemePreference(*themeFlag, flag.CommandLine.Changed("theme"), os.Stderr))
 
 		modifierRules := []modifierFlagRule{
@@ -5645,6 +5646,94 @@ func initIconSet() {
 		configVal = raw
 	}
 	icons.ApplyPreference(os.Getenv("BV_ICON_SET"), configVal)
+}
+
+// initPalette resolves the built-in palette and optional color overrides.
+func initPalette(warnTo io.Writer, flagVal string, flagSet bool) {
+	name := effectivePalettePreference(flagVal, flagSet, warnTo)
+	overrides, _ := loadPaletteOverridesFromUserConfig()
+	if unknown := overrides.UnknownKeys(); len(unknown) > 0 && warnTo != nil {
+		fmt.Fprintf(warnTo, "Warning: %s\n", ui.FormatUnknownPaletteKeys(unknown))
+	}
+	ui.InitPalette(name, overrides)
+}
+
+// effectivePalettePreference resolves the palette with precedence:
+// --palette flag > BV_PALETTE env var > palette: in config > dracula.
+func effectivePalettePreference(flagVal string, flagSet bool, warnTo io.Writer) string {
+	if flagSet {
+		if v := ui.CanonicalPaletteName(flagVal); v != "" {
+			return v
+		}
+		if warnTo != nil {
+			fmt.Fprintf(warnTo, "Warning: unknown --palette value %q (expected dracula, kanagawa, or kanso); using dracula\n", flagVal)
+		}
+		return "dracula"
+	}
+	if raw := strings.TrimSpace(os.Getenv("BV_PALETTE")); raw != "" {
+		if v := ui.CanonicalPaletteName(raw); v != "" {
+			return v
+		}
+	}
+	if raw, ok := loadPaletteNameFromUserConfig(); ok {
+		if v := ui.CanonicalPaletteName(raw); v != "" {
+			return v
+		}
+	}
+	return "dracula"
+}
+
+// loadPaletteOverridesFromUserConfig reads the top-level colors: map from
+// ~/.config/bv/config.yaml. Partial overrides are supported.
+func loadPaletteOverridesFromUserConfig() (ui.PaletteOverrides, bool) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil || homeDir == "" {
+		return nil, false
+	}
+	configPath := filepath.Join(homeDir, ".config", "bv", "config.yaml")
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil, false
+	}
+
+	var cfg struct {
+		Colors ui.PaletteOverrides `yaml:"colors"`
+	}
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return nil, false
+	}
+	if len(cfg.Colors) == 0 {
+		return nil, false
+	}
+	return cfg.Colors, true
+}
+
+// loadPaletteNameFromUserConfig reads the top-level palette: key from
+// ~/.config/bv/config.yaml.
+func loadPaletteNameFromUserConfig() (string, bool) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil || homeDir == "" {
+		return "", false
+	}
+	configPath := filepath.Join(homeDir, ".config", "bv", "config.yaml")
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return "", false
+	}
+
+	var cfg struct {
+		Palette string `yaml:"palette"`
+	}
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return "", false
+	}
+	palette := strings.TrimSpace(cfg.Palette)
+	if palette == "" {
+		return "", false
+	}
+	return palette, true
 }
 
 // loadIconSetFromUserConfig reads `experimental.icon_set` from

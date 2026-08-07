@@ -406,7 +406,7 @@ var nerdIcons = map[Name]string{
 	StatusOpen:       "\U000f0ec2", // md-record-circle
 	StatusInProgress: "\U000f09de", // md-circle-medium
 	StatusBlocked:    "\U000f073a", // md-cancel
-	StatusClosed:     "\U000f0159", // md-close-circle
+	StatusClosed:     "\U000f012c", // md-check
 	StatusUnknown:    "\U000f0ec3", // md-record-circle-outline
 	StatusDeferred:   "\U000f03e4", // md-pause
 	StatusPinned:     "\U000f0403", // md-pin

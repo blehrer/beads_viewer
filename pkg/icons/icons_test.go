@@ -76,8 +76,8 @@ func TestIssueStatus_Nerd(t *testing.T) {
 		{"open", "\U000f0ec2"},
 		{"in_progress", "\U000f09de"},
 		{"blocked", "\U000f073a"},
-		{"closed", "\U000f0159"},
-		{"tombstone", "\U000f0159"},
+		{"closed", "\U000f012c"},
+		{"tombstone", "\U000f012c"},
 		{"unknown", "\U000f0ec3"},
 	}
 	for _, tt := range tests {

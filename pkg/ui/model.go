@@ -2811,6 +2811,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
+		// Symbol reference overlay scroll/dismiss — before view handlers eat j/k/pgup.
+		if m.showGlyphHelp {
+			m = m.handleGlyphHelpKeys(msg)
+			return m, nil
+		}
+
+		// Help overlay scroll/dismiss — before view handlers eat j/k/pgup.
+		if m.showHelp {
+			m = m.handleHelpKeys(msg)
+			return m, nil
+		}
+
 		// Handle tutorial toggle (backtick `) - bv-8y31
 		if msg.String() == "`" && m.list.FilterState() != list.Filtering {
 			m.showTutorial = !m.showTutorial
@@ -2981,18 +2993,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			m.updateListDelegate()
 			return m, tea.Batch(cmds...)
-		}
-
-		// If glyph help is showing, handle navigation keys for scrolling
-		if m.focused == focusGlyphHelp {
-			m = m.handleGlyphHelpKeys(msg)
-			return m, nil
-		}
-
-		// If help is showing, handle navigation keys for scrolling
-		if m.focused == focusHelp {
-			m = m.handleHelpKeys(msg)
-			return m, nil
 		}
 
 		// If tutorial is showing, route input to tutorial model (bv-8y31)
@@ -3697,8 +3697,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Button {
 		case tea.MouseButtonWheelUp:
 			// Scroll up based on current focus
-			switch m.focused {
-			case focusList:
+			switch {
+			case m.showGlyphHelp:
+				if m.glyphHelpScroll > 0 {
+					m.glyphHelpScroll--
+				}
+			case m.showHelp:
+				if m.helpScroll > 0 {
+					m.helpScroll--
+				}
+			case m.focused == focusList:
 				if m.list.Index() > 0 {
 					m.list.Select(m.list.Index() - 1)
 					// Sync detail panel in split view mode
@@ -3706,28 +3714,32 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.updateViewportContent()
 					}
 				}
-			case focusDetail:
+			case m.focused == focusDetail:
 				m.viewport.ScrollUp(3)
-			case focusInsights:
+			case m.focused == focusInsights:
 				m.insightsPanel.MoveUp()
-			case focusBoard:
+			case m.focused == focusBoard:
 				m.board.MoveUp()
-			case focusGraph:
+			case m.focused == focusGraph:
 				m.graphView.PageUp()
-			case focusTree:
+			case m.focused == focusTree:
 				m.tree.MoveUp()
-			case focusActionable:
+			case m.focused == focusActionable:
 				m.actionableView.MoveUp()
-			case focusHistory:
+			case m.focused == focusHistory:
 				m.historyView.MoveUp()
-			case focusFlowMatrix:
+			case m.focused == focusFlowMatrix:
 				m.flowMatrix.MoveUp()
 			}
 			return m, nil
 		case tea.MouseButtonWheelDown:
 			// Scroll down based on current focus
-			switch m.focused {
-			case focusList:
+			switch {
+			case m.showGlyphHelp:
+				m.glyphHelpScroll++
+			case m.showHelp:
+				m.helpScroll++
+			case m.focused == focusList:
 				if m.list.Index() < len(m.list.Items())-1 {
 					m.list.Select(m.list.Index() + 1)
 					// Sync detail panel in split view mode
@@ -3735,21 +3747,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.updateViewportContent()
 					}
 				}
-			case focusDetail:
+			case m.focused == focusDetail:
 				m.viewport.ScrollDown(3)
-			case focusInsights:
+			case m.focused == focusInsights:
 				m.insightsPanel.MoveDown()
-			case focusBoard:
+			case m.focused == focusBoard:
 				m.board.MoveDown()
-			case focusGraph:
+			case m.focused == focusGraph:
 				m.graphView.PageDown()
-			case focusTree:
+			case m.focused == focusTree:
 				m.tree.MoveDown()
-			case focusActionable:
+			case m.focused == focusActionable:
 				m.actionableView.MoveDown()
-			case focusHistory:
+			case m.focused == focusHistory:
 				m.historyView.MoveDown()
-			case focusFlowMatrix:
+			case m.focused == focusFlowMatrix:
 				m.flowMatrix.MoveDown()
 			}
 			return m, nil
@@ -4882,6 +4894,7 @@ func (m Model) restoreFocusFromHelp() focus {
 
 // handleHelpKeys handles keyboard input when the help overlay is focused
 func (m Model) handleHelpKeys(msg tea.KeyMsg) Model {
+	page := m.glyphHelpVisibleLines()
 	switch msg.String() {
 	case "j", "down":
 		m.helpScroll++
@@ -4889,11 +4902,12 @@ func (m Model) handleHelpKeys(msg tea.KeyMsg) Model {
 		if m.helpScroll > 0 {
 			m.helpScroll--
 		}
-	case "ctrl+d":
-		m.helpScroll += 10
-	case "ctrl+u":
-		m.helpScroll -= 10
-		if m.helpScroll < 0 {
+	case "pgdown", "ctrl+d":
+		m.helpScroll += page
+	case "pgup", "ctrl+u":
+		if m.helpScroll > page {
+			m.helpScroll -= page
+		} else {
 			m.helpScroll = 0
 		}
 	case "home", "g":
@@ -4912,11 +4926,6 @@ func (m Model) handleHelpKeys(msg tea.KeyMsg) Model {
 		m.showTutorial = true
 		m.tutorialModel.SetSize(m.width, m.height)
 		m.focused = focusTutorial
-	default:
-		// Any other key dismisses help and restores previous focus
-		m.showHelp = false
-		m.helpScroll = 0
-		m.focused = m.restoreFocusFromHelp()
 	}
 	return m
 }

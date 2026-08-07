@@ -99,7 +99,7 @@ func (m AgentPromptModal) View() string {
 
 	// Body text
 	bodyStyle := r.NewStyle().
-		Foreground(lipgloss.AdaptiveColor{Light: "#333333", Dark: "#F8F8F2"})
+		Foreground(m.theme.Text)
 
 	// Preview box
 	previewBoxStyle := r.NewStyle().
@@ -120,7 +120,7 @@ func (m AgentPromptModal) View() string {
 
 	selectedButton := buttonBase.
 		Background(m.theme.Primary).
-		Foreground(lipgloss.AdaptiveColor{Light: "#FFFFFF", Dark: "#282A36"}).
+		Foreground(m.theme.HeaderOnPrimary).
 		Bold(true)
 
 	unselectedButton := buttonBase.

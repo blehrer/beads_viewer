@@ -170,6 +170,73 @@ func TestLoadIconSetFromUserConfig(t *testing.T) {
 	}
 }
 
+func TestLoadPaletteFromUserConfig(t *testing.T) {
+	withUserConfig(t, "colors:\n  primary:\n    light: \"#111111\"\n    dark: \"#222222\"\n")
+	overrides, ok := loadPaletteOverridesFromUserConfig()
+	if !ok {
+		t.Fatal("loadPaletteOverridesFromUserConfig() = false, want true")
+	}
+	if got := overrides["primary"]; got.Light != "#111111" || got.Dark != "#222222" {
+		t.Fatalf("primary override = %+v", got)
+	}
+
+	withUserConfig(t, "theme: dark\n")
+	if _, ok := loadPaletteOverridesFromUserConfig(); ok {
+		t.Fatal("colors absent: want false")
+	}
+
+	t.Setenv("HOME", t.TempDir())
+	if _, ok := loadPaletteOverridesFromUserConfig(); ok {
+		t.Fatal("no file: want false")
+	}
+}
+
+func TestLoadPaletteNameFromUserConfig(t *testing.T) {
+	withUserConfig(t, "palette: kanagawa\n")
+	if v, ok := loadPaletteNameFromUserConfig(); !ok || v != "kanagawa" {
+		t.Fatalf("loadPaletteNameFromUserConfig() = (%q, %v), want (kanagawa, true)", v, ok)
+	}
+
+	withUserConfig(t, "theme: dark\n")
+	if _, ok := loadPaletteNameFromUserConfig(); ok {
+		t.Fatal("palette absent: want false")
+	}
+}
+
+func TestEffectivePalettePreference(t *testing.T) {
+	withUserConfig(t, "palette: kanso\n")
+	t.Setenv("BV_PALETTE", "kanagawa")
+	if got := effectivePalettePreference("dracula", true, nil); got != "dracula" {
+		t.Errorf("flag over env+config: got %q, want dracula", got)
+	}
+
+	var warn bytes.Buffer
+	if got := effectivePalettePreference("nord", true, &warn); got != "dracula" {
+		t.Errorf("invalid flag: got %q, want dracula", got)
+	}
+	if !strings.Contains(warn.String(), "nord") {
+		t.Errorf("invalid flag warning missing value, got %q", warn.String())
+	}
+
+	withUserConfig(t, "palette: kanso\n")
+	t.Setenv("BV_PALETTE", "kanagawa")
+	if got := effectivePalettePreference("", false, nil); got != "kanagawa" {
+		t.Errorf("env over config: got %q, want kanagawa", got)
+	}
+
+	withUserConfig(t, "palette: kanso\n")
+	t.Setenv("BV_PALETTE", "")
+	if got := effectivePalettePreference("", false, nil); got != "kanso" {
+		t.Errorf("config: got %q, want kanso", got)
+	}
+
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("BV_PALETTE", "")
+	if got := effectivePalettePreference("", false, nil); got != "dracula" {
+		t.Errorf("default: got %q, want dracula", got)
+	}
+}
+
 func TestInitIconSet(t *testing.T) {
 	withUserConfig(t, "experimental:\n  icon_set: nerd\n")
 	t.Setenv("BV_ICON_SET", "")

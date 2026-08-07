@@ -128,7 +128,7 @@ var glossaryEntries = []GlossaryEntry{
 	{Name: StatusOpen, Category: "Status", Description: "Open — ready to work. TUI: green ●. Export: 🟢."},
 	{Name: StatusInProgress, Category: "Status", Description: "In progress — actively being worked. TUI: cyan ●. Export: 🔵."},
 	{Name: StatusBlocked, Category: "Status", Description: "Blocked — waiting on a dependency. TUI: red ●. Export: 🔴."},
-	{Name: StatusClosed, Category: "Status", Description: "Closed — done. TUI: muted ● (graph view: ✓). Export: ⚫/✅."},
+	{Name: StatusClosed, Category: "Status", Description: "Closed — done. TUI: green ✓ (nerd: md-check). Export: ⚫/✅."},
 	{Name: StatusUnknown, Category: "Status", Description: "Unknown or unrecognized status. TUI: muted ●. Export: ⚪."},
 	{Name: Pause, Category: "Status", Description: "Deferred or draft — paused, not active work. Export: ⏸️."},
 	{Name: StatusPinned, Category: "Status", Description: "Pinned — stays visible across filters. Export: 📌."},
