@@ -138,7 +138,7 @@ var glossaryEntries = []GlossaryEntry{
 	// Priority (beads P0–P4)
 	{Name: Fire, Category: "Priority", Description: "P0 Critical — drop everything."},
 	{Name: Lightning, Category: "Priority", Description: "P1 High — important, do soon."},
-	{Name: PriorityMedium, Category: "Priority", Description: "P2 Medium — normal queue."},
+	{Name: PriorityMedium, Category: "Priority", Description: "P2 Medium — normal queue. TUI: blue ◆/rhombus (matches 🔹)."},
 	{Name: PriorityLow, Category: "Priority", Description: "P3 Low — when time allows."},
 	{Name: PriorityBacklog, Category: "Priority", Description: "P4 Backlog — someday/maybe."},
 

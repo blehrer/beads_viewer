@@ -140,6 +140,8 @@ func formatGlossaryLine(e icons.GlossaryEntry, glyphStyle, descStyle lipgloss.St
 	glyph := icons.Get(e.Name)
 	if st := statusForIconName(e.Name); st != "" {
 		glyph = RenderStatusDot(st)
+	} else if p, ok := priorityForIconName(e.Name); ok {
+		glyph = RenderPriorityIcon(p)
 	}
 	glyphPart := glyphStyle.Render(glyph)
 	descWidth := width - lipgloss.Width(glyphPart) - 4
@@ -172,6 +174,23 @@ func statusForIconName(name icons.Name) string {
 		return "review"
 	default:
 		return ""
+	}
+}
+
+func priorityForIconName(name icons.Name) (int, bool) {
+	switch name {
+	case icons.Fire:
+		return 0, true
+	case icons.Lightning:
+		return 1, true
+	case icons.PriorityMedium:
+		return 2, true
+	case icons.PriorityLow:
+		return 3, true
+	case icons.PriorityBacklog:
+		return 4, true
+	default:
+		return 0, false
 	}
 }
 

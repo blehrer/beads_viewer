@@ -882,7 +882,7 @@ func getStatusIcon(status model.Status) string {
 }
 
 func getPriorityIcon(priority int) string {
-	return icons.Priority(priority)
+	return RenderPriorityIcon(priority)
 }
 
 func getTypeIcon(itype model.IssueType) string {

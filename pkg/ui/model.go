@@ -7492,11 +7492,11 @@ func (m *Model) updateViewportContent() {
 		sb.WriteString("### " + icons.Get(icons.Target) + " Triage Insights\n")
 
 		// Score with visual indicator
-		scoreIcon := icons.Get(icons.StatusGraphOpen)
+		scoreIcon := RenderTriageScoreIcon(icons.StatusGraphOpen)
 		if issueItem.TriageScore >= 0.7 {
-			scoreIcon = icons.Get(icons.StatusBlocked)
+			scoreIcon = RenderTriageScoreIcon(icons.StatusBlocked)
 		} else if issueItem.TriageScore >= 0.4 {
-			scoreIcon = icons.Get(icons.TriageScoreMid)
+			scoreIcon = RenderTriageScoreIcon(icons.TriageScoreMid)
 		}
 		sb.WriteString(fmt.Sprintf("- **Triage Score:** %s %.2f/1.00\n", scoreIcon, issueItem.TriageScore))
 

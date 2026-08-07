@@ -402,7 +402,7 @@ func (b *BoardModel) getColumnHeaders() ([]string, []string) {
 	switch b.swimLaneMode {
 	case SwimByPriority:
 		return []string{"P0 CRITICAL", "P1 HIGH", "P2 MEDIUM", "P3+ OTHER"},
-			[]string{icons.Priority(0), icons.Priority(1), icons.Priority(2), icons.Priority(4)}
+			[]string{RenderPriorityIcon(0), RenderPriorityIcon(1), RenderPriorityIcon(2), RenderPriorityIcon(4)}
 	case SwimByType:
 		return []string{"BUG", "FEATURE", "TASK", "EPIC"},
 			[]string{icons.IssueType("bug"), icons.IssueType("feature"), icons.IssueType("task"), icons.IssueType("epic")}

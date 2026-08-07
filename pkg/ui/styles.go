@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Dicklesworthstone/beads_viewer/pkg/icons"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -68,13 +69,13 @@ var (
 	// Priority colors
 	ColorPrioCritical = lipgloss.AdaptiveColor{Light: "#CC0000", Dark: "#FF5555"}
 	ColorPrioHigh     = lipgloss.AdaptiveColor{Light: "#B06800", Dark: "#FFB86C"}
-	ColorPrioMedium   = lipgloss.AdaptiveColor{Light: "#808000", Dark: "#F1FA8C"}
+	ColorPrioMedium   = lipgloss.AdaptiveColor{Light: "#0066CC", Dark: "#6699FF"} // P2 🔹 blue diamond
 	ColorPrioLow      = lipgloss.AdaptiveColor{Light: "#007700", Dark: "#50FA7B"}
 
 	// Priority background colors
 	ColorPrioCriticalBg = lipgloss.AdaptiveColor{Light: "#F8D7DA", Dark: "#3D1A1A"}
 	ColorPrioHighBg     = lipgloss.AdaptiveColor{Light: "#FFE8CC", Dark: "#3D2A1A"}
-	ColorPrioMediumBg   = lipgloss.AdaptiveColor{Light: "#FFF3CD", Dark: "#3D3D1A"}
+	ColorPrioMediumBg   = lipgloss.AdaptiveColor{Light: "#CCE5FF", Dark: "#1A2A44"}
 	ColorPrioLowBg      = lipgloss.AdaptiveColor{Light: "#D4EDDA", Dark: "#1A3D2A"}
 
 	// Type colors
@@ -187,6 +188,50 @@ func RenderStatusDotGraph(status string) string {
 			Render("✓")
 	}
 	return RenderStatusDot(status)
+}
+
+// priorityIconColor maps beads priority 0–4 to theme foregrounds for TUI glyphs.
+func priorityIconColor(priority int) lipgloss.AdaptiveColor {
+	switch priority {
+	case 0:
+		return ColorPrioCritical
+	case 1:
+		return ColorPrioHigh
+	case 2:
+		return ColorPrioMedium
+	case 3:
+		return ColorPrioLow
+	case 4:
+		return ColorMuted
+	default:
+		return ColorMuted
+	}
+}
+
+// RenderPriorityIcon returns a lipgloss-colored priority glyph for TUI views.
+// ponytail: emoji/nerd glyph + theme color replaces raw 🔹/⚡ (P2 rhombus is blue).
+func RenderPriorityIcon(priority int) string {
+	glyph := icons.Priority(priority)
+	if strings.TrimSpace(glyph) == "" {
+		return glyph
+	}
+	return lipgloss.NewStyle().
+		Foreground(priorityIconColor(priority)).
+		Render(glyph)
+}
+
+// RenderTriageScoreIcon colors triage score indicators (same nerd glyph as P2, emoji 🟠).
+func RenderTriageScoreIcon(name icons.Name) string {
+	var color lipgloss.AdaptiveColor
+	switch name {
+	case icons.StatusBlocked:
+		color = ColorPrioCritical
+	case icons.TriageScoreMid:
+		color = ColorPrioHigh // orange band — not P2 blue
+	default:
+		color = ColorStatusInProgress
+	}
+	return lipgloss.NewStyle().Foreground(color).Render(icons.Get(name))
 }
 
 // RenderStatusBadge returns a styled status badge

@@ -215,9 +215,9 @@ func GetStatusIcon(s string) string {
 	return RenderStatusDot(s)
 }
 
-// GetPriorityIcon returns the emoji for a priority level
+// GetPriorityIcon returns a lipgloss-colored priority glyph for TUI rendering.
 func GetPriorityIcon(priority int) string {
-	return icons.Priority(priority)
+	return RenderPriorityIcon(priority)
 }
 
 // GetPriorityLabel returns a compact text label for priority (P0, P1, etc.)

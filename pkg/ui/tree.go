@@ -764,7 +764,7 @@ func (t *TreeModel) GetPriorityColor(priority int) lipgloss.AdaptiveColor {
 	case 1:
 		return t.theme.Highlight // High - highlighted
 	case 2:
-		return t.theme.Secondary // Medium - yellow
+		return ColorPrioMedium // Medium — blue (matches 🔹 / rhombus)
 	default:
 		return t.theme.Muted // Low/backlog - gray
 	}

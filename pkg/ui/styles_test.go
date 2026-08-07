@@ -136,6 +136,19 @@ func TestRenderRankBadge(t *testing.T) {
 	}
 }
 
+func TestRenderPriorityIcon(t *testing.T) {
+	for _, prio := range []int{0, 1, 2, 3, 4} {
+		got := RenderPriorityIcon(prio)
+		w := lipgloss.Width(got)
+		if w < 1 || w > 2 {
+			t.Fatalf("RenderPriorityIcon(%d) width = %d, want 1-2", prio, w)
+		}
+	}
+	if got := RenderPriorityIcon(99); got != "  " {
+		t.Fatalf("RenderPriorityIcon(99) = %q, want two spaces", got)
+	}
+}
+
 func TestRenderStatusDot(t *testing.T) {
 	got := RenderStatusDot("open")
 	if lipgloss.Width(got) != 1 {
