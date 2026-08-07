@@ -78,19 +78,29 @@ irm "https://raw.githubusercontent.com/Dicklesworthstone/beads_viewer/main/insta
 
 ---
 
-## Generating the JSONL File (`br` and `bd`)
+## Beads CLI auto-detection (`br` and `bd`)
 
-`bv` reads Beads JSONL exports from `.beads/`. Current Rust-based `br` workspaces normally use `.beads/issues.jsonl`; older `bd` and legacy workspaces may use `.beads/beads.jsonl`. `bv` auto-discovers the supported file names.
+`bv` reads Beads data from `.beads/` and auto-detects whether the workspace uses **`br`** (Rust/file-first) or **`bd`** (Go/Dolt-native). Robot output, markdown export, the TUI editor, and agent blurbs emit commands for the detected tool.
 
-**Rust (`br`) users** — run `br sync --flush-only` after Beads mutations so `.beads/issues.jsonl` is current.
-
-**Go (`bd`) users** — run:
+Override detection with:
 
 ```bash
-bd export --no-memories -o .beads/beads.jsonl
+export BV_BEADS_CLI=bd   # or br
 ```
 
-Once the file exists, `bv` works identically regardless of which tool produced it.
+On startup (robot mode and the interactive TUI), `bv` refreshes `.beads/issues.jsonl` in **bd** workspaces by running `bd export` when needed.
+
+### Keeping JSONL current
+
+**`br` users** — run `br sync --flush-only` after Beads mutations so `.beads/issues.jsonl` is current.
+
+**`bd` users** — either rely on the startup refresh above, or run manually:
+
+```bash
+bd export --no-memories -o .beads/issues.jsonl
+```
+
+`bv` auto-discovers `.beads/issues.jsonl` and legacy `.beads/beads.jsonl`.
 
 ---
 

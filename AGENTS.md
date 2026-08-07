@@ -485,11 +485,11 @@ A mail-like layer that lets coding agents coordinate asynchronously via MCP tool
 
 ---
 
-## Beads (br) — Dependency-Aware Issue Tracking
+## Beads (`br` / `bd`) — Dependency-Aware Issue Tracking
 
-Beads provides a lightweight, dependency-aware issue database and CLI (`br` - beads_rust) for selecting "ready work," setting priorities, and tracking status. It complements MCP Agent Mail's messaging and file reservations.
+Beads provides a lightweight, dependency-aware issue database. **`br`** (beads_rust) and **`bd`** (Go/Dolt) are both supported. **`bv` auto-detects** which CLI matches the workspace (or honor `BV_BEADS_CLI=bd|br`) and emits the correct command names in robot output, markdown export, the TUI editor, and agent blurbs.
 
-**Important:** `br` is non-invasive—it NEVER runs git commands automatically. You must manually commit changes after `br sync --flush-only`.
+**Important:** Neither CLI runs git commands automatically. Export JSONL after Beads mutations (`br sync --flush-only` or `bd export --no-memories -o .beads/issues.jsonl`). In **bd** workspaces, `bv` also refreshes `.beads/issues.jsonl` on robot/TUI startup when possible.
 
 ### Conventions
 
@@ -501,7 +501,7 @@ Beads provides a lightweight, dependency-aware issue database and CLI (`br` - be
 
 1. **Pick ready work (Beads):**
    ```bash
-   br ready --json  # Choose highest priority, no blockers
+   br ready --json  # or: bd ready --json — bv emits the detected CLI
    ```
 
 2. **Reserve edit surface (Mail):**
@@ -518,8 +518,8 @@ Beads provides a lightweight, dependency-aware issue database and CLI (`br` - be
 
 5. **Complete and release:**
    ```bash
-   br close 123 --reason "Completed"
-   br sync --flush-only  # Export to JSONL (no git operations)
+   br close 123 --reason "Completed"   # or bd close …
+   br sync --flush-only                # or bd export --no-memories -o .beads/issues.jsonl
    ```
    ```
    release_file_reservations(project_key, agent_name, paths=["pkg/**"])
@@ -779,7 +779,7 @@ This project uses [beads_rust](https://github.com/Dicklesworthstone/beads_rust) 
 
 bv is a graph-aware triage engine for Beads projects. Instead of parsing .beads/issues.jsonl / .beads/beads.jsonl directly or hallucinating graph traversal, use robot flags for deterministic, dependency-aware outputs with precomputed metrics (PageRank, betweenness, critical path, cycles, HITS, eigenvector, k-core).
 
-**Scope boundary:** bv handles *what to work on* (triage, priority, planning). `br` handles creating, modifying, and closing beads.
+**Scope boundary:** bv handles *what to work on* (triage, priority, planning). Beads CLIs (`br` / `bd`) handle creating, modifying, and closing beads. **`bv` auto-detects the workspace CLI** (override with `BV_BEADS_CLI`) and emits matching commands in robot output.
 
 **CRITICAL: Use ONLY --robot-* flags. Bare bv launches an interactive TUI that blocks your session.**
 
@@ -801,7 +801,7 @@ bv --robot-next          # Minimal: just the single top pick + claim command
 bv --robot-triage --format toon
 ```
 
-Before claiming, verify current state with `br show <id> --json` or `br ready --json`. `recommendations` can include graph-important blocked or assigned work; only `quick_ref.top_picks` and non-empty `claim_command` fields represent claimable work.
+Before claiming, verify current state with the Beads CLI for your workspace (`br show <id> --json` or `bd show <id> --json`; `bv --robot-next` includes a `claim_command` using the detected tool). `recommendations` can include graph-important blocked or assigned work; only `quick_ref.top_picks` and non-empty `claim_command` fields represent claimable work.
 
 #### Other bv Commands
 
@@ -824,7 +824,9 @@ bv --recipe actionable --robot-plan          # Pre-filter: ready to work (no blo
 bv --recipe high-impact --robot-triage       # Pre-filter: top PageRank scores
 ```
 
-### br Commands for Issue Management
+### Beads commands for issue management
+
+`bv` emits commands for the detected CLI. Examples below use `br`; substitute `bd` when that is your workspace tool.
 
 ```bash
 br ready --json                       # Show issues ready to work (no blockers)
@@ -833,8 +835,7 @@ br show <id> --json                   # Full issue details with dependencies
 br create --title="..." --type=task --priority=2 --json
 br update <id> --status=in_progress --json
 br close <id> --reason="Completed" --json
-br close <id1> <id2> --reason="Completed" --json
-br sync --flush-only                  # Export DB to JSONL after Beads mutations
+br sync --flush-only                  # Export DB to JSONL (bd: bd export --no-memories -o .beads/issues.jsonl)
 ```
 
 ### Workflow Pattern
@@ -843,7 +844,7 @@ br sync --flush-only                  # Export DB to JSONL after Beads mutations
 2. **Claim**: Use `br update <id> --status=in_progress --json`
 3. **Work**: Implement the task
 4. **Complete**: Use `br close <id> --reason="Completed" --json`
-5. **Sync**: Run `br sync --flush-only` after Beads mutations so the JSONL export is current
+5. **Sync**: Export JSONL after Beads mutations (`br sync --flush-only` or `bd export --no-memories -o .beads/issues.jsonl`; bd workspaces may also refresh on `bv` startup)
 
 ### Key Concepts
 
@@ -935,7 +936,7 @@ Treat cass as a way to avoid re-solving problems other agents already handled.
 1. **File issues for remaining work** - Create issues for anything that needs follow-up
 2. **Run quality gates** (if code changed) - Tests, linters, builds
 3. **Update issue status** - Close finished work, update in-progress items
-4. **Sync beads** - `br sync --flush-only` to export to JSONL
+4. **Sync beads** - export JSONL (`br sync --flush-only` or `bd export --no-memories -o .beads/issues.jsonl`)
 5. **Hand off** - Provide context for next session
 
 ---

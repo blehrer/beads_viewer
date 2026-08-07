@@ -2472,11 +2472,16 @@ func main() {
 			_ = loader.EnsureBVIgnored(workspaceRoot)
 		} else {
 			// Load from single repo (original behavior)
+			if _, _, prepErr := loader.PrepareWorkspaceForRead("", true, func(msg string) {
+				fmt.Fprintf(os.Stderr, "Warning: %s\n", msg)
+			}); prepErr != nil {
+				fmt.Fprintf(os.Stderr, "Warning: beads JSONL refresh skipped: %v\n", prepErr)
+			}
 			var err error
 			issues, err = datasource.LoadIssues("")
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error loading beads: %v\n", err)
-				fmt.Fprintln(os.Stderr, "Make sure you are in a project initialized with 'br init'.")
+				fmt.Fprintln(os.Stderr, "Make sure you are in a Beads project (br or bd).")
 				os.Exit(1)
 			}
 			// Get the selected source file for live reload.

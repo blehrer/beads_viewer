@@ -3,6 +3,7 @@ package beadscli
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -54,5 +55,17 @@ func TestShellSubstitutesTool(t *testing.T) {
 	want := "bd update ISSUE-1 --status=in_progress"
 	if got != want {
 		t.Fatalf("Shell() = %q, want %q", got, want)
+	}
+}
+
+func TestTutorialLine_BD(t *testing.T) {
+	t.Cleanup(func() { SetTool("br") })
+	SetTool("bd")
+	got := TutorialLine("br ready\nbr sync  # flush")
+	if !strings.Contains(got, "bd ready") {
+		t.Fatalf("TutorialLine() = %q, want bd ready", got)
+	}
+	if !strings.Contains(got, ExportFlushCommand()) {
+		t.Fatalf("TutorialLine() should rewrite sync to export, got %q", got)
 	}
 }

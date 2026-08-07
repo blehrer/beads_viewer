@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Dicklesworthstone/beads_viewer/pkg/beadscli"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -56,7 +57,7 @@ func NewTutorialModel(theme Theme) TutorialModel {
 	}
 
 	return TutorialModel{
-		pages:            defaultTutorialPages(),
+		pages:            tutorialPagesWithBeadsCLI(defaultTutorialPages()),
 		currentPage:      0,
 		scrollOffset:     0,
 		tocVisible:       false,
@@ -780,6 +781,15 @@ func (m TutorialModel) CenterTutorial(termWidth, termHeight int) string {
 
 // defaultTutorialPages returns the built-in tutorial content.
 // Content organized by section - see bv-kdv2, bv-sbib, bv-36wz, etc.
+func tutorialPagesWithBeadsCLI(pages []TutorialPage) []TutorialPage {
+	out := make([]TutorialPage, len(pages))
+	copy(out, pages)
+	for i := range out {
+		out[i].Content = beadscli.TutorialLine(out[i].Content)
+	}
+	return out
+}
+
 func defaultTutorialPages() []TutorialPage {
 	return []TutorialPage{
 		// =============================================================

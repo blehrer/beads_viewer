@@ -1,6 +1,9 @@
 package ui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"github.com/Dicklesworthstone/beads_viewer/pkg/beadscli"
+	"github.com/charmbracelet/lipgloss"
+)
 
 // StructuredTutorialPage represents a tutorial page with typed elements
 type StructuredTutorialPage struct {
@@ -184,7 +187,7 @@ func structuredTutorialPages() []StructuredTutorialPage {
 				Section{Title: "The Ready Filter"},
 				Paragraph{Text: "Press r to filter to ready issues: Open + Zero Blockers"},
 				Spacer{Lines: 1},
-				Tip{Text: "Start your day with 'br ready' to see actionable work"},
+				Tip{Text: beadscli.TutorialLine("Start your day with 'br ready' to see actionable work")},
 			},
 		},
 		{
@@ -731,9 +734,9 @@ func structuredTutorialPages() []StructuredTutorialPage {
 				Section{Title: "Agent Workflow"},
 				Bullet{Items: []string{
 					"Call: bv --robot-next",
-					"Claim: br update ID --status=in_progress",
+					beadscli.TutorialLine("Claim: br update ID --status=in_progress"),
 					"Work: Do the implementation",
-					"Complete: br close ID",
+					beadscli.TutorialLine("Complete: br close ID"),
 					"Repeat",
 				}},
 				Spacer{Lines: 1},
@@ -752,23 +755,23 @@ func structuredTutorialPages() []StructuredTutorialPage {
 				Section{Title: "Feature implementation walkthrough"},
 				Spacer{Lines: 1},
 				Section{Title: "Step 1: Find Available Work"},
-				Code{Text: "br ready  # Show actionable issues"},
+				Code{Text: beadscli.TutorialLine("br ready  # Show actionable issues")},
 				Paragraph{Text: "Or in bv: press r to filter to ready issues."},
 				Spacer{Lines: 1},
 				Section{Title: "Step 2: Review & Claim"},
 				Bullet{Items: []string{
 					"Enter: View full details",
 					"g: See dependency graph",
-					"br update ID --status=in_progress",
+					beadscli.TutorialLine("br update ID --status=in_progress"),
 				}},
 				Spacer{Lines: 1},
 				Section{Title: "Step 3: Create Sub-Tasks"},
-				Code{Text: "br create --title=\"Implement logic\" --type=task\nbr dep add bv-tests bv-endpoint"},
+				Code{Text: beadscli.TutorialLine("br create --title=\"Implement logic\" --type=task\nbr dep add bv-tests bv-endpoint")},
 				Spacer{Lines: 1},
 				Section{Title: "Step 4: Complete & Sync"},
-				Code{Text: "br close ID\nbr sync  # Commit changes to git"},
+				Code{Text: beadscli.TutorialLine("br close ID\nbr sync  # Commit changes to git")},
 				Spacer{Lines: 1},
-				Tip{Text: "Check br ready after each close - new work may have unblocked"},
+				Tip{Text: beadscli.TutorialLine("Check br ready after each close - new work may have unblocked")},
 			},
 		},
 		{
@@ -779,7 +782,7 @@ func structuredTutorialPages() []StructuredTutorialPage {
 				Section{Title: "Efficient bug triage process"},
 				Spacer{Lines: 1},
 				Section{Title: "Step 1: Create the Issue"},
-				Code{Text: "br create --title=\"Login fails with special chars\" \\\n  --type=bug --priority=2"},
+				Code{Text: beadscli.TutorialLine("br create --title=\"Login fails with special chars\" \\\n  --type=bug --priority=2")},
 				Spacer{Lines: 1},
 				Section{Title: "Step 2: Assess Severity"},
 				KeyTable{Bindings: []KeyHint{
@@ -793,7 +796,7 @@ func structuredTutorialPages() []StructuredTutorialPage {
 				Paragraph{Text: "Press L to open label picker. Select: bug, auth, user-reported"},
 				Spacer{Lines: 1},
 				Section{Title: "Step 4: Check for Blockers"},
-				Code{Text: "br dep add bv-feature1 bv-bug1  # Feature blocked by bug"},
+				Code{Text: beadscli.TutorialLine("br dep add bv-feature1 bv-bug1  # Feature blocked by bug")},
 				Spacer{Lines: 1},
 				Section{Title: "Checklist"},
 				Bullet{Items: []string{
@@ -857,8 +860,8 @@ func structuredTutorialPages() []StructuredTutorialPage {
 				Bullet{Items: []string{
 					"Find: filters (o/r) and search (/)",
 					"Review: Enter for details, g for graph",
-					"Claim: br update ID --status=in_progress",
-					"Complete: br close ID && br sync",
+					beadscli.TutorialLine("Claim: br update ID --status=in_progress"),
+					beadscli.TutorialLine("Complete: br close ID && br sync"),
 				}},
 			},
 		},
