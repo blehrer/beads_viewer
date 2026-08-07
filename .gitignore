@@ -68,3 +68,9 @@ target-*/
 
 # Wrangler local cache (account ids, deploy state)
 .wrangler/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+.beads/proxieddb/
