@@ -143,6 +143,22 @@ func RenderPriorityBadge(priority int) string {
 		Render(label)
 }
 
+func lipStyle() lipgloss.Style {
+	return defaultRenderer.NewStyle()
+}
+
+// renderMarkerGlyph colors circle-replacement markers for the TUI.
+// Nerd Font glyphs get a subtle badge background (like OPEN badges) because
+// foreground-only coloring is easy to miss on complex NF shapes; plain ●○◉
+// keep foreground-only styling.
+func renderMarkerGlyph(glyph string, fg, bg lipgloss.AdaptiveColor) string {
+	style := lipStyle().Foreground(fg)
+	if icons.ActiveSet() == icons.SetNerd {
+		style = style.Background(bg)
+	}
+	return style.Render(glyph)
+}
+
 // statusDotColor maps a beads status to the theme foreground used for list/graph dots.
 func statusDotColor(status string) lipgloss.AdaptiveColor {
 	switch status {
@@ -166,6 +182,32 @@ func statusDotColor(status string) lipgloss.AdaptiveColor {
 		return ColorStatusTombstone
 	default:
 		return ColorMuted
+	}
+}
+
+// statusDotBgColor pairs with statusDotColor for nerd-mode marker badges.
+func statusDotBgColor(status string) lipgloss.AdaptiveColor {
+	switch status {
+	case "open":
+		return ColorStatusOpenBg
+	case "in_progress":
+		return ColorStatusInProgressBg
+	case "blocked":
+		return ColorStatusBlockedBg
+	case "deferred", "draft":
+		return ColorStatusDeferredBg
+	case "pinned":
+		return ColorStatusPinnedBg
+	case "hooked":
+		return ColorStatusHookedBg
+	case "review":
+		return ColorStatusReviewBg
+	case "closed":
+		return ColorStatusClosedBg
+	case "tombstone":
+		return ColorStatusTombstoneBg
+	default:
+		return ColorBgSubtle
 	}
 }
 
@@ -209,6 +251,19 @@ func timelineMilestoneColor(kind string) lipgloss.AdaptiveColor {
 	}
 }
 
+func timelineMilestoneBgColor(kind string) lipgloss.AdaptiveColor {
+	switch kind {
+	case "created":
+		return ColorStatusOpenBg
+	case "claimed":
+		return ColorStatusInProgressBg
+	case "closed":
+		return ColorStatusClosedBg
+	default:
+		return ColorBgSubtle
+	}
+}
+
 // footerStatColor matches footer count indicator colors (○◉◈● semantics).
 func footerStatColor(kind string) lipgloss.AdaptiveColor {
 	switch kind {
@@ -225,6 +280,38 @@ func footerStatColor(kind string) lipgloss.AdaptiveColor {
 	}
 }
 
+func footerStatBgColor(kind string) lipgloss.AdaptiveColor {
+	switch kind {
+	case "open":
+		return ColorStatusOpenBg
+	case "ready":
+		return ColorPrioLowBg
+	case "blocked":
+		return ColorStatusBlockedBg
+	case "closed":
+		return ColorStatusClosedBg
+	default:
+		return ColorBgSubtle
+	}
+}
+
+func lifecycleEventColors(eventType string) (fg, bg lipgloss.AdaptiveColor) {
+	switch eventType {
+	case "created":
+		return ColorPrimary, ColorStatusReviewBg
+	case "claimed":
+		return ColorStatusInProgress, ColorStatusInProgressBg
+	case "closed":
+		return ColorStatusOpen, ColorStatusOpenBg
+	case "reopened":
+		return ColorSecondary, ColorStatusClosedBg
+	case "modified":
+		return ColorMuted, ColorBgSubtle
+	default:
+		return ColorMuted, ColorBgSubtle
+	}
+}
+
 // RenderStatusDot returns a lipgloss-colored status dot for interactive TUI views.
 // The glyph is a plain ● with theme foreground color (not emoji status circles).
 // Do not embed the result in markdown passed to glamour or static export;
@@ -235,27 +322,21 @@ func RenderStatusDot(status string) string {
 	if status == "" {
 		status = "unknown"
 	}
-	color := statusDotColor(status)
 	glyph := "●"
 	if icons.ActiveSet() == icons.SetNerd {
 		glyph = statusNerdGlyph(status)
 	}
-	return lipgloss.NewStyle().
-		Foreground(color).
-		Render(glyph)
+	return renderMarkerGlyph(glyph, statusDotColor(status), statusDotBgColor(status))
 }
 
 // RenderStatusDotGraph is like RenderStatusDot but uses ✓ for completed issues in graph view.
 func RenderStatusDotGraph(status string) string {
 	if status == "closed" || status == "tombstone" {
-		color := statusDotColor(status)
 		glyph := "✓"
 		if icons.ActiveSet() == icons.SetNerd {
 			glyph = icons.Get(icons.Check)
 		}
-		return lipgloss.NewStyle().
-			Foreground(color).
-			Render(glyph)
+		return renderMarkerGlyph(glyph, statusDotColor(status), statusDotBgColor(status))
 	}
 	return RenderStatusDot(status)
 }
@@ -289,7 +370,7 @@ func RenderPriorityIcon(priority int) string {
 	if strings.TrimSpace(glyph) == "" {
 		return glyph
 	}
-	return lipgloss.NewStyle().
+	return lipStyle().
 		Foreground(priorityIconColor(priority)).
 		Render(glyph)
 }
@@ -305,14 +386,13 @@ func RenderTriageScoreIcon(name icons.Name) string {
 	default:
 		color = ColorStatusInProgress
 	}
-	return lipgloss.NewStyle().Foreground(color).Render(icons.Get(name))
+	return lipStyle().Foreground(color).Render(icons.Get(name))
 }
 
 // RenderHistoryBeadStatus returns a colored history-list status glyph (○●✓ or nerd equivalent).
 func RenderHistoryBeadStatus(status string) string {
-	return lipgloss.NewStyle().
-		Foreground(statusDotColor(normalizeHistoryStatus(status))).
-		Render(icons.HistoryBeadStatus(status))
+	norm := normalizeHistoryStatus(status)
+	return renderMarkerGlyph(icons.HistoryBeadStatus(status), statusDotColor(norm), statusDotBgColor(norm))
 }
 
 func normalizeHistoryStatus(status string) string {
@@ -330,38 +410,26 @@ func normalizeHistoryStatus(status string) string {
 
 // RenderTimelineMilestone returns a colored lifecycle milestone marker for TUI timelines.
 func RenderTimelineMilestone(kind string) string {
-	return lipgloss.NewStyle().
-		Foreground(timelineMilestoneColor(kind)).
-		Render(icons.TimelineMilestone(kind))
+	return renderMarkerGlyph(
+		icons.TimelineMilestone(kind),
+		timelineMilestoneColor(kind),
+		timelineMilestoneBgColor(kind),
+	)
 }
 
 // RenderFooterStatIcon returns a colored footer stat marker (○◉◈● or nerd equivalent).
 func RenderFooterStatIcon(kind string) string {
-	return lipgloss.NewStyle().
-		Foreground(footerStatColor(kind)).
-		Render(icons.FooterStatIcon(kind))
+	return renderMarkerGlyph(
+		icons.FooterStatIcon(kind),
+		footerStatColor(kind),
+		footerStatBgColor(kind),
+	)
 }
 
 // RenderLifecycleEvent returns a colored lifecycle event icon for TUI views.
 func RenderLifecycleEvent(eventType string) string {
-	var color lipgloss.AdaptiveColor
-	switch eventType {
-	case "created":
-		color = ColorPrimary
-	case "claimed":
-		color = ColorStatusInProgress
-	case "closed":
-		color = ColorStatusOpen
-	case "reopened":
-		color = ColorSecondary
-	case "modified":
-		color = ColorMuted
-	default:
-		color = ColorMuted
-	}
-	return lipgloss.NewStyle().
-		Foreground(color).
-		Render(icons.LifecycleEvent(eventType))
+	fg, bg := lifecycleEventColors(eventType)
+	return renderMarkerGlyph(icons.LifecycleEvent(eventType), fg, bg)
 }
 
 // RenderGraphIssueGlyphs returns status + priority + type icons for the dependency graph view.

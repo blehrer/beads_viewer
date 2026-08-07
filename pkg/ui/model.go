@@ -6120,7 +6120,6 @@ func (m *Model) renderFooter() string {
 		// Polished stats with mini indicators
 		statsStyle := lipgloss.NewStyle().
 			Background(ColorBgHighlight).
-			Foreground(ColorText).
 			Padding(0, 1)
 
 		openStyle := lipgloss.NewStyle().Foreground(ColorStatusOpen)

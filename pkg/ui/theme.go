@@ -13,6 +13,10 @@ import (
 // package init so every style helper can branch without re-detecting.
 var TermProfile colorprofile.Profile
 
+// defaultRenderer backs package-level Render* helpers in styles.go.
+// DefaultTheme assigns the live stdout renderer; tests may override.
+var defaultRenderer = lipgloss.NewRenderer(os.Stdout)
+
 // BVThemeOverride holds the user's explicit theme preference.
 // Values: "" (auto-detect), "dark", "light". It is seeded from BV_THEME at
 // package init for backward compatibility, but the full precedence
@@ -137,6 +141,9 @@ type Theme struct {
 // DefaultTheme returns the standard Dracula-inspired theme (adaptive).
 // Respects BV_THEME=light|dark to override background detection. (bv-128)
 func DefaultTheme(r *lipgloss.Renderer) Theme {
+	if r != nil {
+		defaultRenderer = r
+	}
 	// Apply BV_THEME override so AdaptiveColor picks the right variant
 	if r != nil && BVThemeOverride != "" {
 		r.SetHasDarkBackground(BVThemeOverride == "dark")
