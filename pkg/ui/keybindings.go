@@ -191,6 +191,17 @@ func (r *KeyRegistry) AllBindings() []KeyBinding {
 	return result
 }
 
+// HasHandler reports whether a runtime handler (not doc-only) exists for focus+key.
+func (r *KeyRegistry) HasHandler(f focus, key string) bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if focusHandlers := r.handlers[f]; focusHandlers != nil {
+		_, exists := focusHandlers[key]
+		return exists
+	}
+	return false
+}
+
 // HasBinding checks if a binding exists for the given focus and key.
 func (r *KeyRegistry) HasBinding(f focus, key string) bool {
 	r.mu.RLock()

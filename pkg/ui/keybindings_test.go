@@ -1310,3 +1310,440 @@ func recordKeybindConflict(conflicts map[string]map[string]string, ctx, key, des
 	}
 	conflicts[ctx][key] = desc
 }
+
+// =============================================================================
+// Keybind Parity Tests (Phase 5 — bv-p5kf.21)
+// =============================================================================
+//
+// Parity contract:
+//   - Every GetKeyBindingDocs entry is registered (doc-only bindings need no handler).
+//   - Every footer hint resolves to a documented binding for that context.
+//   - Every footer hint key is handled at runtime (registry dispatch stack or
+//     documented alternate path — see parityAlternateHandler).
+//   - Table-driven cases prove filter/detail/board/graph/modal behavior.
+
+func TestKeybindParity(t *testing.T) {
+	m := setupTestModel(t)
+	reg := m.keyRegistry
+
+	t.Run("docs_registered_in_registry", func(t *testing.T) {
+		for _, doc := range GetKeyBindingDocs() {
+			focuses := focusesForBindingDoc(doc)
+			if len(focuses) == 0 {
+				t.Errorf("doc key=%q context=%q maps to no focus", doc.Key, doc.Context)
+				continue
+			}
+			found := false
+			for _, f := range focuses {
+				if reg.HasBinding(f, doc.Key) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("doc key=%q context=%q not registered in KeyRegistry", doc.Key, doc.Context)
+			}
+		}
+	})
+
+	t.Run("footer_hints_resolve_to_docs", func(t *testing.T) {
+		for _, tc := range parityContextStates() {
+			t.Run(tc.name, func(t *testing.T) {
+				model := tc.setup(setupTestModel(t))
+				ctx := model.hintContext()
+				docContexts := docContextsForUI(ctx, HintFooter)
+				hints := reg.HintsFor(ctx, HintFooter, footerHintLimit)
+				for _, hint := range hints {
+					for _, key := range expandFooterHintKeys(hint.Key) {
+						if !docKeyDocumented(key, docContexts) {
+							t.Errorf("context %s footer key %q has no matching GetKeyBindingDocs entry (contexts=%v)", ctx, key, docContexts)
+						}
+					}
+				}
+			})
+		}
+	})
+
+	t.Run("footer_hints_have_handlers", func(t *testing.T) {
+		for _, tc := range parityContextStates() {
+			t.Run(tc.name, func(t *testing.T) {
+				model := tc.setup(setupTestModel(t))
+				ctx := model.hintContext()
+				hints := reg.HintsFor(ctx, HintFooter, footerHintLimit)
+				for _, hint := range hints {
+					for _, key := range expandFooterHintKeys(hint.Key) {
+						if parityAlternateHandler(model, ctx, key) {
+							continue
+						}
+						if !parityRegistryHandles(model, key) {
+							t.Errorf("context %s footer advertises %q without runtime handler", ctx, key)
+						}
+					}
+				}
+			})
+		}
+	})
+
+	t.Run("dispatch_table", func(t *testing.T) {
+		for _, tc := range parityDispatchCases() {
+			t.Run(tc.name, func(t *testing.T) {
+				before := tc.setup(setupTestModel(t))
+				updated, _ := before.Update(keyMsg(tc.key))
+				after := updated.(Model)
+
+				handled := parityKeyWasHandled(before, after, tc.key)
+				if handled != tc.wantHandled {
+					t.Fatalf("key=%q want handled=%v got handled=%v (focus before=%v after=%v)", tc.key, tc.wantHandled, handled, before.focused, after.focused)
+				}
+				if tc.wantFocus != nil && after.focused != *tc.wantFocus {
+					t.Fatalf("key=%q want focus=%v got focus=%v", tc.key, *tc.wantFocus, after.focused)
+				}
+				if tc.checkFocus != nil && !tc.checkFocus(before, after) {
+					t.Fatalf("key=%q focus change check failed (before=%v after=%v)", tc.key, before.focused, after.focused)
+				}
+			})
+		}
+	})
+}
+
+type parityContextCase struct {
+	name  string
+	setup func(Model) Model
+}
+
+func parityContextStates() []parityContextCase {
+	return []parityContextCase{
+		{"list", func(m Model) Model { return m }},
+		{"filter", func(m Model) Model {
+			m.list.SetFilterState(list.Filtering)
+			return m
+		}},
+		{"split_detail", func(m Model) Model {
+			updated, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 30})
+			m = updated.(Model)
+			m.focused = focusDetail
+			return m
+		}},
+		{"board", func(m Model) Model {
+			m.focused = focusBoard
+			m.isBoardView = true
+			return m
+		}},
+		{"board_search", func(m Model) Model {
+			m.focused = focusBoard
+			m.isBoardView = true
+			updated, _ := m.Update(keyMsg("/"))
+			return updated.(Model)
+		}},
+		{"graph", func(m Model) Model {
+			m.focused = focusGraph
+			m.isGraphView = true
+			return m
+		}},
+		{"history", func(m Model) Model {
+			m.focused = focusHistory
+			m.isHistoryView = true
+			return m
+		}},
+		{"insights", func(m Model) Model {
+			m.focused = focusInsights
+			return m
+		}},
+		{"attention", func(m Model) Model {
+			m.focused = focusInsights
+			m.showAttentionView = true
+			return m
+		}},
+		{"flow_matrix", func(m Model) Model {
+			m.focused = focusFlowMatrix
+			return m
+		}},
+		{"actionable", func(m Model) Model {
+			m.focused = focusActionable
+			m.isActionableView = true
+			return m
+		}},
+		{"help_modal", func(m Model) Model {
+			m.showHelp = true
+			m.focused = focusHelp
+			m.focusBeforeHelp = focusList
+			return m
+		}},
+		{"context_help", func(m Model) Model {
+			m.showContextHelp = true
+			m.focused = focusContextHelp
+			return m
+		}},
+		{"label_picker", func(m Model) Model {
+			m.showLabelPicker = true
+			m.focused = focusLabelPicker
+			return m
+		}},
+		{"recipe_picker", func(m Model) Model {
+			m.showRecipePicker = true
+			m.focused = focusRecipePicker
+			return m
+		}},
+	}
+}
+
+type parityDispatchCase struct {
+	name        string
+	setup       func(Model) Model
+	key         string
+	wantHandled bool
+	wantFocus   *focus
+	checkFocus  func(before, after Model) bool
+}
+
+func parityDispatchCases() []parityDispatchCase {
+	focusBoardPtr := focusBoard
+	focusGraphPtr := focusGraph
+	focusListPtr := focusList
+	focusLabelPickerPtr := focusLabelPicker
+	focusHelpPtr := focusHelp
+
+	return []parityDispatchCase{
+		{
+			name: "filter_esc_clears_filter_mode",
+			setup: func(m Model) Model {
+				m.list.SetFilterState(list.Filtering)
+				return m
+			},
+			key:         "esc",
+			wantHandled: true,
+			checkFocus: func(before, after Model) bool {
+				return after.list.FilterState() == list.Unfiltered
+			},
+		},
+		{
+			name: "detail_focus_copy_handled",
+			setup: func(m Model) Model {
+				updated, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 30})
+				m = updated.(Model)
+				m.focused = focusDetail
+				return m
+			},
+			key:         "C",
+			wantHandled: true,
+		},
+		{
+			name: "board_h_nav_handled",
+			setup: func(m Model) Model {
+				updated, _ := m.Update(keyMsg("b"))
+				return updated.(Model)
+			},
+			key:         "h",
+			wantHandled: true,
+			wantFocus:   &focusBoardPtr,
+		},
+		{
+			name: "board_H_column_jump_handled",
+			setup: func(m Model) Model {
+				updated, _ := m.Update(keyMsg("b"))
+				return updated.(Model)
+			},
+			key:         "H",
+			wantHandled: true,
+			wantFocus:   &focusBoardPtr,
+		},
+		{
+			name: "graph_h_nav_handled",
+			setup: func(m Model) Model {
+				updated, _ := m.Update(keyMsg("g"))
+				return updated.(Model)
+			},
+			key:         "h",
+			wantHandled: true,
+			wantFocus:   &focusGraphPtr,
+		},
+		{
+			name: "graph_H_scroll_handled",
+			setup: func(m Model) Model {
+				updated, _ := m.Update(keyMsg("g"))
+				return updated.(Model)
+			},
+			key:         "H",
+			wantHandled: true,
+			wantFocus:   &focusGraphPtr,
+		},
+		{
+			name: "help_modal_blocks_view_toggle",
+			setup: func(m Model) Model {
+				updated, _ := m.Update(keyMsg("?"))
+				return updated.(Model)
+			},
+			key:         "b",
+			wantHandled: true,
+			wantFocus:   &focusHelpPtr,
+			checkFocus: func(before, after Model) bool {
+				return after.showHelp && after.focused == focusHelp
+			},
+		},
+		{
+			name: "label_picker_q_is_filter_input",
+			setup: func(m Model) Model {
+				updated, _ := m.Update(keyMsg("l"))
+				return updated.(Model)
+			},
+			key:         "q",
+			wantHandled: true,
+			wantFocus:   &focusLabelPickerPtr,
+			checkFocus: func(before, after Model) bool {
+				return after.showLabelPicker && after.labelPicker.InputValue() == "q"
+			},
+		},
+		{
+			name: "history_h_closes_to_list",
+			setup: func(m Model) Model {
+				updated, _ := m.Update(keyMsg("h"))
+				return updated.(Model)
+			},
+			key:         "h",
+			wantHandled: true,
+			wantFocus:   &focusListPtr,
+			checkFocus: func(before, after Model) bool {
+				return !after.isHistoryView
+			},
+		},
+	}
+}
+
+func expandFooterHintKeys(key string) []string {
+	var keys []string
+	if strings.Contains(key, "/") {
+		for _, part := range strings.Split(key, "/") {
+			part = strings.TrimSpace(part)
+			if part != "" {
+				keys = append(keys, part)
+			}
+		}
+	} else {
+		keys = []string{key}
+	}
+	for i, k := range keys {
+		if strings.EqualFold(k, "f4") {
+			keys[i] = "f4"
+		}
+	}
+	return keys
+}
+
+func docKeyDocumented(key string, docContexts []string) bool {
+	for _, doc := range GetKeyBindingDocs() {
+		if doc.Key != key {
+			continue
+		}
+		if docAppliesToContexts(doc, docContexts) {
+			return true
+		}
+	}
+	return false
+}
+
+// parityFocusStack mirrors modal overlay precedence before registry dispatch.
+func parityFocusStack(m Model) []focus {
+	switch {
+	case m.showHelp:
+		return []focus{focusHelp}
+	case m.showContextHelp:
+		return []focus{focusContextHelp}
+	case m.showLabelPicker:
+		return []focus{focusLabelPicker}
+	case m.showRecipePicker:
+		return []focus{focusRecipePicker}
+	case m.showRepoPicker:
+		return []focus{focusRepoPicker}
+	default:
+		return m.DispatchFocusStack()
+	}
+}
+
+func parityRegistryHandles(m Model, key string) bool {
+	if m.keyRegistry == nil {
+		return false
+	}
+	_, handled, _ := m.keyRegistry.DispatchStack(parityFocusStack(m), key, m, keyMsg(key))
+	return handled
+}
+
+// parityAlternateHandler documents keys handled outside KeyRegistry dispatch
+// (Update() global block, component submodes, bubbles list). Doc-only bindings
+// intentionally omit handlers — they must not appear in footer hints.
+func parityAlternateHandler(m Model, ctx Context, key string) bool {
+	switch ctx {
+	case ContextFilter:
+		switch key {
+		case "esc", "ctrl+s", "enter":
+			return true
+		}
+	case ContextBoardSearch:
+		switch key {
+		case "esc", "enter", "backspace", "/":
+			return true
+		}
+	case ContextLabelPicker:
+		switch key {
+		case "esc", "enter", "j", "k", "q":
+			return true
+		}
+	case ContextHistory:
+		switch key {
+		case "q", "esc":
+			return true
+		}
+	case ContextHelp, ContextContextHelp:
+		// Modal overlays consume all keys in Update() before registry dispatch.
+		return true
+	}
+
+	// Global shortcuts handled in Update() before registry dispatch.
+	switch key {
+	case "?", "f1", "~", "`", ";", "f2", "K", "ctrl+r", "f5":
+		return true
+	}
+	return false
+}
+
+func parityKeyWasHandled(before, after Model, key string) bool {
+	if before.showHelp && after.showHelp {
+		return true // help overlay consumes keys via handleHelpKeys
+	}
+	if before.showContextHelp && after.showContextHelp {
+		return true // context help consumes keys via handleContextHelpKeys
+	}
+	if before.focused != after.focused {
+		return true
+	}
+	if before.showHelp != after.showHelp ||
+		before.showContextHelp != after.showContextHelp ||
+		before.showLabelPicker != after.showLabelPicker ||
+		before.isHistoryView != after.isHistoryView ||
+		before.isBoardView != after.isBoardView ||
+		before.isGraphView != after.isGraphView {
+		return true
+	}
+	if before.list.FilterState() != after.list.FilterState() {
+		return true
+	}
+	if before.board.IsSearchMode() != after.board.IsSearchMode() {
+		return true
+	}
+	if before.statusMsg != after.statusMsg && after.statusMsg != "" {
+		return true
+	}
+	if before.showLabelPicker && after.labelPicker.InputValue() != before.labelPicker.InputValue() {
+		return true
+	}
+	if parityRegistryHandles(before, key) {
+		return true
+	}
+	if parityAlternateHandler(before, before.hintContext(), key) {
+		// Alternate path keys are handled even when model state unchanged (e.g. j/k scroll).
+		switch key {
+		case "h", "l", "j", "k", "H", "L", "up", "down", "left", "right":
+			return parityRegistryHandles(before, key) || parityAlternateHandler(before, before.hintContext(), key)
+		}
+	}
+	return false
+}

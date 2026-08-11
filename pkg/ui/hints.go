@@ -265,7 +265,11 @@ func footerExcludedKey(ctx Context, key string) bool {
 			return false
 		}
 	case ContextContextHelp:
-		return false
+		switch key {
+		case "esc", "q", "~":
+			return false
+		}
+		return true
 	case ContextLabelPicker, ContextRecipePicker, ContextRepoPicker:
 		switch key {
 		case "j", "k", "enter", "esc", "space", "q":
@@ -408,6 +412,13 @@ func footerSkipBinding(ctx Context, doc KeyBindingDoc) bool {
 			if doc.Category == "Views" {
 				return true
 			}
+		}
+	}
+	// O (open in $EDITOR) is handled only on focusList/focusDetail in Update().
+	switch ctx {
+	case ContextFlowMatrix, ContextActionable:
+		if doc.Key == "O" && doc.Category == "Actions" {
+			return true
 		}
 	}
 	return false
