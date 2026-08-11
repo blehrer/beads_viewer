@@ -29,6 +29,12 @@ convert_webp() {
 }
 
 capture_with_vhs() {
+	if ! command -v ttyd >/dev/null 2>&1; then
+		echo "error: ttyd not found on PATH (required by VHS)" >&2
+		echo "  macOS: brew install ttyd" >&2
+		echo "  Linux: https://github.com/tsl0922/ttyd/releases" >&2
+		return 1
+	fi
 	if command -v fc-list >/dev/null 2>&1; then
 		if ! fc-list : family | grep -qi 'GeistMono Nerd Font'; then
 			echo "warning: GeistMono Nerd Font not found; VHS may render missing icon glyphs" >&2

@@ -56,6 +56,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg unzip curl
+          curl -fsSL -o /tmp/ttyd \
+            https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64
+          sudo install -m 0755 /tmp/ttyd /usr/local/bin/ttyd
+          ttyd --version
           curl -fsSL -o /tmp/GeistMono.zip \
             https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/GeistMono.zip
           unzip -q /tmp/GeistMono.zip -d /tmp/geist-mono-nerd

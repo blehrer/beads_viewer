@@ -11,9 +11,9 @@ Automated captures of the four TUI views shown in the project README.
 go get -tool github.com/charmbracelet/vhs@v0.11.0
 
 # runtime dependencies (not Go modules)
-brew install ffmpeg   # macOS — PNG/GIF encoding
+brew install ffmpeg ttyd   # macOS — VHS needs ffmpeg + ttyd on PATH
 brew install --cask font-geist-mono-nerd-font   # macOS — VHS renders via Chromium, not your terminal
-# apt install ffmpeg  # Debian/Ubuntu
+# apt install ffmpeg  # Debian/Ubuntu; install ttyd from https://github.com/tsl0922/ttyd/releases
 ```
 
 VHS does **not** use your terminal emulator's font. It renders in headless Chromium and only sees **system-installed** fonts. `capture.tape` sets `FontFamily` to `GeistMono Nerd Font`; install that Nerd Font before running captures or icon glyphs will show as missing boxes.
