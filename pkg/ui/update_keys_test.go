@@ -25,7 +25,7 @@ func TestUpdateHelpQuitAndTabFocus(t *testing.T) {
 	if !m.showHelp || m.focused != focusHelp {
 		t.Fatalf("expected help overlay shown")
 	}
-	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("x")})
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
 	m = updated.(Model)
 	if m.showHelp || m.focused != focusList {
 		t.Fatalf("expected help overlay dismissed")
