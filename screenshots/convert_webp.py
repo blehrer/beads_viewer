@@ -24,7 +24,9 @@ def batch_convert_to_webp(folder: Path) -> None:
     extensions = {".png", ".jpg", ".jpeg"}
     image_files = [
         f for f in folder.iterdir()
-        if f.is_file() and f.suffix.lower() in extensions
+        if f.is_file()
+        and f.suffix.lower() in extensions
+        and f.name.startswith("screenshot_")
     ]
 
     if not image_files:

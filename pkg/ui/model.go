@@ -8514,15 +8514,41 @@ func (m *Model) RenderDebugView(viewName string, width, height int) string {
 	m.height = height
 	m.ready = true
 
+	m.isGraphView = false
+	m.isBoardView = false
+	m.isActionableView = false
+	m.isHistoryView = false
+	m.focused = focusList
+
 	switch viewName {
+	case "list", "main":
+		m.isSplitView = width > SplitViewThreshold
+		m.showDetails = m.isSplitView
+		m.focused = focusList
+		m.applyContentSizing()
+		return m.View()
 	case "insights":
-		m.insightsPanel.SetSize(width, height-1)
-		return m.insightsPanel.View()
-	case "board":
-		return m.board.View(width, height-1)
+		m.focused = focusInsights
+		m.rebuildInsightsPanel()
+		m.applyContentSizing()
+		return m.View()
+	case "board", "kanban":
+		m.isBoardView = true
+		m.focused = focusBoard
+		m.refreshBoardAndGraphForCurrentFilter()
+		m.applyContentSizing()
+		return m.View()
+	case "graph":
+		m.isGraphView = true
+		m.focused = focusGraph
+		m.refreshBoardAndGraphForCurrentFilter()
+		m.applyContentSizing()
+		return m.View()
 	case "history":
-		m.historyView.SetSize(width, height-1)
-		return m.historyView.View()
+		m.isHistoryView = true
+		m.focused = focusHistory
+		m.applyContentSizing()
+		return m.View()
 	default:
 		return "Unknown view: " + viewName
 	}

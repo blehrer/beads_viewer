@@ -178,6 +178,7 @@ Configure pre- and post-export hooks in `.bv/hooks.yaml` to run validations, not
 
 ## 🤖 Ready-made Blurb to Drop Into Your AGENTS.md or CLAUDE.md Files
 
+<!-- bv-docgen:agent-blurb -->
 ```
 ### Using bv as an AI sidecar
 
@@ -222,8 +223,8 @@ bv --robot-triage --format toon
 export BV_OUTPUT_FORMAT=toon
 bv --robot-next
 
-Before claiming, verify the current bead state with `br show <id> --json` or
-`br ready --json`. `recommendations` can include graph-important blocked or
+Before claiming, verify the current bead state with `bd show <id> --json` or
+`bd ready --json`. `recommendations` can include graph-important blocked or
 assigned work; only `quick_ref.top_picks` and non-empty `claim_command` fields
 represent claimable work.
 
@@ -294,6 +295,7 @@ bv --robot-label-health | jq '.results.labels[] | select(.health_level == "criti
 
 Use bv instead of parsing Beads JSONL directly—it computes PageRank, critical paths, cycles, and parallel tracks deterministically.
 ```
+<!-- /bv-docgen:agent-blurb -->
 
 ### Automatic Integration
 
@@ -2969,27 +2971,52 @@ bv --version            # Show version
 
 These commands output **structured JSON** designed for programmatic consumption:
 
+<!-- bv-docgen:robot-commands -->
 | Command | Output | Use Case |
 |---------|--------|----------|
-| `--robot-triage` | **THE MEGA-COMMAND**: unified triage with all analysis | Single entry point for agents |
-| `--robot-next` | Single top recommendation + claim command | Quick "what's next?" answer |
-| `--robot-insights` | Graph metrics + top N lists | Project health assessment |
-| `--robot-plan` | Actionable tracks + dependencies | Work queue generation |
-| `--robot-priority` | Priority recommendations | Automated priority fixing |
-| `--robot-history` | Bead-to-commit correlations | Code change tracking |
-| `--robot-label-health` | Per-label health metrics | Domain health monitoring |
-| `--robot-label-flow` | Cross-label dependency matrix | Inter-domain analysis |
-| `--robot-label-attention` | Attention-ranked labels | Domain prioritization |
-| `--robot-sprint-list` | All sprints as JSON | Sprint planning |
-| `--robot-burndown` | Sprint burndown data | Progress tracking |
-| `--robot-suggest` | Hygiene suggestions (deps/dupes/labels/cycles) | Project cleanup automation |
-| `--robot-diff` | JSON diff (with `--diff-since`) | Change tracking |
-| `--robot-recipes` | Available recipe list | Recipe discovery |
-| `--robot-graph` | Dependency graph as JSON/DOT/Mermaid | Graph visualization & export |
-| `--robot-forecast` | ETA predictions per issue | Completion timeline estimates |
-| `--robot-capacity` | Team capacity simulation | Resource planning |
-| `--robot-alerts` | Drift + proactive warnings | Health monitoring |
-| `--robot-help` | Detailed AI agent documentation | Agent onboarding |
+| `--robot-alerts` | Stale issues, blocking cascades, priority mismatches. | Graph-aware analysis |
+| `--robot-blocker-chain ISSUE_ID` | Full blocker chain analysis for an issue. | Graph-aware analysis |
+| `--robot-burndown current` | Sprint burndown data. | Sprint planning |
+| `--robot-capabilities` | Machine-readable capability manifest: version, contract, commands, env vars, exit codes, and output formats. | Agent onboarding / metadata |
+| `--robot-capacity` | Capacity simulation and completion projections. | Sprint planning |
+| `--robot-causality ISSUE_ID` | Causal chain analysis for a bead. | Git + issue graph analysis |
+| `--robot-confirm-correlation deadbeef:ISSUE_ID` | Record positive feedback for a commit-to-bead correlation. | State mutation / feedback |
+| `--robot-correlation-stats` | Summary counts for saved correlation feedback. | Agent onboarding / metadata |
+| `--robot-diff` | Changes since a historical point (commit, branch, tag, or date). | Git + issue graph analysis |
+| `--robot-docgen all` | Emit markdown fragments for README embedding. Sections: agent-blurb, robot-commands, keybindings, all. | Agent onboarding / metadata |
+| `--robot-docs guide` | Machine-readable JSON documentation. Topics: guide, commands, examples, env, exit-codes, all. | Agent onboarding / metadata |
+| `--robot-drift` | Drift detection from saved baseline. | Baseline comparison |
+| `--robot-explain-correlation deadbeef:ISSUE_ID` | Explain why a commit is linked to a bead. | Git + issue graph analysis |
+| `--robot-file-beads README.md` | Beads that touched a specific file path. | Git + issue graph analysis |
+| `--robot-file-hotspots` | Files touched by the most beads. | Git + issue graph analysis |
+| `--robot-file-relations README.md` | Files that frequently co-change with a given file. | Git + issue graph analysis |
+| `--robot-forecast all` | ETA predictions for bead completion. | Sprint planning |
+| `--robot-graph` | Dependency graph export in JSON, DOT, or Mermaid format. | Graph visualization & export |
+| `--robot-help` | Agent-focused command help. Use robot-docs guide for structured JSON documentation. | Agent onboarding / metadata |
+| `--robot-history` | Bead-to-commit correlations from git history. | Git + issue graph analysis |
+| `--robot-impact README.md` | Analyze bead impact for files that may be modified. | Git + issue graph analysis |
+| `--robot-impact-network all` | Impact network graph (full or subnetwork for a bead). | Git + issue graph analysis |
+| `--robot-insights` | Deep graph analysis: PageRank, betweenness, HITS, eigenvector, k-core, cycle detection. | Graph-aware analysis |
+| `--robot-label-attention` | Attention-ranked labels requiring focus. | Label/domain analysis |
+| `--robot-label-flow` | Cross-label dependency flow analysis. | Label/domain analysis |
+| `--robot-label-health` | Per-label health metrics: open/closed counts, velocity, staleness. | Label/domain analysis |
+| `--robot-metrics` | Performance metrics: timing, cache hit rates, memory usage. | Graph-aware analysis |
+| `--robot-next` | Single top recommendation with claim/show commands. | Work selection / triage |
+| `--robot-orphans` | Orphan commit candidates that should be linked to beads. | Git + issue graph analysis |
+| `--robot-plan` | Dependency-respecting execution plan with parallel tracks. | Graph-aware analysis |
+| `--robot-priority` | Priority misalignment detection: items whose graph importance differs from assigned priority. | Graph-aware analysis |
+| `--robot-recipes` | Recipe names, descriptions, and usage hints for pre-filtering work. | Agent onboarding / metadata |
+| `--robot-reject-correlation deadbeef:ISSUE_ID` | Record negative feedback for a commit-to-bead correlation. | State mutation / feedback |
+| `--robot-related ISSUE_ID` | Beads related to a specific bead ID. | Git + issue graph analysis |
+| `--robot-schema` | JSON Schema definitions for all robot command outputs. | Agent onboarding / metadata |
+| `--robot-search` | Semantic vector search over issue titles and descriptions. | Issue discovery |
+| `--robot-sprint-list` | List all sprints as JSON. | Sprint planning |
+| `--robot-sprint-show SPRINT_ID` | Show details for a specific sprint. | Sprint planning |
+| `--robot-suggest` | Smart suggestions: potential duplicates, missing dependencies, label assignments, cycle warnings. | Graph-aware analysis |
+| `--robot-triage` | Unified triage: top picks, recommendations, quick wins, blockers, project health, velocity. | Work selection / triage |
+| `--robot-triage-by-label` | Triage grouped by label for area-focused agents. | Work selection / triage |
+| `--robot-triage-by-track` | Triage grouped by independent parallel execution tracks. | Work selection / triage |
+<!-- /bv-docgen:robot-commands -->
 
 All robot commands support `--as-of <ref>` for historical analysis. Output includes `as_of` and `as_of_commit` metadata fields when specified.
 
@@ -3429,6 +3456,8 @@ For contributors writing tests, see the comprehensive **[Testing Guide](docs/tes
 - Running tests, coverage, and benchmarks
 - E2E test patterns and CI integration
 
+After changing robot commands, agent blurbs, or TUI keybindings, run `make readme-docgen` to refresh the generated README sections.
+
 ---
 
 ## 🔄 The Zero-Friction Update Engine
@@ -3695,6 +3724,209 @@ bv has a comprehensive built-in help system:
 | | `!` | Toggle **Alerts Panel** (proactive warnings) |
 | | `'` | Recipe Picker |
 | | `w` | Repo Picker (workspace mode) |
+
+### TUI Keybindings Reference (generated)
+
+Complete keybinding list from the TUI source (`make readme-docgen` keeps this in sync):
+
+<!-- bv-docgen:keybindings -->
+| Key | Description | Category | Context |
+|-----|-------------|----------|----------|
+| `j` | Move down | Navigation | all |
+| `k` | Move up | Navigation | all |
+| `G` | Go to end | Navigation | all |
+| `home` | Go to start | Navigation | list,detail,board,graph,tree,actionable,history,flow-matrix,insights |
+| `gg` | Go to start (combo) | Navigation | board,tree |
+| `ctrl+d` | Page down | Navigation | all |
+| `ctrl+u` | Page up | Navigation | all |
+| `enter` | Open/select | Navigation | all |
+| `esc` | Back/close | Navigation | all |
+| `q` | Quit or close view | Navigation | all |
+| `tab` | Toggle split focus | Navigation | list,detail |
+| `<` | Shrink list pane | Navigation | list,detail |
+| `>` | Expand list pane | Navigation | list,detail |
+| `wheel` | Scroll focused pane | Mouse | all |
+| `?` | Help overlay | Help | all |
+| `f1` | Help overlay | Help | all |
+| `~` | Context help | Help | all |
+| ``` | Interactive tutorial | Help | all |
+| `;` | Shortcuts sidebar | Help | all |
+| `f2` | Shortcuts sidebar | Help | all |
+| `K` | Symbol reference (glyph glossary) | Help | list,detail,board,graph,insights,actionable,tree,flow-matrix,label-dashboard |
+| `ctrl+j` | Scroll shortcuts sidebar down | Help | all |
+| `ctrl+k` | Scroll shortcuts sidebar up | Help | all |
+| `a` | Actionable view | Views | list,detail |
+| `b` | Board view | Views | list,detail |
+| `g` | Graph view | Views | list,detail |
+| `h` | History view | Views | list,detail |
+| `i` | Insights panel | Views | list,detail |
+| `E` | Tree view | Views | list,detail |
+| `f` | Flow matrix view | Views | list,detail |
+| `p` | Priority hints | Views | list,detail |
+| `[` | Label dashboard | Views | list,detail |
+| `f3` | Label dashboard | Views | list,detail |
+| `]` | Attention view | Views | list,detail |
+| `f4` | Attention view | Views | list,detail |
+| `o` | Open issues only | Filters | list,board |
+| `c` | Closed issues only | Filters | list,board |
+| `r` | Ready (unblocked) | Filters | list,board |
+| `l` | Label picker | Filters | list,detail |
+| `L` | Label picker (Shift+L) | Filters | list,detail |
+| `/` | Search/filter | Filters | list,history |
+| `ctrl+s` | Toggle semantic search | Filters | list |
+| `H` | Toggle hybrid search | Filters | list |
+| `alt+h` | Cycle hybrid preset | Filters | list |
+| `s` | Cycle sort mode | Filters | list |
+| `S` | Apply triage recipe sort | Filters | list |
+| `esc` | Cancel filter | Filter | filter |
+| `ctrl+s` | Toggle semantic while filtering | Filter | filter |
+| `enter` | Apply filter | Filter | filter |
+| `t` | Time travel prompt | Actions | list,detail |
+| `T` | Time travel HEAD~5 | Actions | list,detail |
+| `x` | Export to markdown | Actions | list,detail |
+| `y` | Copy issue ID | Actions | all |
+| `C` | Copy full issue | Actions | list,detail |
+| `O` | Open in $EDITOR | Actions | list,detail |
+| `'` | Recipe picker | Actions | list |
+| `U` | Self-update check | Actions | list |
+| `V` | Cass sessions | Actions | list |
+| `!` | Toggle alerts panel | Actions | list,detail |
+| `w` | Repo picker (workspace) | Actions | list |
+| `ctrl+r` | Force refresh | Actions | all |
+| `f5` | Force refresh | Actions | all |
+| `h` | Move left | Graph | graph |
+| `l` | Move right | Graph | graph |
+| `j` | Move down | Graph | graph |
+| `k` | Move up | Graph | graph |
+| `pgup` | Page up | Graph | graph |
+| `pgdown` | Page down | Graph | graph |
+| `h` | Previous column | Board | board |
+| `l` | Next column | Board | board |
+| `H` | First column | Board | board |
+| `L` | Last column | Board | board |
+| `1` | Jump to Open column | Board | board |
+| `2` | Jump to In Progress column | Board | board |
+| `3` | Jump to Blocked column | Board | board |
+| `4` | Jump to Closed column | Board | board |
+| `0` | First card in column | Board | board |
+| `$` | Last card in column | Board | board |
+| `tab` | Toggle detail panel | Board | board |
+| `ctrl+j` | Scroll detail down | Board | board |
+| `ctrl+k` | Scroll detail up | Board | board |
+| `/` | Board search | Board | board |
+| `n` | Next search match | Board | board,board-search |
+| `N` | Previous search match | Board | board,board-search |
+| `s` | Cycle swimlane mode | Board | board |
+| `e` | Toggle empty columns | Board | board |
+| `d` | Toggle card expand | Board | board |
+| `esc` | Cancel board search | Board | board-search |
+| `enter` | Finish board search | Board | board-search |
+| `backspace` | Delete search char | Board | board-search |
+| `h` | Collapse/parent | Tree | tree |
+| `l` | Expand/child | Tree | tree |
+| ` ` | Toggle expand | Tree | tree |
+| `o` | Expand all | Tree | tree |
+| `O` | Collapse all | Tree | tree |
+| `E` | Close tree view | Tree | tree |
+| `tab` | Toggle detail (split) | Tree | tree |
+| `h` | Previous panel | Insights | insights,attention |
+| `l` | Next panel | Insights | insights,attention |
+| `e` | Toggle explanations | Insights | insights,attention |
+| `x` | Calculation proof | Insights | insights,attention |
+| `m` | Heatmap toggle | Insights | insights,attention |
+| `ctrl+j` | Scroll detail down | Insights | insights,attention |
+| `ctrl+k` | Scroll detail up | Insights | insights,attention |
+| `f` | Close flow matrix | Flow | flow-matrix |
+| `tab` | Toggle panel | Flow | flow-matrix |
+| `g` | Go to start | Flow | flow-matrix |
+| `G` | Go to end | Flow | flow-matrix |
+| `v` | Toggle git/bead mode | History | history |
+| `tab` | Cycle focus panes | History | history |
+| `J` | Detail scroll down | History | history |
+| `K` | Detail scroll up | History | history |
+| `f` | Toggle file tree | History | history |
+| `F` | Toggle file tree | History | history |
+| `g` | Jump to graph for bead | History | history |
+| `y` | Copy commit SHA | History | history |
+| `c` | Cycle confidence filter | History | history |
+| `o` | Open commit in browser | History | history |
+| `h` | Close history view | History | history |
+| `h` | Label health detail | Labels | label-dashboard |
+| `d` | Label drilldown | Labels | label-dashboard |
+| `enter` | Filter list by label | Labels | label-dashboard |
+| `esc` | Close label dashboard | Labels | label-dashboard |
+| `esc` | Cancel label picker | Labels | label-picker |
+| `enter` | Apply label filter | Labels | label-picker |
+| `esc` | Close recipe picker | Recipes | recipe-picker |
+| `q` | Close recipe picker | Recipes | recipe-picker |
+| `enter` | Apply recipe | Recipes | recipe-picker |
+| ` ` | Toggle repo | Workspace | repo-picker |
+| `a` | Select all repos | Workspace | repo-picker |
+| `enter` | Apply repo filter | Workspace | repo-picker |
+| `esc` | Close repo picker | Workspace | repo-picker |
+| `j` | Next alert | Alerts | alerts |
+| `k` | Previous alert | Alerts | alerts |
+| `enter` | Jump to issue | Alerts | alerts |
+| `d` | Dismiss alert | Alerts | alerts |
+| `!` | Close alerts panel | Alerts | alerts |
+| `P` | Close sprint view | Sprints | sprint |
+| `j` | Next sprint | Sprints | sprint |
+| `k` | Previous sprint | Sprints | sprint |
+| `j` | Scroll help down | Help | help |
+| `k` | Scroll help up | Help | help |
+| ` ` | Open tutorial from help | Help | help |
+| `q` | Close help | Help | help |
+| `esc` | Close context help | Help | context-help |
+| `q` | Close context help | Help | context-help |
+| `~` | Close context help | Help | context-help |
+| `j` | Scroll symbol reference down | Help | glyph-help |
+| `k` | Scroll symbol reference up | Help | glyph-help |
+| `esc` | Close symbol reference | Help | glyph-help |
+| `K` | Close symbol reference | Help | glyph-help |
+| `j` | Scroll tutorial content down | Tutorial | tutorial |
+| `k` | Scroll tutorial content up | Tutorial | tutorial |
+| `l` | Next tutorial page | Tutorial | tutorial |
+| `h` | Previous tutorial page | Tutorial | tutorial |
+| ` ` | Next tutorial page | Tutorial | tutorial |
+| `t` | Toggle tutorial table of contents | Tutorial | tutorial |
+| `tab` | Switch tutorial focus / next page | Tutorial | tutorial |
+| `ctrl+d` | Half-page down in tutorial | Tutorial | tutorial |
+| `ctrl+u` | Half-page up in tutorial | Tutorial | tutorial |
+| `esc` | Close tutorial | Tutorial | tutorial |
+| `q` | Close tutorial | Tutorial | tutorial |
+| `esc` | Confirm quit | Navigation | quit-confirm |
+| `y` | Confirm quit | Navigation | quit-confirm |
+| `Y` | Confirm quit | Navigation | quit-confirm |
+| `esc` | Close update modal | Help | update-modal |
+| `q` | Close update modal | Help | update-modal |
+| `enter` | Confirm/dismiss update | Help | update-modal |
+| `n` | Decline update | Help | update-modal |
+| `N` | Decline update | Help | update-modal |
+| `esc` | Cancel history search | History | history-search |
+| `enter` | Apply history search | History | history-search |
+| `j` | Navigate file tree down | History | history-file-tree |
+| `k` | Navigate file tree up | History | history-file-tree |
+| `enter` | Expand dir or filter by file | History | history-file-tree |
+| `l` | Expand dir or filter by file | History | history-file-tree |
+| `h` | Collapse directory | History | history-file-tree |
+| `esc` | Clear filter or leave file tree | History | history-file-tree |
+| `tab` | Switch focus from file tree | History | history-file-tree |
+| `y` | Accept AGENTS.md blurb | Help | agent-prompt |
+| `Y` | Accept AGENTS.md blurb | Help | agent-prompt |
+| `n` | Decline AGENTS.md blurb | Help | agent-prompt |
+| `N` | Decline AGENTS.md blurb | Help | agent-prompt |
+| `d` | Never ask again | Help | agent-prompt |
+| `D` | Never ask again | Help | agent-prompt |
+| `enter` | Confirm selection | Help | agent-prompt |
+| `esc` | Dismiss agent prompt | Help | agent-prompt |
+| `q` | Dismiss agent prompt | Help | agent-prompt |
+| `V` | Close cass session modal | Help | cass-session |
+| `esc` | Close cass session modal | Help | cass-session |
+| `q` | Close cass session modal | Help | cass-session |
+| `enter` | Close cass session modal | Help | cass-session |
+| `j` | Move down | Actionable | actionable |
+| `k` | Move up | Actionable | actionable |
+<!-- /bv-docgen:keybindings -->
 
 ---
 

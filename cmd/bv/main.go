@@ -546,6 +546,41 @@ func rewriteSingleDashLongFlags(args []string, flags *flag.FlagSet) []string {
 	return rewritten
 }
 
+func rewriteFlagValueArgs(args []string, flags *flag.FlagSet, flagNames ...string) []string {
+	allowed := make(map[string]struct{}, len(flagNames))
+	for _, name := range flagNames {
+		allowed[name] = struct{}{}
+	}
+
+	out := make([]string, 0, len(args))
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if !strings.HasPrefix(arg, "--") {
+			out = append(out, arg)
+			continue
+		}
+
+		name := strings.TrimPrefix(arg, "--")
+		if eq := strings.IndexByte(name, '='); eq >= 0 {
+			out = append(out, arg)
+			continue
+		}
+
+		if _, ok := allowed[name]; !ok || flags.Lookup(name) == nil {
+			out = append(out, arg)
+			continue
+		}
+		if i+1 >= len(args) || !isPositionalValue(args[i+1]) {
+			out = append(out, arg)
+			continue
+		}
+
+		out = append(out, "--"+name+"="+args[i+1])
+		i++
+	}
+	return out
+}
+
 func rewriteAgentIntentArgs(args []string) []string {
 	if len(args) == 0 {
 		return args
@@ -595,6 +630,8 @@ func rewriteAgentIntentCommand(args []string) ([]string, bool) {
 		return append([]string{"--robot-capabilities"}, rewriteAgentIntentFlagAliases(rest, "capabilities")...), true
 	case "docs", "doc":
 		return rewriteRobotDocsIntent(rest), true
+	case "docgen":
+		return rewriteRobotDocgenIntent(rest), true
 	case "schema", "schemas":
 		return rewriteRobotSchemaIntent(rest), true
 	case "search", "find":
@@ -710,6 +747,8 @@ func rewriteCanonicalRobotCommandIntent(command string, rest []string) ([]string
 		return append([]string{"--" + command}, rewriteAgentIntentFlagAliases(rest, context)...), true
 	case "robot-docs":
 		return rewriteRobotDocsIntent(rest), true
+	case "robot-docgen":
+		return rewriteRobotDocgenIntent(rest), true
 	case "robot-schema":
 		return rewriteRobotSchemaIntent(rest), true
 	case "robot-search":
@@ -764,6 +803,17 @@ func rewriteRobotDocsIntent(rest []string) []string {
 	out = append(out, topic)
 	out = append(out, prefix...)
 	return append(out, rewriteAgentIntentFlagAliases(rest, "docs")...)
+}
+
+func rewriteRobotDocgenIntent(rest []string) []string {
+	prefix, rest := consumeLeadingAgentIntentFlagAliases(rest, "docgen")
+	out := []string{"--robot-docgen"}
+	if len(rest) > 0 && isPositionalValue(rest[0]) {
+		out = append(out, rest[0])
+		rest = rest[1:]
+	}
+	out = append(out, prefix...)
+	return append(out, rewriteAgentIntentFlagAliases(rest, "docgen")...)
 }
 
 func rewriteRobotSchemaIntent(rest []string) []string {
@@ -1076,6 +1126,7 @@ func primaryRobotFlagNames() map[string]bool {
 		"robot-help":                true,
 		"robot-capabilities":        true,
 		"robot-docs":                true,
+		"robot-docgen":              true,
 		"robot-insights":            true,
 		"robot-plan":                true,
 		"robot-priority":            true,
@@ -1432,6 +1483,7 @@ func main() {
 	robotHelp := flag.Bool("robot-help", false, "Show AI agent help")
 	robotCapabilities := flag.Bool("robot-capabilities", false, "Output machine-readable command capabilities for AI agents")
 	robotDocs := flag.String("robot-docs", "", "Machine-readable JSON docs for AI agents. Topics: guide, commands, examples, env, exit-codes, all")
+	robotDocgen := flag.String("robot-docgen", "", "Emit markdown fragments for README embedding. Sections: agent-blurb, robot-commands, keybindings, all")
 	outputFormat := flag.StringP("format", "f", "", "Structured output format for --robot-* commands: json or toon (env: BV_OUTPUT_FORMAT, TOON_DEFAULT_FORMAT)")
 	toonStats := flag.Bool("stats", false, "Show JSON vs TOON token estimates on stderr (env: TOON_STATS=1)")
 	robotInsights := flag.Bool("robot-insights", false, "Output graph analysis and insights as JSON for AI agents")
@@ -1582,7 +1634,7 @@ func main() {
 	watchExport := flag.Bool("watch-export", false, "Watch for beads changes and auto-regenerate export (use with --export-pages)")
 	pagesWizard := flag.Bool("pages", false, "Launch interactive Pages deployment wizard")
 	// Debug rendering flag (for diagnosing TUI issues)
-	debugRender := flag.String("debug-render", "", "Render a view and output to file (views: insights, board)")
+	debugRender := flag.String("debug-render", "", "Render a view to stdout without TUI (views: list, insights, board, graph, history)")
 	debugWidth := flag.Int("debug-width", 180, "Width for debug render")
 	debugHeight := flag.Int("debug-height", 50, "Height for debug render")
 	// Explicit light/dark palette selection for terminals where background
@@ -1601,6 +1653,9 @@ func main() {
 	agentsForce := flag.Bool("agents-force", false, "Skip confirmation prompts (use with --agents-*)")
 	var recipeLoader *recipe.Loader
 	phaseOneRobotRegistry := newRobotRegistry()
+	if docgenFlag := flag.Lookup("robot-docgen"); docgenFlag != nil {
+		docgenFlag.NoOptDefVal = "all"
+	}
 	registerPhaseOneRobotHandlers(&phaseOneRobotRegistry, phaseOneRobotHandlerConfig{
 		RobotHelpFlag:         robotHelp,
 		RobotCapabilitiesFlag: robotCapabilities,
@@ -1608,6 +1663,7 @@ func main() {
 		RobotRecipesFlag:      robotRecipes,
 		RobotMetricsFlag:      robotMetrics,
 		RobotDocsFlag:         robotDocs,
+		RobotDocgenFlag:       robotDocgen,
 		VersionFlag:           versionFlag,
 		SchemaCommand:         schemaCommand,
 		RecipeLoader: func() *recipe.Loader {
@@ -1766,6 +1822,7 @@ func main() {
 			{flags: []string{"robot-help"}},
 			{flags: []string{"robot-capabilities"}},
 			{flags: []string{"robot-docs"}},
+			{flags: []string{"robot-docgen"}},
 			{flags: []string{"robot-insights"}},
 			{flags: []string{"robot-plan"}},
 			{flags: []string{"robot-priority"}},
@@ -1915,6 +1972,7 @@ func main() {
 			*robotCapacity ||
 			*robotCapabilities ||
 			*robotDocs != "" ||
+			*robotDocgen != "" ||
 			// When stdout is non-TTY, --diff-since auto-enables JSON output. Mark this
 			// as robot mode early so parsers keep stdout JSON clean.
 			(*diffSince != "" && !stdoutIsTTY)
@@ -1942,6 +2000,7 @@ func main() {
 		dispatchRobotFlagOrExit(&phaseOneRobotRegistry, "robot-help", robotDispatchContext)
 		dispatchRobotFlagOrExit(&phaseOneRobotRegistry, "version", robotDispatchContext)
 		dispatchRobotFlagOrExit(&phaseOneRobotRegistry, "robot-capabilities", robotDispatchContext)
+		dispatchRobotFlagOrExit(&phaseOneRobotRegistry, "robot-docgen", robotDispatchContext)
 
 		// Handle --check-update (bv-182)
 		if *checkUpdateFlag {
@@ -5472,6 +5531,11 @@ func main() {
 			}
 		}
 
+		if *debugRender != "" {
+			// ponytail: screenshot/doc capture needs sync data; async worker shows "Loading beads..."
+			_ = os.Setenv("BV_BACKGROUND_MODE", "0")
+		}
+
 		// Initial Model with live reload support
 		m := ui.NewModel(issues, activeRecipe, beadsPath)
 		defer m.Stop() // Clean up file watcher
@@ -5487,7 +5551,7 @@ func main() {
 			})
 		}
 
-		// Debug render mode - output a view to file and exit
+		// Debug render mode - output a view to stdout and exit
 		if *debugRender != "" {
 			output := m.RenderDebugView(*debugRender, *debugWidth, *debugHeight)
 			fmt.Println(output)
@@ -5507,7 +5571,9 @@ func main() {
 		return enrichFlagParseError(err, cmd.Flags(), originalArgs)
 	})
 	normalizedArgs := rewriteAgentIntentArgs(originalArgs)
-	rootCmd.SetArgs(rewriteSingleDashLongFlags(normalizedArgs, rootCmd.Flags()))
+	normalizedArgs = rewriteSingleDashLongFlags(normalizedArgs, rootCmd.Flags())
+	normalizedArgs = rewriteFlagValueArgs(normalizedArgs, rootCmd.Flags(), "robot-docgen")
+	rootCmd.SetArgs(normalizedArgs)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, enrichCommandParseError(err, originalArgs))
@@ -8543,6 +8609,11 @@ func robotCommandDocs() map[string]robotCommandDoc {
 			Flag: "--robot-docs <topic>", Description: "Machine-readable JSON documentation. Topics: guide, commands, examples, env, exit-codes, all.",
 			NeedsIssues: false,
 		},
+		"robot-docgen": {
+			Flag:        "--robot-docgen [<section>]",
+			Description: "Emit markdown fragments for README embedding. Sections: agent-blurb, robot-commands, keybindings, all.",
+			NeedsIssues: false,
+		},
 		"robot-history": {
 			Flag: "--robot-history", Description: "Bead-to-commit correlations from git history.",
 			KeyFields:   []string{"correlations", "confidence", "commit_sha", "bead_id"},
@@ -8913,6 +8984,8 @@ func robotFlagExampleForm(flag string) string {
 		{"<id|all>", "all"},
 		{"<query>", `"login oauth"`},
 		{"<topic>", "guide"},
+		{"[<section>]", "all"},
+		{"<section>", "agent-blurb"},
 		{"<cmd>", "robot-triage"},
 		{"<date>", `"30 days ago"`},
 		{"<label>", "backend"},
@@ -9020,7 +9093,7 @@ func generateRobotDocs(topic string) map[string]interface{} {
 			"toon": "Token-optimized notation (saves ~30-50% tokens)",
 		},
 		"agent_intent_aliases": agentIntentAliasDocs(),
-		"keybind_policy": ui.KeyBindingCasePolicy,
+		"keybind_policy":       ui.KeyBindingCasePolicy,
 		"keybindings":          ui.KeyBindingDocsForRobot(),
 	}
 

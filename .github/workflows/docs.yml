@@ -1,0 +1,66 @@
+name: Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cmd/bv/**'
+      - 'pkg/ui/**'
+      - 'pkg/agents/**'
+      - 'screenshots/**'
+      - 'scripts/**'
+      - 'go.mod'
+      - 'go.sum'
+      - 'README.md'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: docs-assemble-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  assemble:
+    # Avoid infinite loop when this workflow commits doc refreshes.
+    if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, 'chore(docs):')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.8'
+          cache: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-jetbrains-mono
+
+      - name: Install Python dependencies
+        run: pip install pillow
+
+      - name: Assemble README and screenshots
+        env:
+          CGO_CFLAGS: -DSQLITE_ENABLE_FTS5
+          BV_SCREENSHOTS_FALLBACK: '0'
+        run: make docs
+
+      - name: Commit and push updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md 'screenshots/*.webp'
+          if git diff --staged --quiet; then
+            echo "Docs and screenshots already up to date."
+            exit 0
+          fi
+          git commit -m "chore(docs): refresh README docgen and screenshots"
+          git push

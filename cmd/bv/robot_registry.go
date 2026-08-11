@@ -105,6 +105,7 @@ type phaseOneRobotHandlerConfig struct {
 	RobotRecipesFlag      *bool
 	RobotMetricsFlag      *bool
 	RobotDocsFlag         *string
+	RobotDocgenFlag       *string
 	VersionFlag           *bool
 	SchemaCommand         *string
 	RecipeLoader          func() *recipe.Loader
@@ -613,6 +614,28 @@ func registerPhaseOneRobotHandlers(registry *RobotRegistry, cfg phaseOneRobotHan
 				return fmt.Errorf("encoding robot-docs: %w", err)
 			}
 			if _, hasErr := docs["error"]; hasErr {
+				return newReportedRobotHandlerExit(2)
+			}
+			return nil
+		},
+	})
+	registry.Register(RobotCommand{
+		Name:        "robot-docgen",
+		FlagName:    "robot-docgen",
+		FlagPtr:     cfg.RobotDocgenFlag,
+		Description: "Emit markdown fragments for README embedding",
+		Handler: func(ctx RobotContext) error {
+			section := ""
+			if cfg.RobotDocgenFlag != nil {
+				section = strings.TrimSpace(*cfg.RobotDocgenFlag)
+			}
+			asJSON := cfg.StructuredOutput != nil && cfg.StructuredOutput()
+			if err := writeRobotDocgen(ctx.StdoutOrDefault(), section, asJSON); err != nil {
+				var handlerErr *robotHandlerExitError
+				if errors.As(err, &handlerErr) {
+					return err
+				}
+				fmt.Fprintln(ctx.StderrOrDefault(), err)
 				return newReportedRobotHandlerExit(2)
 			}
 			return nil

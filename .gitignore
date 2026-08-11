@@ -53,6 +53,10 @@ rustc-ice-*.txt
 *.snap.new
 sweep_*.png
 test_screenshot.png
+screenshots/*.png
+screenshots/*.gif
+screenshots/*.ansi
+screenshots/fixture/
 a.out
 target-*/
 .playwright-mcp/

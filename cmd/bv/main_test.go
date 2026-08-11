@@ -2283,3 +2283,166 @@ func TestIssuesFingerprintDetectsContentChangesOrderIndependently(t *testing.T) 
 		t.Fatalf("fingerprint must change when a dependency changes without an updated_at bump")
 	}
 }
+
+func TestRobotDocgenSections(t *testing.T) {
+	sections := robotDocgenSections()
+	for _, name := range []string{"agent-blurb", "robot-commands", "keybindings", "all"} {
+		if !containsString(sections, name) {
+			t.Fatalf("robotDocgenSections missing %q: %v", name, sections)
+		}
+	}
+}
+
+func TestRobotDocgenAgentBlurbMarkdown(t *testing.T) {
+	blurb := docgenAgentBlurbMarkdown()
+	for _, snippet := range []string{
+		"### Using bv as an AI sidecar",
+		"Count semantics (strict since #165)",
+		"Liveness (#166)",
+		"bv --robot-triage --brief",
+		"br ready --json",
+	} {
+		if !strings.Contains(blurb, snippet) {
+			t.Fatalf("agent blurb missing %q", snippet)
+		}
+	}
+}
+
+func TestRobotDocgenRobotCommandsTable(t *testing.T) {
+	table := docgenRobotCommandsMarkdown()
+	for _, snippet := range []string{
+		"| Command | Output | Use Case |",
+		"| `--robot-triage` |",
+		"| `--robot-docgen",
+	} {
+		if !strings.Contains(table, snippet) {
+			t.Fatalf("robot-commands table missing %q:\n%s", snippet, table)
+		}
+	}
+	docs := robotCommandDocs()
+	if strings.Count(table, "| `--") != len(docs) {
+		t.Fatalf("robot-commands table row count = %d, want %d", strings.Count(table, "| `--"), len(docs))
+	}
+}
+
+func TestRobotDocgenKeybindingsTable(t *testing.T) {
+	table := docgenKeybindingsMarkdown()
+	for _, snippet := range []string{
+		"| Key | Description | Category | Context |",
+		"| `j` | Move down | Navigation | all |",
+	} {
+		if !strings.Contains(table, snippet) {
+			t.Fatalf("keybindings table missing %q:\n%s", snippet, table)
+		}
+	}
+}
+
+func TestRobotDocgenAllMarkdownMarkers(t *testing.T) {
+	payload := generateRobotDocgen("all")
+	sections, ok := payload["sections"].(map[string]string)
+	if !ok {
+		t.Fatalf("sections has unexpected type %T", payload["sections"])
+	}
+	markdown := renderRobotDocgenMarkdown("all", sections)
+	for _, marker := range []string{
+		"<!-- bv-docgen:agent-blurb -->",
+		"<!-- /bv-docgen:agent-blurb -->",
+		"<!-- bv-docgen:robot-commands -->",
+		"<!-- /bv-docgen:robot-commands -->",
+		"<!-- bv-docgen:keybindings -->",
+		"<!-- /bv-docgen:keybindings -->",
+	} {
+		if !strings.Contains(markdown, marker) {
+			t.Fatalf("all markdown missing marker %q:\n%s", marker, markdown)
+		}
+	}
+}
+
+func TestRobotDocgenUnknownSection(t *testing.T) {
+	payload := generateRobotDocgen("agent_blurb")
+	if payload["error"] == nil {
+		t.Fatalf("expected error for unknown section, got %#v", payload)
+	}
+	if payload["did_you_mean"] != "agent-blurb" {
+		t.Fatalf("did_you_mean = %v, want agent-blurb", payload["did_you_mean"])
+	}
+}
+
+func TestRobotDocgenCapabilitiesManifest(t *testing.T) {
+	capabilities := generateRobotCapabilities()
+	commands, ok := capabilities["commands"].([]map[string]interface{})
+	if !ok {
+		t.Fatalf("commands has unexpected type %T", capabilities["commands"])
+	}
+	found := false
+	for _, command := range commands {
+		if command["name"] == "robot-docgen" {
+			found = true
+			requireString(t, command["flag"].(string), "--robot-docgen all")
+			if command["needs_issues"] != false {
+				t.Fatalf("robot-docgen needs_issues = %v, want false", command["needs_issues"])
+			}
+		}
+	}
+	if !found {
+		t.Fatal("capabilities manifest missing robot-docgen")
+	}
+}
+
+func TestRobotDocgenCLI(t *testing.T) {
+	exe := buildTestBinary(t)
+
+	t.Run("markdown section", func(t *testing.T) {
+		stdout, stderr, err := runCommandWithTimeout(t, t.TempDir(), exe, "--robot-docgen=agent-blurb")
+		if err != nil {
+			t.Fatalf("--robot-docgen=agent-blurb failed: %v\nstderr:\n%s", err, stderr)
+		}
+		if !strings.Contains(stdout, "### Using bv as an AI sidecar") {
+			t.Fatalf("stdout missing README agent blurb:\n%s", stdout)
+		}
+		if json.Valid([]byte(stdout)) {
+			t.Fatalf("expected markdown output, got JSON:\n%s", stdout)
+		}
+	})
+
+	t.Run("json all", func(t *testing.T) {
+		stdout, stderr, err := runCommandWithTimeout(t, t.TempDir(), exe, "--robot-docgen", "all", "--format", "json")
+		if err != nil {
+			t.Fatalf("--robot-docgen all --format json failed: %v\nstderr:\n%s", err, stderr)
+		}
+		if !json.Valid([]byte(stdout)) {
+			t.Fatalf("expected JSON output:\n%s", stdout)
+		}
+		var payload map[string]interface{}
+		if err := json.Unmarshal([]byte(stdout), &payload); err != nil {
+			t.Fatalf("decode json: %v", err)
+		}
+		sections, ok := payload["sections"].(map[string]interface{})
+		if !ok || len(sections) != 3 {
+			t.Fatalf("sections = %#v, want 3 entries", payload["sections"])
+		}
+	})
+
+	t.Run("unknown section exits 2", func(t *testing.T) {
+		_, stderr, err := runCommandWithTimeout(t, t.TempDir(), exe, "--robot-docgen=nope")
+		if err == nil {
+			t.Fatal("expected error exit for unknown section")
+		}
+		exitErr, ok := err.(*exec.ExitError)
+		if !ok || exitErr.ExitCode() != 2 {
+			t.Fatalf("exit code = %v, want 2", err)
+		}
+		if !strings.Contains(stderr, "Unknown section") {
+			t.Fatalf("stderr missing unknown section message: %q", stderr)
+		}
+	})
+}
+
+func containsString(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
+}
