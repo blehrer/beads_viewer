@@ -4958,108 +4958,25 @@ func (m *Model) renderHelpOverlay() string {
 		return panelStyle.Render(content.String())
 	}
 
-	// Define all sections
-	navSection := []struct{ key, desc string }{
-		{"j / ↓", "Move down"},
-		{"k / ↑", "Move up"},
-		{"G/end", "Go to last"},
-		{"Ctrl+d", "Page down"},
-		{"Ctrl+u", "Page up"},
-		{"Tab", "Switch focus"},
-		{"Enter", "View details"},
-		{"Esc", "Back / close"},
-	}
-
-	viewsSection := []struct{ key, desc string }{
-		{"b", "Kanban board"},
-		{"g", "Graph view"},
-		{"i", "Insights"},
-		{"h", "History view"},
-		{"a", "Actionable"},
-		{"f", "Flow matrix"},
-		{"[", "Label dashboard"},
-		{"]", "Attention view"},
-	}
-
-	globalSection := []struct{ key, desc string }{
-		{"?", "This help"},
-		{"K", "Symbol / icon reference"},
-		{";", "Shortcuts bar"},
-		{"!", "Alerts panel"},
-		{"'", "Recipes"},
-		{"w", "Repo picker"},
-		{"q", "Back / Quit"},
-		{"Ctrl+c", "Force quit"},
-	}
-
-	filterSection := []struct{ key, desc string }{
-		{"/", "Fuzzy search"},
-		{"Ctrl+S", "Semantic search"},
-		{"H", "Hybrid ranking"},
-		{"Alt+H", "Hybrid preset"},
-		{"o", "Open issues"},
-		{"c", "Closed issues"},
-		{"r", "Ready (unblocked)"},
-		{"l", "Filter by label"},
-		{"s", "Cycle sort"},
-		{"S", "Triage sort"},
-	}
-
-	graphSection := []struct{ key, desc string }{
-		{"hjkl", "Navigate nodes"},
-		{"PgUp/Dn", "Scroll up/down"},
-		{"Enter", "Jump to issue"},
-	}
-
-	insightsSection := []struct{ key, desc string }{
-		{"h/l/Tab", "Switch panels"},
-		{"j/k", "Navigate items"},
-		{"e", "Explanations"},
-		{"x", "Calc details"},
-		{"m", "Toggle heatmap"},
-		{"Enter", "Jump to issue"},
-	}
-
-	historySection := []struct{ key, desc string }{
-		{"j/k", "Navigate beads"},
-		{"J/K", "Navigate commits"},
-		{"Tab", "Toggle focus"},
-		{"y", "Copy SHA"},
-		{"c", "Confidence filter"},
-	}
-
-	actionsSection := []struct{ key, desc string }{
-		{"p", "Priority hints"},
-		{"Ctrl+R", "Force refresh"},
-		{"F5", "Force refresh"},
-		{"t", "Time-travel"},
-		{"T", "Quick time-travel"},
-		{"x", "Export markdown"},
-		{"C", "Copy to clipboard"},
-		{"O", "Open in editor"},
-	}
-
-	statusSection := []struct{ key, desc string }{
-		{"◌ metrics", "Phase 2 metrics computing"},
-		{"⚠ age", "Snapshot getting stale"},
-		{"⚠ STALE", "Snapshot is stale"},
-		{"✗ bg", "Background worker errors"},
-		{"↻ recov", "Worker self-healed"},
-		{"⚠ dead", "Worker unresponsive"},
-		{"polling", "Live reload uses polling"},
-	}
-
-	// Build panels
-	panels := []string{
-		renderPanel("Navigation", icons.Navigation, 0, navSection),
-		renderPanel("Views", icons.Eye, 1, viewsSection),
-		renderPanel("Global", icons.Globe, 2, globalSection),
-		renderPanel("Filters & Sort", icons.DepDiscovered, 3, filterSection),
-		renderPanel("Graph View", icons.Chart, 4, graphSection),
-		renderPanel("Insights", icons.Lightbulb, 5, insightsSection),
-		renderPanel("Status", icons.Health, 2, statusSection),
-		renderPanel("History", icons.HistoryScroll, 0, historySection),
-		renderPanel("Actions", icons.Lightning, 1, actionsSection),
+	// Registry-driven sections for current view + globals (bv-p5kf.19)
+	subject := m.helpSubjectContext()
+	panelSpecs := m.helpOverlayPanelSpecs()
+	panels := make([]string, 0, len(panelSpecs))
+	for _, spec := range panelSpecs {
+		var shortcuts []struct{ key, desc string }
+		if len(spec.static) > 0 {
+			for _, s := range spec.static {
+				shortcuts = append(shortcuts, struct{ key, desc string }{s.key, s.desc})
+			}
+		} else {
+			for _, pair := range m.helpOverlayShortcuts(spec.category, subject) {
+				shortcuts = append(shortcuts, struct{ key, desc string }{pair.key, pair.desc})
+			}
+		}
+		if len(shortcuts) == 0 {
+			continue
+		}
+		panels = append(panels, renderPanel(spec.title, spec.icon, spec.colorIdx, shortcuts))
 	}
 
 	// Arrange panels into columns
@@ -6053,55 +5970,24 @@ func (m *Model) renderFooter() string {
 	sep := sepStyle.Render(" │ ")
 
 	var keyHints []string
-	if m.showHelp {
+	switch {
+	case m.showHelp:
 		keyHints = append(keyHints, "Press any key to close")
-	} else if m.showContextHelp {
-		keyHints = append(keyHints, keyStyle.Render("`")+" tutorial", keyStyle.Render("~")+"/esc/q close")
-	} else if m.showGlyphHelp {
+	case m.showGlyphHelp:
 		keyHints = append(keyHints, keyStyle.Render("j/k")+" scroll", keyStyle.Render("K")+"/esc close")
-	} else if m.showRecipePicker {
-		keyHints = append(keyHints, keyStyle.Render("j/k")+" nav", keyStyle.Render("⏎")+" apply", keyStyle.Render("esc")+" cancel")
-	} else if m.showRepoPicker {
-		keyHints = append(keyHints, keyStyle.Render("j/k")+" nav", keyStyle.Render("space")+" toggle", keyStyle.Render("⏎")+" apply", keyStyle.Render("esc")+" cancel")
-	} else if m.showLabelPicker {
-		keyHints = append(keyHints, "type to filter", keyStyle.Render("j/k")+" nav", keyStyle.Render("⏎")+" apply", keyStyle.Render("esc")+" cancel")
-	} else if m.focused == focusInsights {
-		keyHints = append(keyHints, keyStyle.Render("h/l")+" panels", keyStyle.Render("e")+" explain", keyStyle.Render("⏎")+" jump", keyStyle.Render("?")+" help")
-		keyHints = append(keyHints, keyStyle.Render("]")+"/F4 attention", keyStyle.Render("f")+" flow")
-	} else if m.focused == focusFlowMatrix {
-		keyHints = append(keyHints, keyStyle.Render("j/k")+" nav", keyStyle.Render("tab")+" panel", keyStyle.Render("⏎")+" drill", keyStyle.Render("esc")+" back", keyStyle.Render("f")+" close")
-	} else if m.isGraphView {
-		keyHints = append(keyHints, keyStyle.Render("hjkl")+" nav", keyStyle.Render("⏎")+" view", keyStyle.Render("g")+" list")
-	} else if m.isBoardView {
-		keyHints = append(keyHints, keyStyle.Render("hjkl")+" nav", keyStyle.Render("G")+" bottom", keyStyle.Render("⏎")+" view", keyStyle.Render("b")+" list")
-	} else if m.isActionableView {
-		keyHints = append(keyHints, keyStyle.Render("j/k")+" nav", keyStyle.Render("⏎")+" view", keyStyle.Render("a")+" list", keyStyle.Render("?")+" help")
-	} else if m.isHistoryView {
-		keyHints = append(keyHints, keyStyle.Render("j/k")+" nav", keyStyle.Render("tab")+" focus", keyStyle.Render("⏎")+" jump", keyStyle.Render("h")+"/q/esc close")
-	} else if m.list.FilterState() == list.Filtering {
-		mode := "fuzzy"
-		if m.semanticSearchEnabled {
-			mode = "semantic"
-			if m.semanticIndexBuilding {
-				mode = "semantic (indexing)"
-			}
+	case m.isBoardView && m.board.IsSearchMode():
+		matchInfo := ""
+		if m.board.SearchMatchCount() > 0 {
+			matchInfo = fmt.Sprintf(" [%d/%d]", m.board.SearchCursorPos(), m.board.SearchMatchCount())
 		}
-		keyHints = append(keyHints, keyStyle.Render("esc")+" cancel", keyStyle.Render("ctrl+s")+" "+mode, keyStyle.Render("⏎")+" select")
-	} else if m.showTimeTravelPrompt {
-		keyHints = append(keyHints, keyStyle.Render("⏎")+" compare", keyStyle.Render("esc")+" cancel")
-	} else {
-		if m.timeTravelMode {
-			keyHints = append(keyHints, keyStyle.Render("t")+" exit diff", keyStyle.Render("C")+" copy", keyStyle.Render("abgi")+" views", keyStyle.Render("?")+" help")
-		} else if m.isSplitView {
-			keyHints = append(keyHints, keyStyle.Render("tab")+" focus", keyStyle.Render("C")+" copy", keyStyle.Render("x")+" export", keyStyle.Render("Ctrl+R")+" refresh", keyStyle.Render("?")+" help")
-		} else if m.showDetails {
-			keyHints = append(keyHints, keyStyle.Render("esc")+" back", keyStyle.Render("C")+" copy", keyStyle.Render("O")+" edit", keyStyle.Render("Ctrl+R")+" refresh", keyStyle.Render("K")+" symbols", keyStyle.Render("?")+" help")
-		} else {
-			keyHints = append(keyHints, keyStyle.Render("⏎")+" details", keyStyle.Render("t")+" diff", keyStyle.Render("S")+" triage", keyStyle.Render("l")+" labels", keyStyle.Render("Ctrl+R")+" refresh", keyStyle.Render("K")+" symbols", keyStyle.Render("?")+" help")
-			if m.workspaceMode {
-				keyHints = append(keyHints, keyStyle.Render("w")+" repos")
-			}
-		}
+		keyHints = append(keyHints,
+			keyStyle.Render("/")+m.board.SearchQuery()+matchInfo,
+			keyStyle.Render("n/N")+" match",
+			keyStyle.Render("⏎")+" done",
+			keyStyle.Render("esc")+" cancel",
+		)
+	default:
+		keyHints = m.footerHintsFromRegistry(keyStyle)
 	}
 
 	keysSection := lipgloss.NewStyle().

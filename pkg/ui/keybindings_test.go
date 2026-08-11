@@ -1238,6 +1238,68 @@ func TestKeybindCasePolicyAudit(t *testing.T) {
 	}
 }
 
+func TestHintsFor_FooterList(t *testing.T) {
+	reg := NewKeyRegistry()
+	hints := reg.HintsFor(ContextList, HintFooter, footerHintLimit)
+	if len(hints) == 0 {
+		t.Fatal("expected footer hints for list context")
+	}
+	keys := make(map[string]struct{})
+	for _, h := range hints {
+		keys[h.Key] = struct{}{}
+	}
+	for _, want := range []string{"?", "ctrl+r", "l"} {
+		if _, ok := keys[want]; !ok {
+			t.Fatalf("list footer hints missing %q: %+v", want, hints)
+		}
+	}
+}
+
+func TestHintsFor_FooterFilterExcludesHybrid(t *testing.T) {
+	reg := NewKeyRegistry()
+	hints := reg.HintsFor(ContextFilter, HintFooter, footerHintLimit)
+	for _, h := range hints {
+		if h.Key == "H" || h.Key == "alt+h" {
+			t.Fatalf("filter footer must not include hybrid toggle %q", h.Key)
+		}
+	}
+	for _, want := range []string{"esc", "ctrl+s", "enter"} {
+		found := false
+		for _, h := range hints {
+			if h.Key == want {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("filter footer missing %q: %+v", want, hints)
+		}
+	}
+}
+
+func TestHelpOverlay_FiltersByView(t *testing.T) {
+	m := setupTestModel(t)
+	m.width = 120
+	m.height = 40
+
+	listHelp := m.renderHelpOverlay()
+	if !strings.Contains(listHelp, "Views") {
+		t.Fatal("list help overlay should include Views panel")
+	}
+	if strings.Contains(listHelp, "Graph View") {
+		t.Fatal("list help overlay should not include Graph View panel")
+	}
+
+	updated, _ := m.Update(keyMsg("g"))
+	m = updated.(Model)
+	m.showHelp = true
+	m.focusBeforeHelp = focusGraph
+	graphHelp := m.renderHelpOverlay()
+	if !strings.Contains(graphHelp, "Graph View") {
+		t.Fatal("graph help overlay should include Graph View panel")
+	}
+}
+
 func recordKeybindConflict(conflicts map[string]map[string]string, ctx, key, desc string) {
 	if conflicts[ctx] == nil {
 		conflicts[ctx] = map[string]string{}
