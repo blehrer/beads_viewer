@@ -3,15 +3,19 @@ name: Docs
 on:
   push:
     branches: [main]
+    # Source-of-truth paths only — exclude generated README.md and screenshot_*.webp
+    # so the bot's auto-commit does not enqueue another run.
     paths:
       - 'cmd/bv/**'
       - 'pkg/ui/**'
       - 'pkg/agents/**'
-      - 'screenshots/**'
+      - 'screenshots/capture.tape'
+      - 'screenshots/capture_test.go'
+      - 'screenshots/convert_webp.py'
+      - 'screenshots/README.md'
       - 'scripts/**'
       - 'go.mod'
       - 'go.sum'
-      - 'README.md'
       - '.github/workflows/docs.yml'
   workflow_dispatch:
 
@@ -24,11 +28,20 @@ permissions:
 
 jobs:
   assemble:
-    # Avoid infinite loop when this workflow commits doc refreshes.
-    if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, 'chore(docs):')
+    # Defense in depth: path filters exclude generated outputs; these guards catch edge cases.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'push' &&
+        github.actor != 'github-actions[bot]' &&
+        !contains(github.event.head_commit.message, 'chore(docs):') &&
+        !contains(github.event.head_commit.message, '[skip docs]')
+      )
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-go@v6
         with:
@@ -53,14 +66,15 @@ jobs:
           BV_SCREENSHOTS_FALLBACK: '0'
         run: make docs
 
-      - name: Commit and push updates
+      - name: Commit and push generated docs
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md 'screenshots/*.webp'
+          git add README.md screenshots/screenshot_*.webp
           if git diff --staged --quiet; then
             echo "Docs and screenshots already up to date."
             exit 0
           fi
-          git commit -m "chore(docs): refresh README docgen and screenshots"
+          git commit -m "chore(docs): refresh README docgen and screenshots [skip docs]"
+          git pull --rebase origin main
           git push

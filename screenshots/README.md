@@ -62,3 +62,12 @@ Manual single-view capture:
 ```
 
 After changing robot commands or TUI keybindings, run `make readme-docgen` from the repo root to refresh the generated README sections.
+
+## CI auto-commit
+
+On pushes to `main` that touch doc sources (`cmd/bv`, `pkg/ui`, `pkg/agents`, screenshot scripts, etc.), the [Docs workflow](.github/workflows/docs.yml) runs `make docs`, then commits and pushes:
+
+- `README.md` (docgen sections)
+- `screenshots/screenshot_*.webp`
+
+The workflow path filter excludes those generated files, so the bot push does not re-trigger itself. Commit messages use `chore(docs): … [skip docs]` and the job also skips runs from `github-actions[bot]`.
