@@ -151,6 +151,27 @@ func (m *Model) registerKeyHandlers() {
 		}, false)
 	}
 
+	// Interactive tutorial — keys route to tutorialModel before registry in Update().
+	tutorialKeys := []string{
+		"esc", "q", "t", "tab", "l", "h", "j", "k", " ", "left", "right", "n", "p",
+		"ctrl+d", "ctrl+u", "g", "G", "home", "end",
+		"1", "2", "3", "4", "5", "6", "7", "8", "9",
+	}
+	for _, k := range tutorialKeys {
+		k := k
+		register(focusTutorial, k, func(model Model, msg tea.KeyMsg) (Model, bool) {
+			var cmd tea.Cmd
+			model.tutorialModel, cmd = model.tutorialModel.Update(msg)
+			_ = cmd
+			if model.tutorialModel.ShouldClose() {
+				model.showTutorial = false
+				model.focused = focusList
+				model.tutorialModel = NewTutorialModel(model.theme)
+			}
+			return model, true
+		}, false)
+	}
+
 	// Detail pane: label picker keys only; other action keys fall through to focusList.
 	register(focusDetail, "l", func(model Model, msg tea.KeyMsg) (Model, bool) {
 		if model, ok := model.openLabelPicker(); ok {

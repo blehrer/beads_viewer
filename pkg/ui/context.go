@@ -9,6 +9,7 @@ type Context string
 
 const (
 	// Overlays (highest priority)
+	ContextTutorial           Context = "tutorial"
 	ContextLabelPicker        Context = "label-picker"
 	ContextRecipePicker       Context = "recipe-picker"
 	ContextHelp               Context = "help"
@@ -24,8 +25,10 @@ const (
 	ContextRepoPicker         Context = "repo-picker"
 	ContextAgentPrompt        Context = "agent-prompt"
 	ContextCassSession        Context = "cass-session"
+	ContextUpdateModal        Context = "update-modal"
 
-	// Views
+	// View submodes (override parent view for footer hints)
+	ContextHistorySearch Context = "history-search"
 	ContextInsights       Context = "insights"
 	ContextFlowMatrix     Context = "flow-matrix"
 	ContextGraph          Context = "graph"
@@ -53,12 +56,17 @@ const (
 // Label dashboard and modal overlays swallow keys instead.
 func (c Context) AllowsGlobalFallthrough() bool {
 	switch c {
-	case ContextLabelDashboard,
+	case ContextTutorial,
+		ContextLabelDashboard,
 		ContextLabelPicker,
 		ContextRecipePicker,
 		ContextRepoPicker,
 		ContextHelp,
+		ContextContextHelp,
+		ContextGlyphHelp,
 		ContextQuitConfirm,
+		ContextUpdateModal,
+		ContextHistorySearch,
 		ContextLabelHealthDetail,
 		ContextLabelDrilldown,
 		ContextLabelGraphAnalysis,
@@ -100,6 +108,11 @@ func (m Model) DispatchFocusStack() []focus {
 func (m Model) CurrentContext() Context {
 	// === Overlays (most specific - check first) ===
 
+	// Self-update modal (bv-182)
+	if m.showUpdateModal {
+		return ContextUpdateModal
+	}
+
 	// Cass session modal (bv-qi94)
 	if m.showCassModal {
 		return ContextCassSession
@@ -108,6 +121,21 @@ func (m Model) CurrentContext() Context {
 	// Agent prompt modal
 	if m.showAgentPrompt {
 		return ContextAgentPrompt
+	}
+
+	// Interactive tutorial overlay (bv-8y31)
+	if m.showTutorial {
+		return ContextTutorial
+	}
+
+	// Context help overlay (~)
+	if m.showContextHelp {
+		return ContextContextHelp
+	}
+
+	// Symbol reference overlay (K)
+	if m.showGlyphHelp {
+		return ContextGlyphHelp
 	}
 
 	// Help overlay
@@ -196,8 +224,11 @@ func (m Model) CurrentContext() Context {
 		return ContextActionable
 	}
 
-	// History view
+	// History view (or search/file-tree submode)
 	if m.isHistoryView {
+		if m.historyView.IsSearchActive() {
+			return ContextHistorySearch
+		}
 		return ContextHistory
 	}
 
@@ -238,7 +269,11 @@ func (m Model) CurrentContext() Context {
 // Useful for status messages or debugging.
 func (c Context) Description() string {
 	descriptions := map[Context]string{
+		ContextTutorial:           "Interactive tutorial",
 		ContextLabelPicker:        "Label picker",
+		ContextContextHelp:        "Context help",
+		ContextGlyphHelp:          "Symbol reference",
+		ContextBoardSearch:        "Board search",
 		ContextRecipePicker:       "Recipe picker",
 		ContextHelp:               "Help overlay",
 		ContextQuitConfirm:        "Quit confirmation",
@@ -250,6 +285,8 @@ func (c Context) Description() string {
 		ContextRepoPicker:         "Repo picker",
 		ContextAgentPrompt:        "Agent prompt",
 		ContextCassSession:        "Cass session preview",
+		ContextUpdateModal:        "Self-update modal",
+		ContextHistorySearch:      "History search",
 		ContextInsights:           "Insights panel",
 		ContextFlowMatrix:         "Flow matrix",
 		ContextGraph:              "Dependency graph",
@@ -274,7 +311,9 @@ func (c Context) Description() string {
 // IsOverlay returns true if the context is an overlay (modal/popup)
 func (c Context) IsOverlay() bool {
 	switch c {
-	case ContextLabelPicker, ContextRecipePicker, ContextHelp, ContextQuitConfirm,
+	case ContextTutorial, ContextLabelPicker, ContextRecipePicker, ContextHelp,
+		ContextContextHelp, ContextGlyphHelp, ContextBoardSearch, ContextHistorySearch,
+		ContextQuitConfirm, ContextUpdateModal,
 		ContextLabelHealthDetail, ContextLabelDrilldown, ContextLabelGraphAnalysis,
 		ContextTimeTravelInput, ContextAlerts, ContextRepoPicker, ContextAgentPrompt,
 		ContextCassSession:
@@ -311,7 +350,10 @@ func (c Context) TutorialPages() []int {
 		ContextTimeTravel:         {10},      // Time-Travel
 		ContextLabelDashboard:     {11},      // Labels
 		ContextFlowMatrix:         {11, 12},  // Labels, Advanced
-		ContextHelp:               {13},      // Keyboard Reference
+		ContextTutorial:           {0, 1, 13}, // Intro, Navigation, Keyboard Reference
+		ContextContextHelp:        {13},
+		ContextGlyphHelp:          {13},
+		ContextHelp:               {13}, // Keyboard Reference
 		ContextSprint:             {14},      // Sprints
 		ContextAttention:          {7},       // Insights (attention is part of insights)
 		ContextAlerts:             {15},      // Alerts

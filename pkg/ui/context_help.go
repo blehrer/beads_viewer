@@ -89,7 +89,8 @@ func RenderContextHelp(ctx Context, theme Theme, width, height int) string {
 }
 
 func (m Model) renderContextHelpOverlay() string {
-	content := RenderContextHelp(m.CurrentContext(), m.theme, m.width, m.height)
+	ctx := m.contextFromFocus(m.focusBeforeHelp)
+	content := RenderContextHelp(ctx, m.theme, m.width, m.height)
 	return lipgloss.Place(m.width, m.height-1, lipgloss.Center, lipgloss.Center, content)
 }
 

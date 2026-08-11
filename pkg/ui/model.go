@@ -5606,10 +5606,16 @@ func (m *Model) renderFooter() string {
 	labelHint := lipgloss.NewStyle().
 		Foreground(ColorFooterHint).
 		Padding(0, 1).
-		Render("l:labels • enter:detail")
+		Render("")
+	if m.footerShowsListLabelHint() {
+		labelHint = lipgloss.NewStyle().
+			Foreground(ColorFooterHint).
+			Padding(0, 1).
+			Render("l:labels • enter:detail")
+	}
 
 	// Board-specific hints (bv-yg39, bv-naov)
-	if m.isBoardView {
+	if m.footerShowsListLabelHint() && m.isBoardView {
 		if m.board.IsSearchMode() {
 			// Search mode active - show search hints
 			matchInfo := ""
@@ -5633,7 +5639,7 @@ func (m *Model) renderFooter() string {
 				Padding(0, 1).
 				Render(fmt.Sprintf("%s1-4:col • o/c/r:filter • /:search • ?:help", filterInfo))
 		}
-	} else if m.showAttentionView {
+	} else if m.footerShowsListLabelHint() && m.showAttentionView {
 		labelHint = lipgloss.NewStyle().
 			Foreground(ColorFooterHint).
 			Padding(0, 1).
@@ -5970,23 +5976,9 @@ func (m *Model) renderFooter() string {
 	sep := sepStyle.Render(" │ ")
 
 	var keyHints []string
-	switch {
-	case m.showHelp:
+	if m.showHelp {
 		keyHints = append(keyHints, "Press any key to close")
-	case m.showGlyphHelp:
-		keyHints = append(keyHints, keyStyle.Render("j/k")+" scroll", keyStyle.Render("K")+"/esc close")
-	case m.isBoardView && m.board.IsSearchMode():
-		matchInfo := ""
-		if m.board.SearchMatchCount() > 0 {
-			matchInfo = fmt.Sprintf(" [%d/%d]", m.board.SearchCursorPos(), m.board.SearchMatchCount())
-		}
-		keyHints = append(keyHints,
-			keyStyle.Render("/")+m.board.SearchQuery()+matchInfo,
-			keyStyle.Render("n/N")+" match",
-			keyStyle.Render("⏎")+" done",
-			keyStyle.Render("esc")+" cancel",
-		)
-	default:
+	} else {
 		keyHints = m.footerHintsFromRegistry(keyStyle)
 	}
 

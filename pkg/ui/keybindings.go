@@ -320,6 +320,20 @@ func focusesForBindingDoc(doc KeyBindingDoc) []focus {
 			addFocus(focusHelp)
 		case "context-help":
 			addFocus(focusContextHelp)
+		case "tutorial":
+			addFocus(focusTutorial)
+		case "glyph-help":
+			addFocus(focusHelp) // scroll/dismiss handled like help overlay
+		case "quit-confirm":
+			addFocus(focusList) // quit confirm intercepts in Update before dispatch
+		case "update-modal":
+			addFocus(focusUpdateModal)
+		case "history-search":
+			addFocus(focusHistory)
+		case "cass-session":
+			addFocus(focusCassModal)
+		case "agent-prompt":
+			addFocus(focusAgentPrompt)
 		}
 	}
 
@@ -344,6 +358,10 @@ func allDocumentedFocuses() []focus {
 		focusSprint,
 		focusHelp,
 		focusContextHelp,
+		focusTutorial,
+		focusUpdateModal,
+		focusCassModal,
+		focusAgentPrompt,
 	}
 }
 
@@ -557,6 +575,47 @@ func GetKeyBindingDocs() []KeyBindingDoc {
 		{"esc", "Close context help", "Help", "context-help"},
 		{"q", "Close context help", "Help", "context-help"},
 		{"~", "Close context help", "Help", "context-help"},
+
+		// Symbol reference overlay (glyph help)
+		{"j", "Scroll symbol reference down", "Help", "glyph-help"},
+		{"k", "Scroll symbol reference up", "Help", "glyph-help"},
+		{"esc", "Close symbol reference", "Help", "glyph-help"},
+		{"K", "Close symbol reference", "Help", "glyph-help"},
+
+		// Interactive tutorial overlay
+		{"j", "Scroll tutorial content down", "Tutorial", "tutorial"},
+		{"k", "Scroll tutorial content up", "Tutorial", "tutorial"},
+		{"l", "Next tutorial page", "Tutorial", "tutorial"},
+		{"h", "Previous tutorial page", "Tutorial", "tutorial"},
+		{" ", "Next tutorial page", "Tutorial", "tutorial"},
+		{"t", "Toggle tutorial table of contents", "Tutorial", "tutorial"},
+		{"tab", "Switch tutorial focus / next page", "Tutorial", "tutorial"},
+		{"ctrl+d", "Half-page down in tutorial", "Tutorial", "tutorial"},
+		{"ctrl+u", "Half-page up in tutorial", "Tutorial", "tutorial"},
+		{"esc", "Close tutorial", "Tutorial", "tutorial"},
+		{"q", "Close tutorial", "Tutorial", "tutorial"},
+
+		// Quit confirmation
+		{"esc", "Confirm quit", "Navigation", "quit-confirm"},
+		{"y", "Confirm quit", "Navigation", "quit-confirm"},
+		{"Y", "Confirm quit", "Navigation", "quit-confirm"},
+
+		// Self-update modal
+		{"esc", "Close update modal", "Help", "update-modal"},
+		{"q", "Close update modal", "Help", "update-modal"},
+		{"enter", "Confirm/dismiss update", "Help", "update-modal"},
+		{"n", "Decline update", "Help", "update-modal"},
+		{"N", "Decline update", "Help", "update-modal"},
+
+		// History search submode
+		{"esc", "Cancel history search", "History", "history-search"},
+		{"enter", "Apply history search", "History", "history-search"},
+
+		// Cass session modal
+		{"V", "Close cass session modal", "Help", "cass-session"},
+		{"esc", "Close cass session modal", "Help", "cass-session"},
+		{"q", "Close cass session modal", "Help", "cass-session"},
+		{"enter", "Close cass session modal", "Help", "cass-session"},
 
 		// Actionable view
 		{"j", "Move down", "Actionable", "actionable"},

@@ -8,6 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/Dicklesworthstone/beads_viewer/pkg/drift"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/model"
 )
 
@@ -1300,6 +1301,89 @@ func TestHelpOverlay_FiltersByView(t *testing.T) {
 	}
 }
 
+func TestFooterHints_ContextAccurate(t *testing.T) {
+	cases := []struct {
+		name     string
+		setup    func(*Model)
+		mustHave []string
+		mustNot  []string
+	}{
+		{
+			name: "tutorial_no_list_labels",
+			setup: func(m *Model) {
+				m.showTutorial = true
+				m.focused = focusTutorial
+			},
+			mustHave: []string{"l", "next", "q", "close", "j", "k"},
+			mustNot:  []string{"labels", "? help", "ctrl+r"},
+		},
+		{
+			name: "context_help_dismiss_only",
+			setup: func(m *Model) {
+				m.showContextHelp = true
+				m.focused = focusContextHelp
+			},
+			mustHave: []string{"esc", "q", "~"},
+			mustNot:  []string{"labels", "b board", "? help"},
+		},
+		{
+			name: "filter_no_hybrid_or_labels",
+			setup: func(m *Model) {
+				m.focused = focusList
+				m.semanticHybridEnabled = true
+				m.list.SetFilterState(list.Filtering)
+			},
+			mustHave: []string{"esc", "ctrl+s", "select"},
+			mustNot:  []string{"labels", "H hybrid", "alt+h"},
+		},
+		{
+			name: "label_picker_no_view_toggles",
+			setup: func(m *Model) {
+				m.showLabelPicker = true
+				m.focused = focusLabelPicker
+			},
+			mustHave: []string{"esc", "apply"},
+			mustNot:  []string{"? help", "b board", "g graph"},
+		},
+		{
+			name: "quit_confirm",
+			setup: func(m *Model) {
+				m.showQuitConfirm = true
+			},
+			mustHave: []string{"esc", "y"},
+			mustNot:  []string{"labels", "? help"},
+		},
+		{
+			name: "help_modal",
+			setup: func(m *Model) {
+				m.showHelp = true
+				m.focused = focusHelp
+			},
+			mustHave: []string{"Press any key to close"},
+			mustNot:  []string{"l:labels", "labels"},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			model := setupTestModel(t)
+			model.width = 120
+			tc.setup(&model)
+			footer := strings.ToLower(model.renderFooter())
+			for _, want := range tc.mustHave {
+				if !strings.Contains(footer, strings.ToLower(want)) {
+					t.Fatalf("footer should contain %q: %q", want, model.renderFooter())
+				}
+			}
+			for _, bad := range tc.mustNot {
+				if strings.Contains(footer, strings.ToLower(bad)) {
+					t.Fatalf("footer must not contain %q: %q", bad, model.renderFooter())
+				}
+			}
+		})
+	}
+}
+
 func recordKeybindConflict(conflicts map[string]map[string]string, ctx, key, desc string) {
 	if conflicts[ctx] == nil {
 		conflicts[ctx] = map[string]string{}
@@ -1318,8 +1402,7 @@ func recordKeybindConflict(conflicts map[string]map[string]string, ctx, key, des
 // Parity contract:
 //   - Every GetKeyBindingDocs entry is registered (doc-only bindings need no handler).
 //   - Every footer hint resolves to a documented binding for that context.
-//   - Every footer hint key is handled at runtime (registry dispatch stack or
-//     documented alternate path — see parityAlternateHandler).
+//   - Every footer-advertised key is handled by Update() in that exact model state.
 //   - Table-driven cases prove filter/detail/board/graph/modal behavior.
 
 func TestKeybindParity(t *testing.T) {
@@ -1350,10 +1433,9 @@ func TestKeybindParity(t *testing.T) {
 		for _, tc := range parityContextStates() {
 			t.Run(tc.name, func(t *testing.T) {
 				model := tc.setup(setupTestModel(t))
-				ctx := model.hintContext()
+				ctx := model.footerSubjectContext()
 				docContexts := docContextsForUI(ctx, HintFooter)
-				hints := reg.HintsFor(ctx, HintFooter, footerHintLimit)
-				for _, hint := range hints {
+				for _, hint := range model.footerHintBindings() {
 					for _, key := range expandFooterHintKeys(hint.Key) {
 						if !docKeyDocumented(key, docContexts) {
 							t.Errorf("context %s footer key %q has no matching GetKeyBindingDocs entry (contexts=%v)", ctx, key, docContexts)
@@ -1364,20 +1446,16 @@ func TestKeybindParity(t *testing.T) {
 		}
 	})
 
-	t.Run("footer_hints_have_handlers", func(t *testing.T) {
+	t.Run("footer_advertised_keys_handled", func(t *testing.T) {
 		for _, tc := range parityContextStates() {
 			t.Run(tc.name, func(t *testing.T) {
 				model := tc.setup(setupTestModel(t))
-				ctx := model.hintContext()
-				hints := reg.HintsFor(ctx, HintFooter, footerHintLimit)
-				for _, hint := range hints {
-					for _, key := range expandFooterHintKeys(hint.Key) {
-						if parityAlternateHandler(model, ctx, key) {
-							continue
-						}
-						if !parityRegistryHandles(model, key) {
-							t.Errorf("context %s footer advertises %q without runtime handler", ctx, key)
-						}
+				for _, key := range model.footerAdvertisedKeys() {
+					before := model
+					updated, cmd := before.Update(keyMsg(key))
+					after := updated.(Model)
+					if !footerKeyWasHandled(before, after, key, cmd) {
+						t.Errorf("context %s footer advertises %q but Update did not handle it", model.footerSubjectContext(), key)
 					}
 				}
 			})
@@ -1482,6 +1560,31 @@ func parityContextStates() []parityContextCase {
 		{"recipe_picker", func(m Model) Model {
 			m.showRecipePicker = true
 			m.focused = focusRecipePicker
+			return m
+		}},
+		{"tutorial", func(m Model) Model {
+			m.showTutorial = true
+			m.focused = focusTutorial
+			return m
+		}},
+		{"glyph_help", func(m Model) Model {
+			m.showGlyphHelp = true
+			m.focused = focusHelp
+			return m
+		}},
+		{"quit_confirm", func(m Model) Model {
+			m.showQuitConfirm = true
+			return m
+		}},
+		{"history_search", func(m Model) Model {
+			m.focused = focusHistory
+			m.isHistoryView = true
+			m.historyView.StartSearch()
+			return m
+		}},
+		{"alerts_panel", func(m Model) Model {
+			m.showAlertsPanel = true
+			m.alerts = []drift.Alert{{IssueID: "test-1", Severity: drift.SeverityWarning, Message: "test"}}
 			return m
 		}},
 	}
@@ -1609,26 +1712,6 @@ func parityDispatchCases() []parityDispatchCase {
 	}
 }
 
-func expandFooterHintKeys(key string) []string {
-	var keys []string
-	if strings.Contains(key, "/") {
-		for _, part := range strings.Split(key, "/") {
-			part = strings.TrimSpace(part)
-			if part != "" {
-				keys = append(keys, part)
-			}
-		}
-	} else {
-		keys = []string{key}
-	}
-	for i, k := range keys {
-		if strings.EqualFold(k, "f4") {
-			keys[i] = "f4"
-		}
-	}
-	return keys
-}
-
 func docKeyDocumented(key string, docContexts []string) bool {
 	for _, doc := range GetKeyBindingDocs() {
 		if doc.Key != key {
@@ -1644,7 +1727,9 @@ func docKeyDocumented(key string, docContexts []string) bool {
 // parityFocusStack mirrors modal overlay precedence before registry dispatch.
 func parityFocusStack(m Model) []focus {
 	switch {
-	case m.showHelp:
+	case m.showTutorial:
+		return []focus{focusTutorial}
+	case m.showHelp, m.showGlyphHelp:
 		return []focus{focusHelp}
 	case m.showContextHelp:
 		return []focus{focusContextHelp}
@@ -1654,6 +1739,8 @@ func parityFocusStack(m Model) []focus {
 		return []focus{focusRecipePicker}
 	case m.showRepoPicker:
 		return []focus{focusRepoPicker}
+	case m.showUpdateModal:
+		return []focus{focusUpdateModal}
 	default:
 		return m.DispatchFocusStack()
 	}
@@ -1700,6 +1787,106 @@ func parityAlternateHandler(m Model, ctx Context, key string) bool {
 	// Global shortcuts handled in Update() before registry dispatch.
 	switch key {
 	case "?", "f1", "~", "`", ";", "f2", "K", "ctrl+r", "f5":
+		return true
+	}
+	return false
+}
+
+func footerKeyWasHandled(before, after Model, key string, cmd tea.Cmd) bool {
+	if cmd != nil {
+		return true
+	}
+	if before.showHelp && after.showHelp {
+		return true
+	}
+	if before.showContextHelp && after.showContextHelp {
+		return true
+	}
+	if before.showTutorial != after.showTutorial {
+		return true
+	}
+	if before.showTutorial && after.showTutorial {
+		tm := before.tutorialModel
+		am := after.tutorialModel
+		if tm.currentPage != am.currentPage ||
+			tm.scrollOffset != am.scrollOffset ||
+			tm.tocVisible != am.tocVisible ||
+			tm.focus != am.focus {
+			return true
+		}
+	}
+	if before.showGlyphHelp != after.showGlyphHelp {
+		return true
+	}
+	if before.showGlyphHelp && after.showGlyphHelp && before.glyphHelpScroll != after.glyphHelpScroll {
+		return true
+	}
+	if before.showQuitConfirm != after.showQuitConfirm {
+		return true
+	}
+	if before.showUpdateModal != after.showUpdateModal {
+		return true
+	}
+	if before.showCassModal != after.showCassModal {
+		return true
+	}
+	if before.showAgentPrompt != after.showAgentPrompt {
+		return true
+	}
+	if before.showAlertsPanel != after.showAlertsPanel {
+		return true
+	}
+	if before.alertsCursor != after.alertsCursor {
+		return true
+	}
+	if before.sortMode != after.sortMode {
+		return true
+	}
+	if before.currentFilter != after.currentFilter {
+		return true
+	}
+	if before.focused != after.focused {
+		return true
+	}
+	if before.showLabelPicker != after.showLabelPicker ||
+		before.isHistoryView != after.isHistoryView ||
+		before.isBoardView != after.isBoardView ||
+		before.isGraphView != after.isGraphView {
+		return true
+	}
+	if before.list.FilterState() != after.list.FilterState() {
+		return true
+	}
+	if before.board.IsSearchMode() != after.board.IsSearchMode() {
+		return true
+	}
+	if before.historyView.IsSearchActive() != after.historyView.IsSearchActive() {
+		return true
+	}
+	if before.list.Index() != after.list.Index() {
+		return true
+	}
+	if before.statusMsg != after.statusMsg && after.statusMsg != "" {
+		return true
+	}
+	if before.showLabelPicker && after.labelPicker.InputValue() != before.labelPicker.InputValue() {
+		return true
+	}
+	if before.historyView.IsSearchActive() {
+		return true
+	}
+	if before.board.IsSearchMode() && (before.board.SearchQuery() != after.board.SearchQuery() ||
+		before.board.SearchMatchCount() != after.board.SearchMatchCount()) {
+		return true
+	}
+	// Blocking overlay/submode consumed the key even when boundary no-op (e.g. tutorial h on page 1).
+	if before.footerSubjectContext() == after.footerSubjectContext() {
+		ctx := before.footerSubjectContext()
+		if ctx.IsOverlay() || ctx == ContextFilter || ctx == ContextBoardSearch || ctx == ContextHistorySearch {
+			return !footerExcludedKey(ctx, key)
+		}
+	}
+	if parityRegistryHandles(before, key) {
 		return true
 	}
 	return false

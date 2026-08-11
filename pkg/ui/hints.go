@@ -34,22 +34,20 @@ type keyDescPair struct {
 	desc string
 }
 
-// hintContext returns the UI context used for footer/overlay hint lookup.
-func (m Model) hintContext() Context {
-	if m.showHelp {
-		return ContextHelp
-	}
-	if m.showContextHelp {
-		return ContextContextHelp
-	}
-	if m.showGlyphHelp {
-		return ContextGlyphHelp
-	}
+// footerSubjectContext returns the UI context that governs footer key hints.
+// It reflects modal/submode state that overrides generic list/view bindings.
+func (m Model) footerSubjectContext() Context {
 	if m.isBoardView && m.board.IsSearchMode() {
 		return ContextBoardSearch
 	}
+	if m.focused == focusHistory && m.historyView.IsSearchActive() {
+		return ContextHistorySearch
+	}
 	return m.CurrentContext()
 }
+
+// hintContext is deprecated; use footerSubjectContext.
+func (m Model) hintContext() Context { return m.footerSubjectContext() }
 
 // helpSubjectContext returns the view context shown in the ? help overlay
 // (the view the user came from, not the help overlay itself).
@@ -143,9 +141,31 @@ func contextToDocContext(ctx Context) string {
 		return "help"
 	case ContextContextHelp:
 		return "context-help"
-	case ContextTimeTravel:
-		return "list"
+	case ContextTutorial:
+		return "tutorial"
+	case ContextGlyphHelp:
+		return "glyph-help"
+	case ContextQuitConfirm:
+		return "quit-confirm"
+	case ContextUpdateModal:
+		return "update-modal"
+	case ContextHistorySearch:
+		return "history-search"
+	case ContextAlerts:
+		return "alerts"
+	case ContextAgentPrompt:
+		return "agent-prompt"
+	case ContextCassSession:
+		return "cass-session"
+	case ContextLabelHealthDetail:
+		return "label-health-detail"
+	case ContextLabelDrilldown:
+		return "label-drilldown"
+	case ContextLabelGraphAnalysis:
+		return "label-graph-analysis"
 	case ContextTimeTravelInput:
+		return "list"
+	case ContextTimeTravel:
 		return "list"
 	default:
 		return string(ctx)
@@ -249,6 +269,7 @@ func footerExcludedKey(ctx Context, key string) bool {
 		case "h", "l", "j", "k", "G", "enter", "b", "n", "N", "esc":
 			return false
 		}
+		return true
 	case ContextFlowMatrix:
 		switch key {
 		case "j", "k", "tab", "enter", "esc", "f":
@@ -264,9 +285,76 @@ func footerExcludedKey(ctx Context, key string) bool {
 		case "esc", "ctrl+s", "enter":
 			return false
 		}
+		return true
 	case ContextContextHelp:
 		switch key {
 		case "esc", "q", "~":
+			return false
+		}
+		return true
+	case ContextTutorial:
+		switch key {
+		case "esc", "q", "t", "tab", "l", "h", "j", "k", " ", "left", "right", "ctrl+d", "ctrl+u":
+			return false
+		}
+		return true
+	case ContextGlyphHelp:
+		switch key {
+		case "j", "k", "esc", "K":
+			return false
+		}
+		return true
+	case ContextQuitConfirm:
+		switch key {
+		case "esc", "y", "Y":
+			return false
+		}
+		return true
+	case ContextUpdateModal:
+		switch key {
+		case "esc", "q", "enter", "n", "N":
+			return false
+		}
+		return true
+	case ContextHistorySearch:
+		switch key {
+		case "esc", "enter":
+			return false
+		}
+		return true
+	case ContextAlerts:
+		switch key {
+		case "j", "k", "enter", "d", "!", "esc", "q":
+			return false
+		}
+		return true
+	case ContextAgentPrompt:
+		switch key {
+		case "esc", "q", "enter", "y", "n":
+			return false
+		}
+		return true
+	case ContextCassSession:
+		switch key {
+		case "V", "esc", "enter", "q":
+			return false
+		}
+		return true
+	case ContextLabelHealthDetail:
+		switch key {
+		case "esc", "q", "enter", "h", "d":
+			return false
+		}
+		return true
+	case ContextLabelDrilldown, ContextLabelGraphAnalysis:
+		switch key {
+		case "esc", "q", "g", "enter", "d":
+			return false
+		}
+		return true
+	case ContextHelp:
+		switch key {
+		case "j", "k", "q", " ", "esc", "x", "g", "G", "ctrl+d", "ctrl+u", "pgup", "pgdown":
 			return false
 		}
 		return true
@@ -275,11 +363,13 @@ func footerExcludedKey(ctx Context, key string) bool {
 		case "j", "k", "enter", "esc", "space", "q":
 			return false
 		}
+		return true
 	case ContextTimeTravelInput:
 		switch key {
 		case "enter", "esc":
 			return false
 		}
+		return true
 	case ContextSplit, ContextDetail, ContextTimeTravel, ContextList:
 		switch key {
 		case "enter", "t", "S", "l", "L", "ctrl+r", "f5", "K", "?", "w", "tab", "C", "O", "x", "esc":
@@ -313,6 +403,21 @@ func footerKeyPriority(ctx Context, key string) int {
 	case ContextFilter:
 		switch key {
 		case "esc", "ctrl+s", "enter":
+			return 0
+		}
+	case ContextTutorial:
+		switch key {
+		case "esc", "q", "l", "h", "j", "k", "t", " ":
+			return 0
+		}
+	case ContextContextHelp:
+		switch key {
+		case "esc", "q", "~":
+			return 0
+		}
+	case ContextQuitConfirm:
+		switch key {
+		case "esc", "y", "Y":
 			return 0
 		}
 	case ContextGraph:
@@ -365,6 +470,10 @@ func footerCategoryPriority(ctx Context, category string) int {
 		}
 	case ContextFilter:
 		if category == "Filter" {
+			return 0
+		}
+	case ContextTutorial:
+		if category == "Tutorial" {
 			return 0
 		}
 	}
@@ -561,7 +670,15 @@ func footerDescLabel(ctx Context, key, desc string) string {
 				return "close"
 			case ContextDetail, ContextSplit:
 				return "back"
+			case ContextTutorial:
+				return "close"
 			}
+		}
+		if key == "l" && ctx == ContextTutorial {
+			return "next"
+		}
+		if key == "h" && ctx == ContextTutorial {
+			return "prev"
 		}
 		if key == "h" && ctx == ContextHistory {
 			return "close"
@@ -621,17 +738,82 @@ func formatFooterHint(ctx Context, key, desc string, keyStyle lipgloss.Style) st
 	return keyStyle.Render(formatKeyForHint(key)) + " " + label
 }
 
-func (m *Model) footerHintsFromRegistry(keyStyle lipgloss.Style) []string {
-	if m.keyRegistry == nil {
-		return nil
+func expandFooterHintKeys(key string) []string {
+	var keys []string
+	if strings.Contains(key, "/") {
+		for _, part := range strings.Split(key, "/") {
+			part = strings.TrimSpace(part)
+			if part != "" {
+				keys = append(keys, part)
+			}
+		}
+	} else if key == "⏎" {
+		keys = []string{"enter"}
+	} else {
+		keys = []string{key}
 	}
-	ctx := m.hintContext()
-	bindings := m.keyRegistry.HintsFor(ctx, HintFooter, footerHintLimit)
+	for i, k := range keys {
+		if strings.EqualFold(k, "f4") {
+			keys[i] = "f4"
+		}
+	}
+	return keys
+}
+
+func (m Model) footerHintBindings() []KeyBinding {
+	switch {
+	case m.showHelp:
+		return nil
+	case m.showGlyphHelp:
+		return []KeyBinding{
+			{Key: "j", Desc: "Scroll down", Category: "Help"},
+			{Key: "k", Desc: "Scroll up", Category: "Help"},
+			{Key: "K", Desc: "Close symbol reference", Category: "Help"},
+			{Key: "esc", Desc: "Close symbol reference", Category: "Help"},
+		}
+	case m.isBoardView && m.board.IsSearchMode():
+		return []KeyBinding{
+			{Key: "n", Desc: "Next match", Category: "Board"},
+			{Key: "N", Desc: "Previous match", Category: "Board"},
+			{Key: "enter", Desc: "Finish board search", Category: "Board"},
+			{Key: "esc", Desc: "Cancel board search", Category: "Board"},
+		}
+	default:
+		if m.keyRegistry == nil {
+			return nil
+		}
+		return m.keyRegistry.HintsFor(m.footerSubjectContext(), HintFooter, footerHintLimit)
+	}
+}
+
+func (m Model) footerAdvertisedKeys() []string {
+	var keys []string
+	for _, b := range m.footerHintBindings() {
+		keys = append(keys, expandFooterHintKeys(b.Key)...)
+	}
+	return keys
+}
+
+func (m *Model) footerHintsFromRegistry(keyStyle lipgloss.Style) []string {
+	bindings := m.footerHintBindings()
+	ctx := m.footerSubjectContext()
 	hints := make([]string, 0, len(bindings))
 	for _, b := range bindings {
 		hints = append(hints, formatFooterHint(ctx, b.Key, b.Desc, keyStyle))
 	}
 	return hints
+}
+
+// footerShowsListLabelHint reports whether the left labelHint strip should show
+// list-centric shortcuts (l:labels, enter:detail). Overlays and specialized
+// views use their own hint surfaces instead.
+func (m Model) footerShowsListLabelHint() bool {
+	switch m.footerSubjectContext() {
+	case ContextList, ContextSplit, ContextDetail, ContextTimeTravel, ContextBoard, ContextAttention:
+		return true
+	default:
+		return false
+	}
 }
 
 func (m *Model) helpOverlayPanelSpecs() []helpOverlayPanelSpec {
