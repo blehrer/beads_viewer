@@ -1316,8 +1316,7 @@ This issue is a high-priority auth bug that needs security review.
 
 | Key | Action |
 |-----|--------|
-| **L** | Open label picker (apply labels) |
-| **Shift+L** | Filter by label |
+| **l** | Open label picker (filter by label) |
 | **[** | Switch to Labels dashboard view |
 
 ### Label Analytics

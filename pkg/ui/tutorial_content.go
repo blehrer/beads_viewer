@@ -208,8 +208,7 @@ func structuredTutorialPages() []StructuredTutorialPage {
 				Spacer{Lines: 1},
 				Section{Title: "Working with Labels"},
 				KeyTable{Bindings: []KeyHint{
-					{Key: "L", Desc: "Open label picker"},
-					{Key: "Shift+L", Desc: "Filter by label"},
+					{Key: "l", Desc: "Open label picker (filter by label)"},
 					{Key: "[", Desc: "Labels dashboard view"},
 				}},
 				Spacer{Lines: 1},

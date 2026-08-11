@@ -664,6 +664,18 @@ func TestKeyDispatch_Regression_HistorySearchConsumesGlobalKeys(t *testing.T) {
 	}
 }
 
+// TestKeyDispatch_LabelPickerUppercaseL verifies footer hints that show "L"
+// actually open the picker (Shift+L sends uppercase L in most terminals).
+func TestKeyDispatch_LabelPickerUppercaseL(t *testing.T) {
+	m := setupTestModel(t)
+
+	updated, _ := m.Update(keyMsg("L"))
+	m = updated.(Model)
+	if m.focused != focusLabelPicker || !m.showLabelPicker {
+		t.Fatalf("expected label picker after 'L', got focused=%v showLabelPicker=%v", m.focused, m.showLabelPicker)
+	}
+}
+
 // TestKeyDispatch_Regression_LabelPickerConsumesQKey guards against issue #176:
 // the "Filter by Label" picker has an always-focused text input, so a lowercase
 // q must be typed into the filter rather than triggering the global quit/back

@@ -3408,6 +3408,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 					return m, nil
 				}
+				// Label picker is advertised in the footer as l/L; detail pane
+				// consumes keys before the list-level view-toggle block runs.
+				if keyStr == "l" || keyStr == "L" {
+					if m, ok := m.openLabelPicker(); ok {
+						return m, nil
+					}
+					return m, nil
+				}
 				m.viewport, cmd = m.viewport.Update(msg)
 				cmds = append(cmds, cmd)
 				return m, tea.Batch(cmds...)
@@ -3665,19 +3673,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.exportToMarkdown()
 				return m, nil
 
-			case "l":
-				// Open label picker for quick filter (bv-126)
-				if len(m.issues) == 0 {
+			case "l", "L":
+				// Open label picker for quick filter (bv-126).
+				// Accept uppercase too — footer/tutorial show "L" and Shift+L
+				// is the natural muscle memory for a capital hint.
+				if m, ok := m.openLabelPicker(); ok {
 					return m, nil
 				}
-				// Update labels in case they changed
-				labelExtraction := analysis.ExtractLabels(m.issues)
-				labelCounts := extractLabelCounts(labelExtraction.Stats)
-				m.labelPicker.SetLabels(labelExtraction.Labels, labelCounts)
-				m.labelPicker.Reset()
-				m.labelPicker.SetSize(m.width, m.height-1)
-				m.showLabelPicker = true
-				m.focused = focusLabelPicker
 				return m, nil
 
 			case "O":
@@ -4629,6 +4631,21 @@ func (m Model) handleRepoPickerKeys(msg tea.KeyMsg) Model {
 		m.focused = focusList
 	}
 	return m
+}
+
+// openLabelPicker shows the fuzzy label filter overlay when issues exist.
+func (m Model) openLabelPicker() (Model, bool) {
+	if len(m.issues) == 0 {
+		return m, false
+	}
+	labelExtraction := analysis.ExtractLabels(m.issues)
+	labelCounts := extractLabelCounts(labelExtraction.Stats)
+	m.labelPicker.SetLabels(labelExtraction.Labels, labelCounts)
+	m.labelPicker.Reset()
+	m.labelPicker.SetSize(m.width, m.height-1)
+	m.showLabelPicker = true
+	m.focused = focusLabelPicker
+	return m, true
 }
 
 // handleLabelPickerKeys handles keyboard input when label picker is focused (bv-126)
@@ -6082,7 +6099,7 @@ func (m *Model) renderFooter() string {
 	labelHint := lipgloss.NewStyle().
 		Foreground(ColorFooterHint).
 		Padding(0, 1).
-		Render("L:labels • h:detail")
+		Render("l:labels • h:detail")
 
 	// Board-specific hints (bv-yg39, bv-naov)
 	if m.isBoardView {
@@ -6107,7 +6124,7 @@ func (m *Model) renderFooter() string {
 			labelHint = lipgloss.NewStyle().
 				Foreground(ColorFooterHint).
 				Padding(0, 1).
-				Render(fmt.Sprintf("%s1-4:col • o/c/r:filter • L:labels • /:search • ?:help", filterInfo))
+				Render(fmt.Sprintf("%s1-4:col • o/c/r:filter • /:search • ?:help", filterInfo))
 		}
 	} else if m.showAttentionView {
 		labelHint = lipgloss.NewStyle().
