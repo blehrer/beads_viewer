@@ -19,11 +19,16 @@ func TestUpdateHelpQuitAndTabFocus(t *testing.T) {
 	updated, _ := m.Update(tea.WindowSizeMsg{Width: 140, Height: 40})
 	m = updated.(Model)
 
-	// Help toggle via ? then dismiss with another key
+	// Help toggle via ?; x must not dismiss (see handleHelpKeys in model.go)
 	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("?")})
 	m = updated.(Model)
 	if !m.showHelp || m.focused != focusHelp {
 		t.Fatalf("expected help overlay shown")
+	}
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("x")})
+	m = updated.(Model)
+	if !m.showHelp || m.focused != focusHelp {
+		t.Fatalf("expected help overlay to stay open on x")
 	}
 	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
 	m = updated.(Model)
