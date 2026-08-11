@@ -22,7 +22,8 @@ func (m Model) renderSprintDashboard() string {
 	}
 	sprint := m.selectedSprint
 
-	innerWidth := m.width - 6
+	cw := m.mainContentWidth()
+	innerWidth := cw - 6
 	if innerWidth < 40 {
 		innerWidth = 40
 	}
@@ -241,11 +242,11 @@ func (m Model) renderSprintDashboard() string {
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(t.Primary).
 		Padding(1, 2).
-		Width(min(80, m.width-4)).
+		Width(min(80, cw-4)).
 		MaxHeight(m.height - 2)
 
 	return lipgloss.Place(
-		m.width,
+		cw,
 		m.height-1,
 		lipgloss.Center,
 		lipgloss.Top,

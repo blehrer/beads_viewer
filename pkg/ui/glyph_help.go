@@ -57,7 +57,8 @@ func (m Model) issueByID(id string) (*model.Issue, bool) {
 
 func (m Model) renderGlyphHelpOverlay() string {
 	t := m.theme
-	width := m.width - 4
+	cw := m.mainContentWidth()
+	width := cw - 4
 	if width < 40 {
 		width = 40
 	}
@@ -133,7 +134,7 @@ func (m Model) renderGlyphHelpOverlay() string {
 		Height(height)
 
 	rendered := boxStyle.Render(viewContent)
-	return lipgloss.Place(m.width, m.height-1, lipgloss.Center, lipgloss.Center, rendered)
+	return lipgloss.Place(cw, m.height-1, lipgloss.Center, lipgloss.Center, rendered)
 }
 
 func formatGlossaryLine(e icons.GlossaryEntry, glyphStyle, descStyle lipgloss.Style, width int) string {

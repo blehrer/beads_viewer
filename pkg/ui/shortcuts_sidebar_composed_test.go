@@ -6,7 +6,47 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/Dicklesworthstone/beads_viewer/pkg/drift"
 )
+
+func maxLineWidth(s string) int {
+	mx := 0
+	for _, ln := range strings.Split(s, "\n") {
+		if w := lipgloss.Width(ln); w > mx {
+			mx = w
+		}
+	}
+	return mx
+}
+
+// composedBodyWidth reconstructs the View() body before the final clamp.
+func composedBodyWidth(m Model) int {
+	return maxLineWidth(m.renderViewBody())
+}
+
+func enableSidebar(t *testing.T, m Model) Model {
+	t.Helper()
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(";")})
+	m = updated.(Model)
+	if !m.showShortcutsSidebar {
+		t.Fatal("`;` did not enable the shortcuts sidebar")
+	}
+	return m
+}
+
+func assertComposedFitsTerminal(t *testing.T, m Model, label string) {
+	t.Helper()
+	if cw := composedBodyWidth(m); cw > m.width {
+		t.Errorf("%s: composed width %d exceeds terminal width %d (#168 overflow)", label, cw, m.width)
+	}
+}
+
+func keyModel(t *testing.T, m Model, key rune) Model {
+	t.Helper()
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{key}})
+	return updated.(Model)
+}
 
 // TestShortcutsSidebarComposedWidthFitsTerminal is a stronger companion to
 // TestShortcutsSidebarReservesLayoutWidth. That test measures m.View(), whose
@@ -17,33 +57,6 @@ import (
 // m.width, so it catches reservation-math drift (e.g. forgetting the sidebar's
 // rendered border columns, or a body path that ignores mainContentWidth()).
 func TestShortcutsSidebarComposedWidthFitsTerminal(t *testing.T) {
-	maxLineWidth := func(s string) int {
-		mx := 0
-		for _, ln := range strings.Split(s, "\n") {
-			if w := lipgloss.Width(ln); w > mx {
-				mx = w
-			}
-		}
-		return mx
-	}
-
-	// composeWidth rebuilds the same body+sidebar join View() performs, before
-	// the final full-screen clamp, for the currently-focused list/detail body.
-	composeWidth := func(m Model, showDetails bool) int {
-		var body string
-		if m.isSplitView {
-			body = m.renderSplitView()
-		} else if showDetails {
-			body = m.viewport.View()
-		} else {
-			body = m.renderListWithHeader()
-		}
-		m.shortcutsSidebar.SetFocus(m.focused)
-		m.shortcutsSidebar.SetSize(m.shortcutsSidebar.Width(), m.height-2)
-		sidebar := m.shortcutsSidebar.View()
-		return maxLineWidth(lipgloss.JoinHorizontal(lipgloss.Top, body, sidebar))
-	}
-
 	cases := []struct {
 		name      string
 		w, h      int
@@ -63,23 +76,116 @@ func TestShortcutsSidebarComposedWidthFitsTerminal(t *testing.T) {
 				t.Fatalf("w=%d isSplitView=%v want %v", tc.w, m.isSplitView, tc.wantSplit)
 			}
 
-			// Open the sidebar via the real `;` key path.
-			updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(";")})
-			m = updated.(Model)
-			if !m.showShortcutsSidebar {
-				t.Fatalf("`;` did not enable the shortcuts sidebar")
-			}
+			m = enableSidebar(t, m)
 
-			// List/board body and (mobile) detail body must both fit once the
-			// sidebar column is appended.
-			if cw := composeWidth(m, false); cw > m.width {
-				t.Errorf("list body + sidebar composed width %d exceeds terminal width %d (#168 overflow)", cw, m.width)
-			}
+			assertComposedFitsTerminal(t, m, "list")
 			if !m.isSplitView {
-				if cw := composeWidth(m, true); cw > m.width {
-					t.Errorf("detail body + sidebar composed width %d exceeds terminal width %d (#168 overflow)", cw, m.width)
-				}
+				m.showDetails = true
+				assertComposedFitsTerminal(t, m, "detail")
 			}
+		})
+	}
+}
+
+// TestShortcutsSidebarComposedWidth_Matrix verifies every major body and overlay
+// combination fits the terminal once the shortcuts sidebar is docked (bv-sl44.5).
+func TestShortcutsSidebarComposedWidth_Matrix(t *testing.T) {
+	testAlert := drift.Alert{
+		Type:     drift.AlertStaleIssue,
+		Severity: drift.SeverityWarning,
+		Message:  "Stale issue detected",
+		IssueID:  "bv-test",
+	}
+
+	cases := []struct {
+		name  string
+		w, h  int
+		setup func(t *testing.T, m Model) Model
+	}{
+		{
+			name: "list_mobile",
+			w:    80, h: 30,
+			setup: func(t *testing.T, m Model) Model { return enableSidebar(t, m) },
+		},
+		{
+			name: "split",
+			w:    120, h: 30,
+			setup: func(t *testing.T, m Model) Model { return enableSidebar(t, m) },
+		},
+		{
+			name: "actionable",
+			w:    120, h: 30,
+			setup: func(t *testing.T, m Model) Model {
+				m = keyModel(t, m, 'a')
+				if !m.isActionableView {
+					t.Fatal("a did not open actionable view")
+				}
+				return enableSidebar(t, m)
+			},
+		},
+		{
+			name: "board",
+			w:    120, h: 30,
+			setup: func(t *testing.T, m Model) Model {
+				m = keyModel(t, m, 'b')
+				if !m.isBoardView {
+					t.Fatal("b did not open board view")
+				}
+				return enableSidebar(t, m)
+			},
+		},
+		{
+			name: "graph",
+			w:    120, h: 30,
+			setup: func(t *testing.T, m Model) Model {
+				m = keyModel(t, m, 'g')
+				if !m.isGraphView {
+					t.Fatal("g did not open graph view")
+				}
+				return enableSidebar(t, m)
+			},
+		},
+		{
+			name: "insights",
+			w:    120, h: 30,
+			setup: func(t *testing.T, m Model) Model {
+				m = keyModel(t, m, 'i')
+				if m.focused != focusInsights {
+					t.Fatalf("i did not open insights view, focused=%v", m.focused)
+				}
+				return enableSidebar(t, m)
+			},
+		},
+		{
+			name: "alerts",
+			w:    120, h: 30,
+			setup: func(t *testing.T, m Model) Model {
+				m.alerts = []drift.Alert{testAlert}
+				m = keyModel(t, m, '!')
+				if !m.showAlertsPanel {
+					t.Fatal("! did not open alerts panel")
+				}
+				return enableSidebar(t, m)
+			},
+		},
+		{
+			name: "help",
+			w:    120, h: 30,
+			setup: func(t *testing.T, m Model) Model {
+				m = keyModel(t, m, '?')
+				if !m.showHelp {
+					t.Fatal("? did not open help overlay")
+				}
+				return enableSidebar(t, m)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			m := sizedModel(t, mouseTestIssues(40), tc.w, tc.h)
+			m = tc.setup(t, m)
+			assertComposedFitsTerminal(t, m, tc.name)
 		})
 	}
 }

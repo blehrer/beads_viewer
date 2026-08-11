@@ -1,3 +1,6 @@
+# charm.land/lipgloss/v2 v2.0.2
+## explicit; go 1.25.0
+charm.land/lipgloss/v2
 # git.sr.ht/~sbinet/gg v0.8.0
 ## explicit; go 1.25.0
 git.sr.ht/~sbinet/gg
@@ -22,8 +25,6 @@ github.com/atotto/clipboard
 # github.com/aymanbagabas/go-osc52/v2 v2.0.1
 ## explicit; go 1.16
 github.com/aymanbagabas/go-osc52/v2
-# github.com/aymanbagabas/go-udiff v0.4.1
-## explicit; go 1.24
 # github.com/aymerick/douceur v0.2.0
 ## explicit
 github.com/aymerick/douceur/css
@@ -67,9 +68,13 @@ github.com/charmbracelet/huh/internal/selector
 github.com/charmbracelet/lipgloss
 github.com/charmbracelet/lipgloss/table
 github.com/charmbracelet/lipgloss/tree
+# github.com/charmbracelet/ultraviolet v0.0.0-20251205161215-1948445e3318
+## explicit; go 1.24.2
+github.com/charmbracelet/ultraviolet
 # github.com/charmbracelet/x/ansi v0.11.7
 ## explicit; go 1.24.2
 github.com/charmbracelet/x/ansi
+github.com/charmbracelet/x/ansi/kitty
 github.com/charmbracelet/x/ansi/parser
 # github.com/charmbracelet/x/cellbuf v0.0.15
 ## explicit; go 1.24.2
@@ -87,6 +92,12 @@ github.com/charmbracelet/x/exp/strings
 # github.com/charmbracelet/x/term v0.2.2
 ## explicit; go 1.24.0
 github.com/charmbracelet/x/term
+# github.com/charmbracelet/x/termios v0.1.1
+## explicit; go 1.18
+github.com/charmbracelet/x/termios
+# github.com/charmbracelet/x/windows v0.2.2
+## explicit; go 1.23.0
+github.com/charmbracelet/x/windows
 # github.com/charmbracelet/x/xpty v0.1.3
 ## explicit; go 1.24.0
 # github.com/clipperhouse/displaywidth v0.11.0
