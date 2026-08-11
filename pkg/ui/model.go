@@ -3416,6 +3416,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 					return m, nil
 				}
+				// Footer-advertised action keys (C/y/t/x/etc.) must reach
+				// list-level handlers, not the detail viewport (bv-p5kf.7).
+				if detailPassthroughKey(keyStr) {
+					break
+				}
 				m.viewport, cmd = m.viewport.Update(msg)
 				cmds = append(cmds, cmd)
 				return m, tea.Batch(cmds...)
@@ -4720,6 +4725,17 @@ func (m Model) handleInsightsKeys(msg tea.KeyMsg) Model {
 		}
 	}
 	return m
+}
+
+// detailPassthroughKey reports keys advertised in split/detail footer and
+// shortcuts sidebar that must not be swallowed by the detail viewport.
+func detailPassthroughKey(key string) bool {
+	switch key {
+	case "C", "y", "t", "T", "x", "'", "U", "V":
+		return true
+	default:
+		return false
+	}
 }
 
 // handleListKeys handles keyboard input when the list is focused

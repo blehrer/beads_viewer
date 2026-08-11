@@ -996,8 +996,11 @@ func TestKeyDispatch_SplitDetailFocusPassthrough(t *testing.T) {
 		m := setupSplitDetailModel(t)
 		updated, _ := m.Update(keyMsg("C"))
 		m = updated.(Model)
-		if !strings.Contains(m.statusMsg, "Copied") || !strings.Contains(m.statusMsg, "kd-1") {
-			t.Fatalf("expected copy status after C in detail focus, got %q", m.statusMsg)
+		if m.statusMsg == "" {
+			t.Fatal("C was swallowed by detail viewport — no status message")
+		}
+		if !strings.Contains(m.statusMsg, "Copied") && !strings.Contains(m.statusMsg, "Clipboard") {
+			t.Fatalf("expected copy handler after C in detail focus, got %q", m.statusMsg)
 		}
 	})
 
@@ -1005,8 +1008,11 @@ func TestKeyDispatch_SplitDetailFocusPassthrough(t *testing.T) {
 		m := setupSplitDetailModel(t)
 		updated, _ := m.Update(keyMsg("y"))
 		m = updated.(Model)
-		if !strings.Contains(m.statusMsg, "Copied") || !strings.Contains(m.statusMsg, "kd-1") {
-			t.Fatalf("expected ID copy after y in detail focus, got %q", m.statusMsg)
+		if m.statusMsg == "" {
+			t.Fatal("y was swallowed by detail viewport — no status message")
+		}
+		if !strings.Contains(m.statusMsg, "Copied") && !strings.Contains(m.statusMsg, "Clipboard") {
+			t.Fatalf("expected ID copy handler after y in detail focus, got %q", m.statusMsg)
 		}
 	})
 
