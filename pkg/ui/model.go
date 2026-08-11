@@ -13,10 +13,10 @@ import (
 	"time"
 
 	"github.com/Dicklesworthstone/beads_viewer/internal/datasource"
-	"github.com/Dicklesworthstone/beads_viewer/pkg/beadscli"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/agents"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/analysis"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/baseline"
+	"github.com/Dicklesworthstone/beads_viewer/pkg/beadscli"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/cass"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/correlation"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/debug"
@@ -1281,7 +1281,7 @@ func (m *Model) rebuildInsightsPanel() {
 	if panelHeight < 3 {
 		panelHeight = 3
 	}
-	panel.SetSize(m.width, panelHeight)
+	panel.SetSize(m.mainContentWidth(), panelHeight)
 	m.insightsPanel = panel
 }
 
@@ -1441,10 +1441,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.width = 120
 			m.height = 40
 			m.ready = true
-			m.list.SetSize(m.width, m.height-3)
-			m.viewport = viewport.New(m.width, m.height-2)
-			m.insightsPanel.SetSize(m.width, m.height-1)
-			m.labelDashboard.SetSize(m.width, m.height-1)
+			m.applyContentSizing()
 		}
 
 	case SemanticIndexReadyMsg:
@@ -1595,7 +1592,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if bodyHeight < 5 {
 			bodyHeight = 5
 		}
-		m.insightsPanel.SetSize(m.width, bodyHeight)
+		m.insightsPanel.SetSize(m.mainContentWidth(), bodyHeight)
 		if m.snapshot != nil {
 			m.graphView.SetSnapshot(m.snapshot)
 		} else {
@@ -1716,7 +1713,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.statusIsError = true
 		} else if msg.Report != nil {
 			m.historyView = NewHistoryModel(msg.Report, m.theme)
-			m.historyView.SetSize(m.width, m.height-1)
+			m.historyView.SetSize(m.mainContentWidth(), m.height-1)
 			// Refresh detail pane if visible
 			if m.isSplitView || m.showDetails {
 				m.updateViewportContent()
@@ -1844,7 +1841,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if bodyHeight < 5 {
 			bodyHeight = 5
 		}
-		m.insightsPanel.SetSize(m.width, bodyHeight)
+		m.insightsPanel.SetSize(m.mainContentWidth(), bodyHeight)
 
 		// Update list/board/graph views while preserving the current recipe/filter state.
 		if m.activeRecipe != nil {
@@ -1999,7 +1996,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// user state (selection + persisted expand/collapse) (bv-6n4c).
 		if m.focused == focusTree {
 			m.tree.BuildFromSnapshot(m.snapshot)
-			m.tree.SetSize(m.width, m.height-2)
+			m.tree.SetSize(m.mainContentWidth(), m.height-2)
 		}
 
 		// Refresh detail pane if visible
@@ -2346,7 +2343,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if bodyHeight < 5 {
 				bodyHeight = 5
 			}
-			m.insightsPanel.SetSize(m.width, bodyHeight)
+			m.insightsPanel.SetSize(m.mainContentWidth(), bodyHeight)
 		}
 		if m.showAttentionView {
 			var attentionStart time.Time
@@ -2356,15 +2353,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cfg := analysis.DefaultLabelHealthConfig()
 			m.attentionCache = analysis.ComputeLabelAttentionScores(m.issues, cfg, time.Now().UTC())
 			m.attentionCached = true
-			attText, _ := ComputeAttentionView(m.issues, max(40, m.width-4))
+			attText, _ := ComputeAttentionView(m.issues, max(40, m.mainContentWidth()-4))
 			m.rebuildInsightsPanel()
 			m.insightsPanel.labelAttention = m.attentionCache.Labels
 			m.insightsPanel.extraText = attText
-			panelHeight := m.height - 2
-			if panelHeight < 3 {
-				panelHeight = 3
-			}
-			m.insightsPanel.SetSize(m.width, panelHeight)
+			m.applyContentSizing()
 			if profileRefresh {
 				recordTiming("attention_view", time.Since(attentionStart))
 			}
@@ -2679,6 +2672,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
+		// Shortcuts sidebar toggle before modal overlays swallow keys (#168, bv-sl44).
+		if (msg.String() == ";" || msg.String() == "f2") && m.list.FilterState() != list.Filtering {
+			m.showShortcutsSidebar = !m.showShortcutsSidebar
+			m.applyContentSizing()
+			if m.showShortcutsSidebar {
+				m.shortcutsSidebar.ResetScroll()
+				m.statusMsg = "Shortcuts sidebar: ; hide | ctrl+j/k scroll"
+				m.statusIsError = false
+			} else {
+				m.statusMsg = ""
+			}
+			return m, nil
+		}
+
 		// Handle alerts panel modal if open (bv-168)
 		if m.showAlertsPanel {
 			// Build list of active (non-dismissed) alerts
@@ -2828,7 +2835,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.showTutorial = !m.showTutorial
 			if m.showTutorial {
 				m.showHelp = false // Close help if open
-				m.tutorialModel.SetSize(m.width, m.height)
+				m.tutorialModel.SetSize(m.mainContentWidth(), m.height)
 				m.focused = focusTutorial
 			} else {
 				m.focused = focusList
@@ -2861,24 +2868,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			cmds = append(cmds, func() tea.Msg { return FileChangedMsg{} })
 			return m, tea.Batch(cmds...)
-		}
-
-		// Handle shortcuts sidebar toggle (; or F2) - bv-3qi5
-		if (msg.String() == ";" || msg.String() == "f2") && m.list.FilterState() != list.Filtering {
-			m.showShortcutsSidebar = !m.showShortcutsSidebar
-			// Reflow the main panes for the new content width so the sidebar
-			// reserves its own column instead of overflowing/wrapping into the
-			// panes (#168). Without this the body stays sized to the full width
-			// and the appended sidebar pushes lines past the terminal edge.
-			m.applyContentSizing()
-			if m.showShortcutsSidebar {
-				m.shortcutsSidebar.ResetScroll()
-				m.statusMsg = "Shortcuts sidebar: ; hide | ctrl+j/k scroll"
-				m.statusIsError = false
-			} else {
-				m.statusMsg = ""
-			}
-			return m, nil
 		}
 
 		// Handle shortcuts sidebar scrolling (Ctrl+j/k when sidebar visible) - bv-3qi5
@@ -3470,11 +3459,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					analyzer := analysis.NewAnalyzer(m.issues)
 					plan := analyzer.GetExecutionPlan()
 					m.actionableView = NewActionableModel(plan, m.theme)
-					m.actionableView.SetSize(m.width, m.height-2)
 					m.focused = focusActionable
 				} else {
 					m.focused = focusList
 				}
+				m.applyContentSizing()
 				return m, nil
 
 			case "E":
@@ -3493,9 +3482,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					} else {
 						m.tree.Build(m.issues)
 					}
-					m.tree.SetSize(m.width, m.height-2)
 					m.focused = focusTree
 				}
+				m.applyContentSizing()
 				return m, nil
 
 			case "i":
@@ -3538,16 +3527,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.isBoardView = false
 				m.isActionableView = false
 				if m.isHistoryView {
-					// Ensure history model has latest sizing
-					bodyHeight := m.height - 1
-					if bodyHeight < 5 {
-						bodyHeight = 5
-					}
-					m.historyView.SetSize(m.width, bodyHeight)
 					m.focused = focusHistory
 				} else {
 					m.focused = focusList
 				}
+				m.applyContentSizing()
 				return m, nil
 
 			case "[", "f3":
@@ -3565,7 +3549,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.labelHealthCached = true
 				}
 				m.labelDashboard.SetData(m.labelHealthCache.Labels)
-				m.labelDashboard.SetSize(m.width, m.height-1)
+				m.applyContentSizing()
 				m.statusMsg = fmt.Sprintf("Labels: %d total • critical %d • warning %d", m.labelHealthCache.TotalLabels, m.labelHealthCache.CriticalCount, m.labelHealthCache.WarningCount)
 				m.statusIsError = false
 				return m, nil
@@ -3577,7 +3561,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.attentionCache = analysis.ComputeLabelAttentionScores(m.issues, cfg, time.Now().UTC())
 					m.attentionCached = true
 				}
-				attText, _ := ComputeAttentionView(m.issues, max(40, m.width-4))
+				attText, _ := ComputeAttentionView(m.issues, max(40, m.mainContentWidth()-4))
 				m.isGraphView = false
 				m.isBoardView = false
 				m.isActionableView = false
@@ -3587,11 +3571,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.rebuildInsightsPanel()
 				m.insightsPanel.labelAttention = m.attentionCache.Labels
 				m.insightsPanel.extraText = attText
-				panelHeight := m.height - 2
-				if panelHeight < 3 {
-					panelHeight = 3
-				}
-				m.insightsPanel.SetSize(m.width, panelHeight)
+				m.applyContentSizing()
 				return m, nil
 
 			case "f":
@@ -3606,11 +3586,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.focused = focusFlowMatrix
 				m.flowMatrix = NewFlowMatrixModel(m.theme)
 				m.flowMatrix.SetData(&flow, m.issues)
-				panelHeight := m.height - 2
-				if panelHeight < 3 {
-					panelHeight = 3
-				}
-				m.flowMatrix.SetSize(m.width, panelHeight)
+				m.applyContentSizing()
 				return m, nil
 
 			case "!":
@@ -3635,11 +3611,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Toggle recipe picker overlay
 				m.showRecipePicker = !m.showRecipePicker
 				if m.showRecipePicker {
-					m.recipePicker.SetSize(m.width, m.height-1)
 					m.focused = focusRecipePicker
 				} else {
 					m.focused = focusList
 				}
+				m.applyContentSizing()
 				return m, nil
 
 			case "w":
@@ -3653,11 +3629,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.showRepoPicker {
 					m.repoPicker = NewRepoPickerModel(m.availableRepos, m.theme)
 					m.repoPicker.SetActiveRepos(m.activeRepos)
-					m.repoPicker.SetSize(m.width, m.height-1)
 					m.focused = focusRepoPicker
 				} else {
 					m.focused = focusList
 				}
+				m.applyContentSizing()
 				return m, nil
 
 			case "x":
@@ -3675,9 +3651,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				labelCounts := extractLabelCounts(labelExtraction.Stats)
 				m.labelPicker.SetLabels(labelExtraction.Labels, labelCounts)
 				m.labelPicker.Reset()
-				m.labelPicker.SetSize(m.width, m.height-1)
 				m.showLabelPicker = true
 				m.focused = focusLabelPicker
+				m.applyContentSizing()
 				return m, nil
 
 			case "O":
@@ -4924,7 +4900,7 @@ func (m Model) handleHelpKeys(msg tea.KeyMsg) Model {
 		m.showHelp = false
 		m.helpScroll = 0
 		m.showTutorial = true
-		m.tutorialModel.SetSize(m.width, m.height)
+		m.tutorialModel.SetSize(m.mainContentWidth(), m.height)
 		m.focused = focusTutorial
 	}
 	return m
@@ -4950,13 +4926,16 @@ func (m Model) renderLoadingScreen() string {
 	}
 
 	content := lipgloss.JoinVertical(lipgloss.Center, lines...)
-	return lipgloss.Place(m.width, m.height-1, lipgloss.Center, lipgloss.Center, content)
+	return lipgloss.Place(m.mainContentWidth(), m.height-1, lipgloss.Center, lipgloss.Center, content)
 }
 
 func (m Model) View() string {
 	if !m.ready {
 		return "Initializing..."
 	}
+
+	cw := m.mainContentWidth()
+	bodyH := m.height - 1
 
 	var body string
 
@@ -4965,13 +4944,13 @@ func (m Model) View() string {
 		body = m.renderQuitConfirm()
 	} else if m.showAgentPrompt {
 		// AGENTS.md prompt modal (bv-i8dk)
-		body = m.agentPromptModal.CenterModal(m.width, m.height-1)
+		body = m.agentPromptModal.CenterModal(cw, bodyH)
 	} else if m.showCassModal {
 		// Cass session preview modal (bv-5bqh)
-		body = m.cassModal.CenterModal(m.width, m.height-1)
+		body = m.cassModal.CenterModal(cw, bodyH)
 	} else if m.showUpdateModal {
 		// Self-update modal (bv-182)
-		body = m.updateModal.CenterModal(m.width, m.height-1)
+		body = m.updateModal.CenterModal(cw, bodyH)
 	} else if m.showLabelHealthDetail && m.labelHealthDetail != nil {
 		body = m.renderLabelHealthDetail(*m.labelHealthDetail)
 	} else if m.showLabelGraphAnalysis && m.labelGraphAnalysisResult != nil {
@@ -4998,31 +4977,35 @@ func (m Model) View() string {
 	} else if m.snapshotInitPending && m.snapshot == nil {
 		body = m.renderLoadingScreen()
 	} else if m.focused == focusInsights {
-		m.insightsPanel.SetSize(m.width, m.height-1)
+		m.insightsPanel.SetSize(cw, bodyH)
 		body = m.insightsPanel.View()
 	} else if m.focused == focusFlowMatrix {
-		m.flowMatrix.SetSize(m.width, m.height-1)
+		m.flowMatrix.SetSize(cw, bodyH)
 		body = m.flowMatrix.View()
 	} else if m.focused == focusTree {
 		// Hierarchical tree view (bv-gllx)
-		m.tree.SetSize(m.width, m.height-1)
+		m.tree.SetSize(cw, bodyH)
 		body = m.tree.View()
 	} else if m.isGraphView {
-		body = m.graphView.View(m.width, m.height-1)
+		body = m.graphView.View(cw, bodyH)
 	} else if m.isBoardView {
-		body = m.board.View(m.width, m.height-1)
+		body = m.board.View(cw, bodyH)
 	} else if m.isActionableView {
-		m.actionableView.SetSize(m.width, m.height-2)
+		actionableH := bodyH - 1
+		if actionableH < 3 {
+			actionableH = 3
+		}
+		m.actionableView.SetSize(cw, actionableH)
 		body = m.actionableView.Render()
 	} else if m.isHistoryView {
-		m.historyView.SetSize(m.width, m.height-1)
+		m.historyView.SetSize(cw, bodyH)
 		body = m.historyView.View()
 	} else if m.isSprintView {
 		body = m.sprintViewText
 	} else if m.isSplitView {
 		body = m.renderSplitView()
 	} else if m.focused == focusLabelDashboard {
-		m.labelDashboard.SetSize(m.width, m.height-1)
+		m.labelDashboard.SetSize(cw, bodyH)
 		body = m.labelDashboard.View()
 	} else {
 		// Mobile view
@@ -5081,7 +5064,7 @@ func (m Model) renderQuitConfirm() string {
 	box := boxStyle.Render(content)
 
 	return lipgloss.Place(
-		m.width,
+		m.mainContentWidth(),
 		m.height-1,
 		lipgloss.Center,
 		lipgloss.Center,
@@ -5279,21 +5262,22 @@ func (m Model) renderSplitView() string {
 
 func (m *Model) renderHelpOverlay() string {
 	t := m.theme
+	cw := m.mainContentWidth()
 
 	// Determine layout based on terminal width
 	// 3 columns for wide (≥120), 2 columns for medium (≥80), 1 column for narrow
 	numCols := 3
-	if m.width < 120 {
+	if cw < 120 {
 		numCols = 2
 	}
-	if m.width < 80 {
+	if cw < 80 {
 		numCols = 1
 	}
 
 	// Calculate column width (accounting for gaps and outer padding)
 	totalPadding := 8 // outer padding
 	gapWidth := 2     // gap between columns
-	availableWidth := m.width - totalPadding - (gapWidth * (numCols - 1))
+	availableWidth := cw - totalPadding - (gapWidth * (numCols - 1))
 	colWidth := availableWidth / numCols
 	if colWidth < 28 {
 		colWidth = 28
@@ -5503,7 +5487,7 @@ func (m *Model) renderHelpOverlay() string {
 
 	// Center in viewport
 	return lipgloss.Place(
-		m.width,
+		cw,
 		m.height-1,
 		lipgloss.Center,
 		lipgloss.Center,
@@ -5513,7 +5497,7 @@ func (m *Model) renderHelpOverlay() string {
 
 func (m Model) renderLabelHealthDetail(lh analysis.LabelHealth) string {
 	t := m.theme
-	innerWidth := m.width - 10
+	innerWidth := m.mainContentWidth() - 10
 	if innerWidth < 20 {
 		innerWidth = 20
 	}
@@ -5637,7 +5621,7 @@ func (m Model) renderLabelHealthDetail(lh analysis.LabelHealth) string {
 	content := boxStyle.Render(sb.String())
 
 	return lipgloss.Place(
-		m.width,
+		m.mainContentWidth(),
 		m.height-1,
 		lipgloss.Center,
 		lipgloss.Center,
@@ -5805,7 +5789,7 @@ func (m Model) renderLabelDrilldown() string {
 	content := boxStyle.Render(sb.String())
 
 	return lipgloss.Place(
-		m.width,
+		m.mainContentWidth(),
 		m.height-1,
 		lipgloss.Center,
 		lipgloss.Center,
@@ -5890,7 +5874,7 @@ func (m Model) renderLabelGraphAnalysis() string {
 			}
 
 			// Truncate title if needed
-			maxTitleLen := m.width/2 - 20
+			maxTitleLen := m.mainContentWidth()/2 - 20
 			if maxTitleLen < 20 {
 				maxTitleLen = 20
 			}
@@ -5933,7 +5917,7 @@ func (m Model) renderLabelGraphAnalysis() string {
 			}
 
 			// Truncate title if needed
-			maxTitleLen := m.width/2 - 30
+			maxTitleLen := m.mainContentWidth()/2 - 30
 			if maxTitleLen < 15 {
 				maxTitleLen = 15
 			}
@@ -5958,7 +5942,7 @@ func (m Model) renderLabelGraphAnalysis() string {
 	content := boxStyle.Render(sb.String())
 
 	return lipgloss.Place(
-		m.width,
+		m.mainContentWidth(),
 		m.height-1,
 		lipgloss.Center,
 		lipgloss.Center,
@@ -7280,11 +7264,30 @@ func (m *Model) applyContentSizing() {
 
 	m.updateListDelegate()
 
-	// Resize label dashboard table and modal overlay sizing. These full-screen
-	// panels are drawn at full m.width (the sidebar does not currently overlay
-	// them), so they keep using m.width rather than the reserved content width.
-	m.labelDashboard.SetSize(m.width, bodyHeight)
-	m.insightsPanel.SetSize(m.width, bodyHeight)
+	// Full-view panels and open overlays share the main body width budget so
+	// JoinHorizontal(body, sidebar) never exceeds the terminal (#168, bv-sl44).
+	m.labelDashboard.SetSize(contentWidth, bodyHeight)
+	m.insightsPanel.SetSize(contentWidth, bodyHeight)
+	m.flowMatrix.SetSize(contentWidth, bodyHeight)
+	m.tree.SetSize(contentWidth, bodyHeight)
+	m.historyView.SetSize(contentWidth, bodyHeight)
+	actionableH := bodyHeight - 1
+	if actionableH < 3 {
+		actionableH = 3
+	}
+	m.actionableView.SetSize(contentWidth, actionableH)
+	if m.showRecipePicker {
+		m.recipePicker.SetSize(contentWidth, bodyHeight)
+	}
+	if m.showRepoPicker {
+		m.repoPicker.SetSize(contentWidth, bodyHeight)
+	}
+	if m.showLabelPicker {
+		m.labelPicker.SetSize(contentWidth, bodyHeight)
+	}
+	if m.isSprintView && m.selectedSprint != nil {
+		m.sprintViewText = m.renderSprintDashboard()
+	}
 	m.updateViewportContent()
 }
 
@@ -7775,7 +7778,7 @@ func (m *Model) enterHistoryView() {
 
 	// Initialize or update history view
 	m.historyView = NewHistoryModel(report, m.theme)
-	m.historyView.SetSize(m.width, m.height-1)
+	m.applyContentSizing()
 	m.isHistoryView = true
 	m.focused = focusHistory
 
@@ -8040,7 +8043,7 @@ func (m Model) renderTimeTravelPrompt() string {
 	box := boxStyle.Render(content)
 
 	return lipgloss.Place(
-		m.width,
+		m.mainContentWidth(),
 		m.height-1,
 		lipgloss.Center,
 		lipgloss.Center,
@@ -8155,7 +8158,7 @@ func (m *Model) showCassSessionModal() {
 
 	// Create and show the modal
 	m.cassModal = NewCassSessionModal(issue.ID, result, m.theme)
-	m.cassModal.SetSize(m.width, m.height)
+	m.cassModal.SetSize(m.mainContentWidth(), m.height)
 	m.showCassModal = true
 	m.focused = focusCassModal
 }
@@ -8171,7 +8174,7 @@ func (m *Model) showSelfUpdateModal() {
 
 	// Create and show the modal
 	m.updateModal = NewUpdateModal(m.updateTag, m.updateURL, m.theme)
-	m.updateModal.SetSize(m.width, m.height)
+	m.updateModal.SetSize(m.mainContentWidth(), m.height)
 	m.showUpdateModal = true
 	m.focused = focusUpdateModal
 }
@@ -8895,7 +8898,7 @@ func (m Model) renderAlertsPanel() string {
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(t.Primary).
 		Padding(1, 2).
-		Width(min(80, m.width-4)).
+		Width(min(80, m.mainContentWidth()-4)).
 		MaxHeight(m.height - 4)
 
 	titleStyle := t.Renderer.NewStyle().
@@ -8992,7 +8995,7 @@ func (m Model) renderAlertsPanel() string {
 	content := boxStyle.Render(sb.String())
 
 	return lipgloss.Place(
-		m.width,
+		m.mainContentWidth(),
 		m.height-1,
 		lipgloss.Center,
 		lipgloss.Center,
