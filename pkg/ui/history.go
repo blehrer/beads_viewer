@@ -1948,7 +1948,7 @@ func (h *HistoryModel) renderEmpty(msg string) string {
 		Align(lipgloss.Center, lipgloss.Center).
 		Foreground(t.Secondary)
 
-	return style.Render(msg + "\n\nPress H to close")
+	return style.Render(msg + "\n\nPress h, q, or esc to close")
 }
 
 // renderHeader renders the filter bar, statistics, and title (bv-y5sx)

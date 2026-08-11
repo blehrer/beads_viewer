@@ -1,9 +1,12 @@
 package ui
 
 import (
+	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/lipgloss"
 
 	"github.com/Dicklesworthstone/beads_viewer/pkg/model"
 )
@@ -326,6 +329,8 @@ func keyMsg(key string) tea.KeyMsg {
 		return tea.KeyMsg{Type: tea.KeyLeft}
 	case "right":
 		return tea.KeyMsg{Type: tea.KeyRight}
+	case "f4":
+		return tea.KeyMsg{Type: tea.KeyF4}
 	default:
 		return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(key)}
 	}
@@ -867,4 +872,129 @@ func TestKeyDispatch_ViewToggleTable(t *testing.T) {
 			t.Logf("focus=%v key=%s expected=%s actual=focus:%v", tc.startFocus, tc.key, expected, result.focused)
 		})
 	}
+}
+
+// TestGraphView_NoHorizontalScrollKeybinds verifies graph docs omit dead H/L scroll hints.
+func TestGraphView_NoHorizontalScrollKeybinds(t *testing.T) {
+	for _, doc := range GetKeyBindingDocs() {
+		if doc.Context != "graph" {
+			continue
+		}
+		if doc.Key == "H" || doc.Key == "L" {
+			t.Fatalf("graph view should not advertise horizontal scroll key %q", doc.Key)
+		}
+	}
+
+	renderer := lipgloss.NewRenderer(nil)
+	sidebar := NewShortcutsSidebar(DefaultTheme(renderer))
+	sidebar.SetContext("graph")
+	if strings.Contains(sidebar.View(), "Scroll ←/→") {
+		t.Fatal("graph shortcuts sidebar should not advertise H/L horizontal scroll")
+	}
+}
+
+// TestFooterHints_MatchKeyHandlers verifies footer/label hints advertise keys
+// that actually work at runtime (bv-p5kf.3).
+func TestFooterHints_MatchKeyHandlers(t *testing.T) {
+	m := setupTestModel(t)
+	m.width = 120
+	m.currentFilter = "all"
+
+	t.Run("default_label_hint", func(t *testing.T) {
+		footer := m.renderFooter()
+		if strings.Contains(footer, "h:detail") {
+			t.Fatalf("default label hint must not advertise h:detail (h opens history): %q", footer)
+		}
+		if !strings.Contains(footer, "enter:detail") {
+			t.Fatalf("default label hint should advertise enter:detail: %q", footer)
+		}
+	})
+
+	t.Run("history_footer", func(t *testing.T) {
+		m.isHistoryView = true
+		m.focused = focusHistory
+		footer := m.renderFooter()
+		if strings.Contains(footer, "H close") || strings.Contains(footer, "Hclose") {
+			t.Fatalf("history footer must not advertise uppercase H to close: %q", footer)
+		}
+		if !strings.Contains(footer, "h") || !strings.Contains(footer, "q") || !strings.Contains(footer, "esc") {
+			t.Fatalf("history footer should advertise h/q/esc to close: %q", footer)
+		}
+	})
+
+	t.Run("insights_footer", func(t *testing.T) {
+		m.isHistoryView = false
+		m.focused = focusInsights
+		footer := m.renderFooter()
+		if strings.Contains(footer, "A attention") || strings.Contains(footer, "Aattention") {
+			t.Fatalf("insights footer must not advertise A for attention: %q", footer)
+		}
+		if !strings.Contains(footer, "]") || !strings.Contains(footer, "F4") {
+			t.Fatalf("insights footer should advertise ]/F4 for attention: %q", footer)
+		}
+		if strings.Contains(footer, "F flow") || strings.Contains(footer, "Fflow") {
+			t.Fatalf("insights footer must not advertise uppercase F for flow: %q", footer)
+		}
+		if !strings.Contains(footer, "f flow") && !strings.Contains(footer, "fflow") {
+			t.Fatalf("insights footer should advertise lowercase f for flow: %q", footer)
+		}
+	})
+
+	t.Run("filtering_hides_hybrid_hint", func(t *testing.T) {
+		m.focused = focusList
+		m.semanticSearchEnabled = true
+		m.list.SetFilterState(list.Filtering)
+		footer := m.renderFooter()
+		if strings.Contains(strings.ToLower(footer), "hybrid") {
+			t.Fatalf("filtering footer must not advertise hybrid toggle (H blocked while filtering): %q", footer)
+		}
+	})
+}
+
+// TestKeyDispatch_FooterAdvertisedKeys proves footer-advertised keys dispatch correctly.
+func TestKeyDispatch_FooterAdvertisedKeys(t *testing.T) {
+	t.Run("history_h_closes", func(t *testing.T) {
+		m := setupTestModel(t)
+		updated, _ := m.Update(keyMsg("h"))
+		m = updated.(Model)
+		if !m.isHistoryView {
+			t.Fatal("expected h to open history view")
+		}
+
+		updated, _ = m.Update(keyMsg("h"))
+		m = updated.(Model)
+		if m.isHistoryView || m.focused != focusList {
+			t.Fatalf("expected h in history to close and return to list, got isHistoryView=%v focused=%v", m.isHistoryView, m.focused)
+		}
+	})
+
+	t.Run("history_q_closes", func(t *testing.T) {
+		m := setupTestModel(t)
+		updated, _ := m.Update(keyMsg("h"))
+		m = updated.(Model)
+
+		updated, _ = m.Update(keyMsg("q"))
+		m = updated.(Model)
+		if m.isHistoryView || m.focused != focusList {
+			t.Fatalf("expected q in history to close, got isHistoryView=%v focused=%v", m.isHistoryView, m.focused)
+		}
+	})
+
+	t.Run("attention_bracket_opens", func(t *testing.T) {
+		m := setupTestModel(t)
+		updated, _ := m.Update(keyMsg("]"))
+		m = updated.(Model)
+		if !m.showAttentionView || m.focused != focusInsights {
+			t.Fatalf("expected ] to open attention view, got showAttentionView=%v focused=%v", m.showAttentionView, m.focused)
+		}
+	})
+
+	t.Run("flow_f_opens", func(t *testing.T) {
+		m := setupTestModel(t)
+		updated, _ := m.Update(keyMsg("f"))
+		m = updated.(Model)
+		if m.focused != focusFlowMatrix {
+			t.Fatalf("expected f to open flow matrix, got focused=%v", m.focused)
+		}
+	})
 }

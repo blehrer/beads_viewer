@@ -4042,10 +4042,6 @@ func (m Model) handleGraphKeys(msg tea.KeyMsg) Model {
 		m.graphView.PageDown()
 	case "ctrl+u", "pgup":
 		m.graphView.PageUp()
-	case "H":
-		m.graphView.ScrollLeft()
-	case "L":
-		m.graphView.ScrollRight()
 	case "enter":
 		if selected := m.graphView.SelectedIssue(); selected != nil {
 			// Find and select in list
@@ -5416,7 +5412,6 @@ func (m *Model) renderHelpOverlay() string {
 
 	graphSection := []struct{ key, desc string }{
 		{"hjkl", "Navigate nodes"},
-		{"H/L", "Scroll left/right"},
 		{"PgUp/Dn", "Scroll up/down"},
 		{"Enter", "Jump to issue"},
 	}
@@ -6099,7 +6094,7 @@ func (m *Model) renderFooter() string {
 	labelHint := lipgloss.NewStyle().
 		Foreground(ColorFooterHint).
 		Padding(0, 1).
-		Render("l:labels • h:detail")
+		Render("l:labels • enter:detail")
 
 	// Board-specific hints (bv-yg39, bv-naov)
 	if m.isBoardView {
@@ -6475,17 +6470,17 @@ func (m *Model) renderFooter() string {
 		keyHints = append(keyHints, "type to filter", keyStyle.Render("j/k")+" nav", keyStyle.Render("⏎")+" apply", keyStyle.Render("esc")+" cancel")
 	} else if m.focused == focusInsights {
 		keyHints = append(keyHints, keyStyle.Render("h/l")+" panels", keyStyle.Render("e")+" explain", keyStyle.Render("⏎")+" jump", keyStyle.Render("?")+" help")
-		keyHints = append(keyHints, keyStyle.Render("A")+" attention", keyStyle.Render("F")+" flow")
+		keyHints = append(keyHints, keyStyle.Render("]")+"/F4 attention", keyStyle.Render("f")+" flow")
 	} else if m.focused == focusFlowMatrix {
 		keyHints = append(keyHints, keyStyle.Render("j/k")+" nav", keyStyle.Render("tab")+" panel", keyStyle.Render("⏎")+" drill", keyStyle.Render("esc")+" back", keyStyle.Render("f")+" close")
 	} else if m.isGraphView {
-		keyHints = append(keyHints, keyStyle.Render("hjkl")+" nav", keyStyle.Render("H/L")+" scroll", keyStyle.Render("⏎")+" view", keyStyle.Render("g")+" list")
+		keyHints = append(keyHints, keyStyle.Render("hjkl")+" nav", keyStyle.Render("⏎")+" view", keyStyle.Render("g")+" list")
 	} else if m.isBoardView {
 		keyHints = append(keyHints, keyStyle.Render("hjkl")+" nav", keyStyle.Render("G")+" bottom", keyStyle.Render("⏎")+" view", keyStyle.Render("b")+" list")
 	} else if m.isActionableView {
 		keyHints = append(keyHints, keyStyle.Render("j/k")+" nav", keyStyle.Render("⏎")+" view", keyStyle.Render("a")+" list", keyStyle.Render("?")+" help")
 	} else if m.isHistoryView {
-		keyHints = append(keyHints, keyStyle.Render("j/k")+" nav", keyStyle.Render("tab")+" focus", keyStyle.Render("⏎")+" jump", keyStyle.Render("H")+" close")
+		keyHints = append(keyHints, keyStyle.Render("j/k")+" nav", keyStyle.Render("tab")+" focus", keyStyle.Render("⏎")+" jump", keyStyle.Render("h")+"/q/esc close")
 	} else if m.list.FilterState() == list.Filtering {
 		mode := "fuzzy"
 		if m.semanticSearchEnabled {
@@ -6495,9 +6490,6 @@ func (m *Model) renderFooter() string {
 			}
 		}
 		keyHints = append(keyHints, keyStyle.Render("esc")+" cancel", keyStyle.Render("ctrl+s")+" "+mode, keyStyle.Render("⏎")+" select")
-		if m.semanticSearchEnabled {
-			keyHints = append(keyHints, keyStyle.Render("H")+" hybrid", keyStyle.Render("alt+h")+" preset")
-		}
 	} else if m.showTimeTravelPrompt {
 		keyHints = append(keyHints, keyStyle.Render("⏎")+" compare", keyStyle.Render("esc")+" cancel")
 	} else {
@@ -7676,7 +7668,7 @@ func (m *Model) renderBeadHistoryMD(beadID string) string {
 		}
 	}
 
-	sb.WriteString("\n*Press H for full history view*\n\n")
+	sb.WriteString("\n*Press h for full history view*\n\n")
 	return sb.String()
 }
 
