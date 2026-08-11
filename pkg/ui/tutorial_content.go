@@ -316,7 +316,7 @@ func structuredTutorialPages() []StructuredTutorialPage {
 				Spacer{Lines: 1},
 				Section{Title: "Jump Commands"},
 				KeyTable{Bindings: []KeyHint{
-					{Key: "g", Desc: "Jump to top"},
+					{Key: "gg", Desc: "Jump to top"},
 					{Key: "G", Desc: "Jump to bottom"},
 					{Key: "Ctrl+d", Desc: "Half-page down"},
 					{Key: "Ctrl+u", Desc: "Half-page up"},
@@ -792,7 +792,7 @@ func structuredTutorialPages() []StructuredTutorialPage {
 				}},
 				Spacer{Lines: 1},
 				Section{Title: "Step 3: Add Labels"},
-				Paragraph{Text: "Press L to open label picker. Select: bug, auth, user-reported"},
+				Paragraph{Text: "Press l or L to open label picker. Select: bug, auth, user-reported"},
 				Spacer{Lines: 1},
 				Section{Title: "Step 4: Check for Blockers"},
 				Code{Text: beadscli.TutorialLine("br dep add bv-feature1 bv-bug1  # Feature blocked by bug")},
@@ -828,7 +828,7 @@ func structuredTutorialPages() []StructuredTutorialPage {
 				Paragraph{Text: "Press r to show only unblocked issues."},
 				Spacer{Lines: 1},
 				Section{Title: "Step 4: Assign & Label"},
-				Paragraph{Text: "For each sprint candidate: L -> 'sprint-42'"},
+				Paragraph{Text: "For each sprint candidate: l/L -> 'sprint-42'"},
 				Spacer{Lines: 1},
 				Section{Title: "Step 5: Export Plan"},
 				Paragraph{Text: "Press x to export filtered list to markdown."},
@@ -853,7 +853,7 @@ func structuredTutorialPages() []StructuredTutorialPage {
 				}},
 				Spacer{Lines: 1},
 				Section{Title: "Step 3: First Task"},
-				Paragraph{Text: "Find a good-first-issue: Press L, filter to that label."},
+				Paragraph{Text: "Find a good-first-issue: Press l or L, filter to that label."},
 				Spacer{Lines: 1},
 				Section{Title: "Step 4: Walk Through Workflow"},
 				Bullet{Items: []string{
@@ -913,7 +913,7 @@ func structuredTutorialPages() []StructuredTutorialPage {
 				KeyTable{Bindings: []KeyHint{
 					{Key: "j / k", Desc: "Move down/up"},
 					{Key: "h / l", Desc: "Move left/right"},
-					{Key: "g / G", Desc: "Top/bottom"},
+					{Key: "gg / G", Desc: "Top/bottom"},
 					{Key: "Enter", Desc: "Select"},
 				}},
 				Spacer{Lines: 1},
@@ -926,7 +926,7 @@ func structuredTutorialPages() []StructuredTutorialPage {
 					{Key: "o/c/r/a", Desc: "Status filter"},
 				}},
 				Spacer{Lines: 1},
-				Tip{Text: "Press ? in any view for context-specific help"},
+				Tip{Text: "Press ? in any view for the help overlay"},
 			},
 		},
 	}

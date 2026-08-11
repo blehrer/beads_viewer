@@ -1027,7 +1027,7 @@ func defaultTutorialPages() []TutorialPage {
 |-----|--------|
 | **j/k** | Move down/up |
 | **h/l** | Move left/right |
-| **g/G** | Top/bottom |
+| **gg/G** | Top/bottom |
 | **Enter** | Select |
 
 ### Filtering
@@ -1039,7 +1039,7 @@ func defaultTutorialPages() []TutorialPage {
 | **Alt+H** | Hybrid preset |
 | **o/c/r/a** | Status filter |
 
-> Press **?** in any view for context help.`,
+> Press **?** in any view for the help overlay.`,
 		},
 	}
 }
@@ -1165,7 +1165,6 @@ You're already running ` + "`bv`" + ` — you're ahead of the game!
 | **?** | Quick help overlay |
 | **Space** (in help) | This tutorial |
 | **` + "`" + `** (backtick) | Jump to tutorial |
-| **~** (tilde) | Context-sensitive help |
 
 ### Next Steps
 
@@ -1497,7 +1496,7 @@ at home. If not, you'll pick it up in minutes.
 
 | Key | Action |
 |-----|--------|
-| **g** | Jump to top |
+| **gg** | Jump to top |
 | **G** | Jump to bottom |
 | **Ctrl+d** | Half-page down |
 | **Ctrl+u** | Half-page up |
@@ -2098,13 +2097,13 @@ Press **w** to open the repo picker, then:
 > Press **→** to continue.`
 
 // advancedRecipesContent is the Recipes tutorial page.
-const advancedRecipesContent = `## Recipes (R)
+const advancedRecipesContent = `## Recipes (')
 
 Recipes are **saved filter combinations** — complex queries you use repeatedly.
 
 ### Opening the Recipe Picker
 
-Press **R** (capital R) to open recipes:
+Press **'** (single quote) to open recipes:
 
 ` + "```" + `
 ┌─────────────────────────────────────────────────────┐
@@ -2316,7 +2315,7 @@ In bv, select the new issue and press **S** for triage suggestions:
 
 ### Step 4: Add Labels for Categorization
 
-Press **L** to open label picker, select:
+Press **l** or **L** to open label picker, select:
 - ` + "`bug`" + ` - It's a bug
 - ` + "`auth`" + ` - Affects authentication
 - ` + "`user-reported`" + ` - External report
@@ -2402,7 +2401,7 @@ Press **r** to show only unblocked issues:
 For each sprint candidate:
 1. Review in detail view (Enter)
 2. Discuss scope and estimates
-3. Add sprint label: **L** → "sprint-42"
+3. Add sprint label: **l/L** → "sprint-42"
 4. Optionally assign: update with --assignee
 
 ### Step 5: Export Sprint Plan
@@ -2452,7 +2451,7 @@ Tell them about the help system:
 
 Find a good starter issue:
 
-` + "```bash\n# In bv: press L, select \"good-first-issue\" label\nbr list --label=good-first-issue --status=open\n```" + `
+` + "```bash\n# In bv: press l or L, select \"good-first-issue\" label\nbr list --label=good-first-issue --status=open\n```" + `
 
 Starter issues should:
 - Have clear scope
