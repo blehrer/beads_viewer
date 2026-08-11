@@ -814,6 +814,19 @@ func TestRobotDocsPreferSafeAgentCommandExamples(t *testing.T) {
 	if !strings.Contains(dataSource, ".beads/beads.jsonl") || !strings.Contains(dataSource, ".beads/issues.jsonl") {
 		t.Fatalf("data_source should mention both canonical and compatibility JSONL paths, got %q", dataSource)
 	}
+	keybindings, ok := guide["keybindings"].([]map[string]string)
+	if !ok || len(keybindings) == 0 {
+		t.Fatalf("guide.keybindings has unexpected type %T or is empty", guide["keybindings"])
+	}
+	first := keybindings[0]
+	for _, field := range []string{"key", "desc", "category", "context"} {
+		if first[field] == "" {
+			t.Fatalf("guide.keybindings[0] missing field %q: %#v", field, first)
+		}
+	}
+	if policy, _ := guide["keybind_policy"].(string); policy == "" {
+		t.Fatal("guide.keybind_policy must be non-empty")
+	}
 
 	exampleDocs := generateRobotDocs("examples")
 	examples, ok := exampleDocs["examples"].([]map[string]string)

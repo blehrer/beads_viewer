@@ -9020,6 +9020,8 @@ func generateRobotDocs(topic string) map[string]interface{} {
 			"toon": "Token-optimized notation (saves ~30-50% tokens)",
 		},
 		"agent_intent_aliases": agentIntentAliasDocs(),
+		"keybind_policy": ui.KeyBindingCasePolicy,
+		"keybindings":          ui.KeyBindingDocsForRobot(),
 	}
 
 	commands := robotCommandDocsForAgentOutput()

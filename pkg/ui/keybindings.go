@@ -235,9 +235,13 @@ func focusesForBindingDoc(doc KeyBindingDoc) []focus {
 			addFocus(focusDetail)
 		case "board":
 			addFocus(focusBoard)
+		case "board-search":
+			addFocus(focusBoard)
 		case "graph":
 			addFocus(focusGraph)
 		case "insights":
+			addFocus(focusInsights)
+		case "attention":
 			addFocus(focusInsights)
 		case "history":
 			addFocus(focusHistory)
@@ -245,10 +249,26 @@ func focusesForBindingDoc(doc KeyBindingDoc) []focus {
 			addFocus(focusActionable)
 		case "label", "label-dashboard":
 			addFocus(focusLabelDashboard)
+		case "label-picker":
+			addFocus(focusLabelPicker)
+		case "recipe-picker":
+			addFocus(focusRecipePicker)
+		case "repo-picker":
+			addFocus(focusRepoPicker)
 		case "tree":
 			addFocus(focusTree)
 		case "flow", "flow-matrix":
 			addFocus(focusFlowMatrix)
+		case "sprint":
+			addFocus(focusSprint)
+		case "filter":
+			addFocus(focusList)
+		case "alerts":
+			addFocus(focusList)
+		case "help":
+			addFocus(focusHelp)
+		case "context-help":
+			addFocus(focusContextHelp)
 		}
 	}
 
@@ -265,10 +285,25 @@ func allDocumentedFocuses() []focus {
 		focusHistory,
 		focusActionable,
 		focusLabelDashboard,
+		focusLabelPicker,
+		focusRecipePicker,
+		focusRepoPicker,
 		focusTree,
 		focusFlowMatrix,
+		focusSprint,
+		focusHelp,
+		focusContextHelp,
 	}
 }
+
+// KeyBindingCasePolicy documents lowercase vs uppercase semantics for TUI keys.
+// Lowercase keys are movement, view-local actions, or toggles; uppercase keys
+// are alternate actions (scroll, column jump, hybrid search). Single-letter
+// view switches (b/g/h/f/i/a/E) are lowercase only.
+const KeyBindingCasePolicy = `TUI key case policy:
+- lowercase: movement, view-local navigation, filters, and view toggles
+- uppercase: alternate actions (board column jump H/L, hybrid toggle H, sort/triage S, scroll J/K in history)
+- single-letter view switches are lowercase only (b board, g graph, h history, f flow, i insights, E tree)`
 
 // KeyBindingDoc represents a key binding for documentation purposes (bv-xl6g).
 type KeyBindingDoc struct {
@@ -282,72 +317,213 @@ type KeyBindingDoc struct {
 // This is separate from the registry to allow documentation even before handlers
 // are registered (bv-3bsx migration).
 func GetKeyBindingDocs() []KeyBindingDoc {
-	// Authoritative keybinding documentation - update when bindings change
 	return []KeyBindingDoc{
-		// Global Navigation
+		// Global navigation
 		{"j", "Move down", "Navigation", "all"},
 		{"k", "Move up", "Navigation", "all"},
 		{"G", "Go to end", "Navigation", "all"},
-		{"gg", "Go to start", "Navigation", "all"},
+		{"home", "Go to start", "Navigation", "list,detail,board,graph,tree,actionable,history,flow-matrix,insights"},
+		{"gg", "Go to start (combo)", "Navigation", "board,tree"},
 		{"ctrl+d", "Page down", "Navigation", "all"},
 		{"ctrl+u", "Page up", "Navigation", "all"},
-		{"enter", "Open details", "Navigation", "all"},
+		{"enter", "Open/select", "Navigation", "all"},
 		{"esc", "Back/close", "Navigation", "all"},
-		{"q", "Quit", "Navigation", "all"},
+		{"q", "Quit or close view", "Navigation", "all"},
+		{"tab", "Toggle split focus", "Navigation", "list,detail"},
+		{"<", "Shrink list pane", "Navigation", "list,detail"},
+		{">", "Expand list pane", "Navigation", "list,detail"},
+		{"wheel", "Scroll focused pane", "Mouse", "all"},
 
-		// View Switching
+		// Help & reference overlays
+		{"?", "Help overlay", "Help", "all"},
+		{"f1", "Help overlay", "Help", "all"},
+		{"~", "Context help", "Help", "all"},
+		{"`", "Interactive tutorial", "Help", "all"},
+		{";", "Shortcuts sidebar", "Help", "all"},
+		{"f2", "Shortcuts sidebar", "Help", "all"},
+		{"K", "Symbol reference (glyph glossary)", "Help", "list,detail,board,graph,insights,actionable,tree,flow-matrix,label-dashboard"},
+		{"ctrl+j", "Scroll shortcuts sidebar down", "Help", "all"},
+		{"ctrl+k", "Scroll shortcuts sidebar up", "Help", "all"},
+
+		// View switching (lowercase only — see KeyBindingCasePolicy)
 		{"a", "Actionable view", "Views", "list,detail"},
 		{"b", "Board view", "Views", "list,detail"},
 		{"g", "Graph view", "Views", "list,detail"},
 		{"h", "History view", "Views", "list,detail"},
 		{"i", "Insights panel", "Views", "list,detail"},
-		{"?", "Help overlay", "Views", "all"},
-		{"K", "Symbol reference (glyph glossary)", "Views", "list,detail,board,graph,insights,actionable,tree,flow-matrix,label-dashboard"},
-		{";", "Shortcuts sidebar", "Views", "all"},
+		{"E", "Tree view", "Views", "list,detail"},
+		{"f", "Flow matrix view", "Views", "list,detail"},
 		{"p", "Priority hints", "Views", "list,detail"},
+		{"[", "Label dashboard", "Views", "list,detail"},
+		{"f3", "Label dashboard", "Views", "list,detail"},
+		{"]", "Attention view", "Views", "list,detail"},
+		{"f4", "Attention view", "Views", "list,detail"},
 
-		// Filters
-		{"o", "Open issues only", "Filters", "list"},
-		{"c", "Closed issues only", "Filters", "list"},
-		{"r", "Ready (unblocked)", "Filters", "list"},
-		{"l", "Label picker", "Filters", "list"},
-		{"/", "Search/filter", "Filters", "list"},
+		// List filters & search
+		{"o", "Open issues only", "Filters", "list,board"},
+		{"c", "Closed issues only", "Filters", "list,board"},
+		{"r", "Ready (unblocked)", "Filters", "list,board"},
+		{"l", "Label picker", "Filters", "list,detail"},
+		{"L", "Label picker (Shift+L)", "Filters", "list,detail"},
+		{"/", "Search/filter", "Filters", "list,history"},
+		{"ctrl+s", "Toggle semantic search", "Filters", "list"},
+		{"H", "Toggle hybrid search", "Filters", "list"},
+		{"alt+h", "Cycle hybrid preset", "Filters", "list"},
+		{"s", "Cycle sort mode", "Filters", "list"},
+		{"S", "Apply triage recipe sort", "Filters", "list"},
+
+		// Filter-mode input (list search active)
+		{"esc", "Cancel filter", "Filter", "filter"},
+		{"ctrl+s", "Toggle semantic while filtering", "Filter", "filter"},
+		{"enter", "Apply filter", "Filter", "filter"},
 
 		// Actions
-		{"t", "Time travel (forward)", "Actions", "list,detail"},
-		{"T", "Time travel (back)", "Actions", "list,detail"},
+		{"t", "Time travel prompt", "Actions", "list,detail"},
+		{"T", "Time travel HEAD~5", "Actions", "list,detail"},
 		{"x", "Export to markdown", "Actions", "list,detail"},
 		{"y", "Copy issue ID", "Actions", "all"},
-		{"C", "Copy full issue", "Actions", "detail"},
-		{"O", "Open in $EDITOR", "Actions", "detail"},
+		{"C", "Copy full issue", "Actions", "list,detail"},
+		{"O", "Open in $EDITOR", "Actions", "list,detail"},
 		{"'", "Recipe picker", "Actions", "list"},
-		{"U", "Self-update check", "Actions", "all"},
+		{"U", "Self-update check", "Actions", "list"},
 		{"V", "Cass sessions", "Actions", "list"},
+		{"!", "Toggle alerts panel", "Actions", "list,detail"},
+		{"w", "Repo picker (workspace)", "Actions", "list"},
+		{"ctrl+r", "Force refresh", "Actions", "all"},
+		{"f5", "Force refresh", "Actions", "all"},
 
-		// Graph View
-		{"hjkl", "Navigate graph", "Graph", "graph"},
-		{"PgUp", "Scroll up", "Graph", "graph"},
-		{"PgDn", "Scroll down", "Graph", "graph"},
+		// Graph view
+		{"h", "Move left", "Graph", "graph"},
+		{"l", "Move right", "Graph", "graph"},
+		{"j", "Move down", "Graph", "graph"},
+		{"k", "Move up", "Graph", "graph"},
+		{"pgup", "Page up", "Graph", "graph"},
+		{"pgdown", "Page down", "Graph", "graph"},
 
-		// Board View
+		// Board view
 		{"h", "Previous column", "Board", "board"},
 		{"l", "Next column", "Board", "board"},
-		{"tab", "Toggle detail", "Board", "board"},
+		{"H", "First column", "Board", "board"},
+		{"L", "Last column", "Board", "board"},
+		{"1", "Jump to Open column", "Board", "board"},
+		{"2", "Jump to In Progress column", "Board", "board"},
+		{"3", "Jump to Blocked column", "Board", "board"},
+		{"4", "Jump to Closed column", "Board", "board"},
+		{"0", "First card in column", "Board", "board"},
+		{"$", "Last card in column", "Board", "board"},
+		{"tab", "Toggle detail panel", "Board", "board"},
 		{"ctrl+j", "Scroll detail down", "Board", "board"},
 		{"ctrl+k", "Scroll detail up", "Board", "board"},
+		{"/", "Board search", "Board", "board"},
+		{"n", "Next search match", "Board", "board,board-search"},
+		{"N", "Previous search match", "Board", "board,board-search"},
+		{"s", "Cycle swimlane mode", "Board", "board"},
+		{"e", "Toggle empty columns", "Board", "board"},
+		{"d", "Toggle card expand", "Board", "board"},
 
-		// Insights View
-		{"h", "Previous panel", "Insights", "insights"},
-		{"l", "Next panel", "Insights", "insights"},
-		{"e", "Toggle explanations", "Insights", "insights"},
-		{"x", "Calculation proof", "Insights", "insights"},
-		{"m", "Heatmap toggle", "Insights", "insights"},
+		// Board search submode
+		{"esc", "Cancel board search", "Board", "board-search"},
+		{"enter", "Finish board search", "Board", "board-search"},
+		{"backspace", "Delete search char", "Board", "board-search"},
 
-		// History View
+		// Tree view
+		{"h", "Collapse/parent", "Tree", "tree"},
+		{"l", "Expand/child", "Tree", "tree"},
+		{" ", "Toggle expand", "Tree", "tree"},
+		{"o", "Expand all", "Tree", "tree"},
+		{"O", "Collapse all", "Tree", "tree"},
+		{"E", "Close tree view", "Tree", "tree"},
+		{"tab", "Toggle detail (split)", "Tree", "tree"},
+
+		// Insights view
+		{"h", "Previous panel", "Insights", "insights,attention"},
+		{"l", "Next panel", "Insights", "insights,attention"},
+		{"e", "Toggle explanations", "Insights", "insights,attention"},
+		{"x", "Calculation proof", "Insights", "insights,attention"},
+		{"m", "Heatmap toggle", "Insights", "insights,attention"},
+		{"ctrl+j", "Scroll detail down", "Insights", "insights,attention"},
+		{"ctrl+k", "Scroll detail up", "Insights", "insights,attention"},
+
+		// Flow matrix view
+		{"f", "Close flow matrix", "Flow", "flow-matrix"},
+		{"tab", "Toggle panel", "Flow", "flow-matrix"},
+		{"g", "Go to start", "Flow", "flow-matrix"},
+		{"G", "Go to end", "Flow", "flow-matrix"},
+
+		// History view
 		{"v", "Toggle git/bead mode", "History", "history"},
-		{"tab", "Toggle focus", "History", "history"},
+		{"tab", "Cycle focus panes", "History", "history"},
 		{"J", "Detail scroll down", "History", "history"},
 		{"K", "Detail scroll up", "History", "history"},
-		{"o", "Open in browser", "History", "history"},
+		{"f", "Toggle file tree", "History", "history"},
+		{"F", "Toggle file tree", "History", "history"},
+		{"g", "Jump to graph for bead", "History", "history"},
+		{"y", "Copy commit SHA", "History", "history"},
+		{"c", "Cycle confidence filter", "History", "history"},
+		{"o", "Open commit in browser", "History", "history"},
+		{"h", "Close history view", "History", "history"},
+
+		// Label dashboard
+		{"h", "Label health detail", "Labels", "label-dashboard"},
+		{"d", "Label drilldown", "Labels", "label-dashboard"},
+		{"enter", "Filter list by label", "Labels", "label-dashboard"},
+		{"esc", "Close label dashboard", "Labels", "label-dashboard"},
+
+		// Label picker overlay
+		{"esc", "Cancel label picker", "Labels", "label-picker"},
+		{"enter", "Apply label filter", "Labels", "label-picker"},
+
+		// Recipe picker overlay
+		{"esc", "Close recipe picker", "Recipes", "recipe-picker"},
+		{"q", "Close recipe picker", "Recipes", "recipe-picker"},
+		{"enter", "Apply recipe", "Recipes", "recipe-picker"},
+
+		// Repo picker overlay (workspace)
+		{" ", "Toggle repo", "Workspace", "repo-picker"},
+		{"a", "Select all repos", "Workspace", "repo-picker"},
+		{"enter", "Apply repo filter", "Workspace", "repo-picker"},
+		{"esc", "Close repo picker", "Workspace", "repo-picker"},
+
+		// Alerts panel
+		{"j", "Next alert", "Alerts", "alerts"},
+		{"k", "Previous alert", "Alerts", "alerts"},
+		{"enter", "Jump to issue", "Alerts", "alerts"},
+		{"d", "Dismiss alert", "Alerts", "alerts"},
+		{"!", "Close alerts panel", "Alerts", "alerts"},
+
+		// Sprint view (when active)
+		{"P", "Close sprint view", "Sprints", "sprint"},
+		{"j", "Next sprint", "Sprints", "sprint"},
+		{"k", "Previous sprint", "Sprints", "sprint"},
+
+		// Help overlay scroll/dismiss
+		{"j", "Scroll help down", "Help", "help"},
+		{"k", "Scroll help up", "Help", "help"},
+		{" ", "Open tutorial from help", "Help", "help"},
+		{"q", "Close help", "Help", "help"},
+
+		// Context help overlay
+		{"esc", "Close context help", "Help", "context-help"},
+		{"q", "Close context help", "Help", "context-help"},
+		{"~", "Close context help", "Help", "context-help"},
+
+		// Actionable view
+		{"j", "Move down", "Actionable", "actionable"},
+		{"k", "Move up", "Actionable", "actionable"},
 	}
+}
+
+// KeyBindingDocsForRobot exports authoritative bindings for robot-help JSON.
+func KeyBindingDocsForRobot() []map[string]string {
+	docs := GetKeyBindingDocs()
+	out := make([]map[string]string, len(docs))
+	for i, doc := range docs {
+		out[i] = map[string]string{
+			"key":      doc.Key,
+			"desc":     doc.Desc,
+			"category": doc.Category,
+			"context":  doc.Context,
+		}
+	}
+	return out
 }

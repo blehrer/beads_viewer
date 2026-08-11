@@ -291,7 +291,7 @@ func TestNewModelRegistersDocumentedBindings(t *testing.T) {
 		{focus: focusList, key: "j"},
 		{focus: focusDetail, key: "enter"},
 		{focus: focusBoard, key: "h"},
-		{focus: focusGraph, key: "PgDn"},
+		{focus: focusGraph, key: "pgdown"},
 		{focus: focusHistory, key: "v"},
 	}
 
@@ -1157,4 +1157,73 @@ func TestKeyDispatch_ContextHelpConsumesKeys(t *testing.T) {
 			t.Fatalf("key %q should not dismiss context help modal", key)
 		}
 	}
+}
+
+// TestDocumentedBindingsCoverAllFocuses verifies registry docs exist for every
+// documented focus context (bv-p5kf.11).
+func TestDocumentedBindingsCoverAllFocuses(t *testing.T) {
+	m := setupTestModel(t)
+	for _, f := range allDocumentedFocuses() {
+		bindings := m.keyRegistry.AllBindingsForFocus(f)
+		if len(bindings) == 0 {
+			t.Errorf("focus %v: expected non-empty documented bindings", f)
+		}
+	}
+}
+
+// TestKeybindCasePolicyAudit verifies h/H/l/L docs distinguish case per context
+// and never advertise dead graph horizontal scroll (bv-p5kf.23).
+func TestKeybindCasePolicyAudit(t *testing.T) {
+	if KeyBindingCasePolicy == "" {
+		t.Fatal("KeyBindingCasePolicy must be documented")
+	}
+
+	type keyCtx struct{ key, ctx string }
+	conflicts := map[string]map[string]string{} // ctx -> key -> desc
+
+	for _, doc := range GetKeyBindingDocs() {
+		for _, raw := range strings.Split(doc.Context, ",") {
+			ctx := strings.TrimSpace(raw)
+			if ctx == "all" {
+				for _, c := range []string{"list", "board", "graph"} {
+					recordKeybindConflict(conflicts, c, doc.Key, doc.Desc)
+				}
+				continue
+			}
+			recordKeybindConflict(conflicts, ctx, doc.Key, doc.Desc)
+		}
+	}
+
+	assertDistinctCase := func(ctx, lower, upper string) {
+		t.Helper()
+		lowerDesc, hasLower := conflicts[ctx][lower]
+		upperDesc, hasUpper := conflicts[ctx][upper]
+		if hasLower && hasUpper && lowerDesc == upperDesc {
+			t.Fatalf("context %q: %s and %s share description %q", ctx, lower, upper, lowerDesc)
+		}
+	}
+
+	assertDistinctCase("board", "h", "H")
+	assertDistinctCase("board", "l", "L")
+	assertDistinctCase("list", "h", "H")
+	assertDistinctCase("list", "l", "L")
+	assertDistinctCase("graph", "h", "H")
+	assertDistinctCase("graph", "l", "L")
+
+	for _, doc := range GetKeyBindingDocs() {
+		if doc.Context == "graph" && (doc.Key == "H" || doc.Key == "L") {
+			t.Fatalf("graph view must not document horizontal scroll keys %q", doc.Key)
+		}
+	}
+}
+
+func recordKeybindConflict(conflicts map[string]map[string]string, ctx, key, desc string) {
+	if conflicts[ctx] == nil {
+		conflicts[ctx] = map[string]string{}
+	}
+	if prev, ok := conflicts[ctx][key]; ok && prev != desc {
+		// Same key in one context with different meanings is OK (documented separately).
+		return
+	}
+	conflicts[ctx][key] = desc
 }
