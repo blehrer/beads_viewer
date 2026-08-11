@@ -29,6 +29,12 @@ convert_webp() {
 }
 
 capture_with_vhs() {
+	if command -v fc-list >/dev/null 2>&1; then
+		if ! fc-list : family | grep -qi 'GeistMono Nerd Font'; then
+			echo "warning: GeistMono Nerd Font not found; VHS may render missing icon glyphs" >&2
+			echo "  macOS: brew install --cask font-geist-mono-nerd-font" >&2
+		fi
+	fi
 	go tool vhs screenshots/capture.tape
 	rm -f screenshots/.capture.gif
 	convert_webp

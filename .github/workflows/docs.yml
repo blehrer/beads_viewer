@@ -55,7 +55,14 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg fonts-jetbrains-mono
+          sudo apt-get install -y ffmpeg unzip curl
+          curl -fsSL -o /tmp/GeistMono.zip \
+            https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/GeistMono.zip
+          unzip -q /tmp/GeistMono.zip -d /tmp/geist-mono-nerd
+          sudo mkdir -p /usr/local/share/fonts/geist-mono-nerd
+          sudo mv /tmp/geist-mono-nerd/*.{otf,ttf} /usr/local/share/fonts/geist-mono-nerd/ 2>/dev/null || \
+            sudo find /tmp/geist-mono-nerd -type f \( -name '*.otf' -o -name '*.ttf' \) -exec mv {} /usr/local/share/fonts/geist-mono-nerd/ \;
+          sudo fc-cache -fv
 
       - name: Install Python dependencies
         run: pip install pillow

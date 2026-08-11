@@ -4,6 +4,7 @@
 Output screenshots/.capture.gif
 
 Set Shell bash
+Set FontFamily "GeistMono Nerd Font"
 Set FontSize 14
 Set Width 1280
 Set Height 720
@@ -15,6 +16,7 @@ Env BV_NO_BROWSER "1"
 Env BV_NO_SAVED_CONFIG "1"
 Env BV_TEST_MODE "1"
 Env BV_BACKGROUND_MODE "0"
+Env BV_ICON_SET "nerd"
 Env TERM "xterm-256color"
 
 Type "clear"
