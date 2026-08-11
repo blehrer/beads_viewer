@@ -304,6 +304,19 @@ func TestPrepareWorkspaceForRead_FallsBackToExistingIssuesJSONL(t *testing.T) {
 		t.Fatalf("write issues.jsonl: %v", err)
 	}
 
+	lastTouched := filepath.Join(beadsDir, "last-touched")
+	if err := os.WriteFile(lastTouched, []byte("BD-1\n"), 0o644); err != nil {
+		t.Fatalf("write last-touched: %v", err)
+	}
+	issuesTime := time.Now().Add(-time.Hour)
+	lastTouchedTime := time.Now().Add(-time.Minute)
+	if err := os.Chtimes(issuesPath, issuesTime, issuesTime); err != nil {
+		t.Fatalf("chtimes issues.jsonl: %v", err)
+	}
+	if err := os.Chtimes(lastTouched, lastTouchedTime, lastTouchedTime); err != nil {
+		t.Fatalf("chtimes last-touched: %v", err)
+	}
+
 	binDir := filepath.Join(dir, "bin")
 	if err := os.MkdirAll(binDir, 0o755); err != nil {
 		t.Fatalf("mkdir bin: %v", err)
@@ -329,6 +342,171 @@ func TestPrepareWorkspaceForRead_FallsBackToExistingIssuesJSONL(t *testing.T) {
 	}
 	if len(warnings) != 1 || !strings.Contains(warnings[0], "bd export failed") {
 		t.Fatalf("expected export failure warning, got %#v", warnings)
+	}
+}
+
+func TestPrepareWorkspaceForRead_SkipsExportWhenFresh(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell script stub uses POSIX sh")
+	}
+
+	dir := t.TempDir()
+	beadsDir := filepath.Join(dir, ".beads")
+	if err := os.MkdirAll(filepath.Join(beadsDir, "dolt"), 0o755); err != nil {
+		t.Fatalf("mkdir dolt: %v", err)
+	}
+
+	issuesPath := filepath.Join(beadsDir, "issues.jsonl")
+	issueLine := `{"id":"BD-1","title":"Fresh","status":"open","priority":1,"issue_type":"task"}` + "\n"
+	if err := os.WriteFile(issuesPath, []byte(issueLine), 0o644); err != nil {
+		t.Fatalf("write issues.jsonl: %v", err)
+	}
+
+	lastTouched := filepath.Join(beadsDir, "last-touched")
+	if err := os.WriteFile(lastTouched, []byte("BD-1\n"), 0o644); err != nil {
+		t.Fatalf("write last-touched: %v", err)
+	}
+
+	issuesTime := time.Now().Add(-time.Minute)
+	lastTouchedTime := issuesTime.Add(-time.Hour)
+	if err := os.Chtimes(issuesPath, issuesTime, issuesTime); err != nil {
+		t.Fatalf("chtimes issues.jsonl: %v", err)
+	}
+	if err := os.Chtimes(lastTouched, lastTouchedTime, lastTouchedTime); err != nil {
+		t.Fatalf("chtimes last-touched: %v", err)
+	}
+
+	binDir := filepath.Join(dir, "bin")
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		t.Fatalf("mkdir bin: %v", err)
+	}
+	bdScript := filepath.Join(binDir, "bd")
+	script := "#!/bin/sh\necho bd export should have been skipped >&2\nexit 1\n"
+	if err := os.WriteFile(bdScript, []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake bd: %v", err)
+	}
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	_, jsonlPath, err := loader.PrepareWorkspaceForRead(dir, true, nil)
+	if err != nil {
+		t.Fatalf("PrepareWorkspaceForRead() error = %v", err)
+	}
+	if jsonlPath != issuesPath {
+		t.Fatalf("JSONL = %q, want %q", jsonlPath, issuesPath)
+	}
+	data, err := os.ReadFile(jsonlPath)
+	if err != nil {
+		t.Fatalf("read issues.jsonl: %v", err)
+	}
+	if string(data) != issueLine {
+		t.Fatalf("issues.jsonl changed unexpectedly: %q", data)
+	}
+}
+
+func TestPrepareWorkspaceForRead_ExportsWhenLastTouchedNewer(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell script stub uses POSIX sh")
+	}
+
+	dir := t.TempDir()
+	beadsDir := filepath.Join(dir, ".beads")
+	if err := os.MkdirAll(filepath.Join(beadsDir, "dolt"), 0o755); err != nil {
+		t.Fatalf("mkdir dolt: %v", err)
+	}
+
+	issuesPath := filepath.Join(beadsDir, "issues.jsonl")
+	staleLine := `{"id":"BD-1","title":"Stale","status":"open","priority":1,"issue_type":"task"}` + "\n"
+	if err := os.WriteFile(issuesPath, []byte(staleLine), 0o644); err != nil {
+		t.Fatalf("write issues.jsonl: %v", err)
+	}
+
+	lastTouched := filepath.Join(beadsDir, "last-touched")
+	if err := os.WriteFile(lastTouched, []byte("BD-1\n"), 0o644); err != nil {
+		t.Fatalf("write last-touched: %v", err)
+	}
+
+	issuesTime := time.Now().Add(-time.Hour)
+	lastTouchedTime := time.Now().Add(-time.Minute)
+	if err := os.Chtimes(issuesPath, issuesTime, issuesTime); err != nil {
+		t.Fatalf("chtimes issues.jsonl: %v", err)
+	}
+	if err := os.Chtimes(lastTouched, lastTouchedTime, lastTouchedTime); err != nil {
+		t.Fatalf("chtimes last-touched: %v", err)
+	}
+
+	binDir := filepath.Join(dir, "bin")
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		t.Fatalf("mkdir bin: %v", err)
+	}
+	bdScript := filepath.Join(binDir, "bd")
+	freshLine := `{"id":"BD-1","title":"Fresh","status":"open","priority":1,"issue_type":"task"}` + "\n"
+	script := "#!/bin/sh\nif [ \"$1\" != \"export\" ] || [ \"$2\" != \"-o\" ]; then exit 2; fi\nprintf '" + freshLine + "' > \"$3\"\n"
+	if err := os.WriteFile(bdScript, []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake bd: %v", err)
+	}
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	_, jsonlPath, err := loader.PrepareWorkspaceForRead(dir, true, nil)
+	if err != nil {
+		t.Fatalf("PrepareWorkspaceForRead() error = %v", err)
+	}
+	data, err := os.ReadFile(jsonlPath)
+	if err != nil {
+		t.Fatalf("read issues.jsonl: %v", err)
+	}
+	if string(data) != freshLine {
+		t.Fatalf("issues.jsonl = %q, want refreshed content", data)
+	}
+}
+
+func TestPrepareWorkspaceForRead_SkipsExportWithBVSkipEnv(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell script stub uses POSIX sh")
+	}
+
+	dir := t.TempDir()
+	beadsDir := filepath.Join(dir, ".beads")
+	if err := os.MkdirAll(filepath.Join(beadsDir, "dolt"), 0o755); err != nil {
+		t.Fatalf("mkdir dolt: %v", err)
+	}
+
+	issuesPath := filepath.Join(beadsDir, "issues.jsonl")
+	staleLine := `{"id":"BD-1","title":"Stale","status":"open","priority":1,"issue_type":"task"}` + "\n"
+	if err := os.WriteFile(issuesPath, []byte(staleLine), 0o644); err != nil {
+		t.Fatalf("write issues.jsonl: %v", err)
+	}
+
+	lastTouched := filepath.Join(beadsDir, "last-touched")
+	if err := os.WriteFile(lastTouched, []byte("BD-1\n"), 0o644); err != nil {
+		t.Fatalf("write last-touched: %v", err)
+	}
+	issuesTime := time.Now().Add(-time.Hour)
+	lastTouchedTime := time.Now().Add(-time.Minute)
+	if err := os.Chtimes(issuesPath, issuesTime, issuesTime); err != nil {
+		t.Fatalf("chtimes issues.jsonl: %v", err)
+	}
+	if err := os.Chtimes(lastTouched, lastTouchedTime, lastTouchedTime); err != nil {
+		t.Fatalf("chtimes last-touched: %v", err)
+	}
+
+	binDir := filepath.Join(dir, "bin")
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		t.Fatalf("mkdir bin: %v", err)
+	}
+	bdScript := filepath.Join(binDir, "bd")
+	script := "#!/bin/sh\necho bd export should have been skipped >&2\nexit 1\n"
+	if err := os.WriteFile(bdScript, []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake bd: %v", err)
+	}
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv(loader.SkipBDExportEnvVar, "1")
+
+	_, jsonlPath, err := loader.PrepareWorkspaceForRead(dir, true, nil)
+	if err != nil {
+		t.Fatalf("PrepareWorkspaceForRead() error = %v", err)
+	}
+	if jsonlPath != issuesPath {
+		t.Fatalf("JSONL = %q, want %q", jsonlPath, issuesPath)
 	}
 }
 

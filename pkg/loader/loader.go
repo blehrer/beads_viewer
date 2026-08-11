@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 	"unicode/utf8"
 
 	json "github.com/goccy/go-json"
@@ -26,6 +27,12 @@ type beadsMetadata struct {
 
 // BeadsDirEnvVar is the name of the environment variable for custom beads directory
 const BeadsDirEnvVar = "BEADS_DIR"
+
+// SkipBDExportEnvVar skips the pre-read bd export when set to a non-empty value.
+const SkipBDExportEnvVar = "BV_SKIP_BD_EXPORT"
+
+// ForceBDExportEnvVar forces a pre-read bd export even when issues.jsonl looks fresh.
+const ForceBDExportEnvVar = "BV_FORCE_BD_EXPORT"
 
 // BeadsDBEnvVar is the name of the environment variable for a specific database file
 // or .beads directory path. Takes priority over BEADS_DIR.
@@ -257,7 +264,7 @@ func PrepareWorkspaceForRead(repoPath string, refreshBDExport bool, warnFunc fun
 func PrepareBeadsDirForRead(beadsDir string, refreshBDExport bool, warnFunc func(string)) (string, error) {
 	if IsBDWorkspace(beadsDir) {
 		issuesPath := filepath.Join(beadsDir, "issues.jsonl")
-		if refreshBDExport {
+		if refreshBDExport && shouldRefreshBDExport(beadsDir, issuesPath) {
 			if err := exportBDIssuesJSONL(beadsDir, issuesPath); err != nil {
 				if _, statErr := os.Stat(issuesPath); statErr == nil {
 					if warnFunc != nil {
@@ -277,6 +284,80 @@ func PrepareBeadsDirForRead(beadsDir string, refreshBDExport bool, warnFunc func
 	}
 
 	return FindJSONLPath(beadsDir)
+}
+
+// bdExportState mirrors .beads/export-state.json written by bd export.
+type bdExportState struct {
+	LastDoltCommit string    `json:"last_dolt_commit"`
+	Timestamp      time.Time `json:"timestamp"`
+	Issues         int       `json:"issues"`
+}
+
+func shouldRefreshBDExport(beadsDir, issuesPath string) bool {
+	if os.Getenv(ForceBDExportEnvVar) != "" {
+		return true
+	}
+	if os.Getenv(SkipBDExportEnvVar) != "" {
+		return false
+	}
+	return !bdIssuesJSONLFresh(beadsDir, issuesPath)
+}
+
+// bdIssuesJSONLFresh reports whether an existing issues.jsonl is at least as
+// new as the bd-side mutation markers we can inspect without shelling out to bd.
+func bdIssuesJSONLFresh(beadsDir, issuesPath string) bool {
+	info, err := os.Stat(issuesPath)
+	if err != nil || info.Size() == 0 {
+		return false
+	}
+	exported := info.ModTime()
+
+	if lt, err := os.Stat(filepath.Join(beadsDir, "last-touched")); err == nil {
+		if exported.Before(lt.ModTime()) {
+			return false
+		}
+	}
+
+	if storeTime, ok := bdStoreModTime(beadsDir); ok && exported.Before(storeTime) {
+		return false
+	}
+
+	if state, err := readBDExportState(filepath.Join(beadsDir, "export-state.json")); err == nil {
+		if !state.Timestamp.IsZero() && exported.Before(state.Timestamp) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func bdStoreModTime(beadsDir string) (time.Time, bool) {
+	var latest time.Time
+	var found bool
+	for _, name := range []string{"dolt", "embeddeddolt"} {
+		path := filepath.Join(beadsDir, name)
+		info, err := os.Stat(path)
+		if err != nil {
+			continue
+		}
+		if info.ModTime().After(latest) {
+			latest = info.ModTime()
+			found = true
+		}
+	}
+	return latest, found
+}
+
+func readBDExportState(path string) (bdExportState, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return bdExportState{}, err
+	}
+	var state bdExportState
+	if err := stdjson.Unmarshal(data, &state); err != nil {
+		return bdExportState{}, err
+	}
+	return state, nil
 }
 
 // exportBDIssuesJSONL runs `bd export -o <issuesPath>` to produce a fresh
