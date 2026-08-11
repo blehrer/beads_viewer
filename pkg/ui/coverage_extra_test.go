@@ -360,8 +360,8 @@ func TestHandleGraphBoardActionableKeys(t *testing.T) {
 	// Focus graph and exercise navigation + enter selection logic
 	m.isGraphView = true
 	m.focused = focusGraph
-	m = m.handleGraphKeys(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("H")}) // ScrollLeft
-	m = m.handleGraphKeys(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("L")}) // ScrollRight
+	m = m.handleGraphKeys(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("j")})
+	m = m.handleGraphKeys(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("k")})
 	// force select first node then enter to sync list
 	m.graphView.MoveDown()
 	m = m.handleGraphKeys(tea.KeyMsg{Type: tea.KeyEnter})
@@ -752,9 +752,7 @@ func TestOpenInEditorWithArguments(t *testing.T) {
 func TestGraphPageDownAndScrollEmpty(t *testing.T) {
 	renderer := lipgloss.NewRenderer(nil)
 	g := NewGraphModel(nil, nil, DefaultTheme(renderer))
-	g.PageDown()   // len=0 branch
-	g.ScrollLeft() // no-op branches
-	g.ScrollRight()
+	g.PageDown() // len=0 branch
 	g.ensureVisible()
 }
 

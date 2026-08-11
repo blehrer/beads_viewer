@@ -258,9 +258,6 @@ func (g *GraphModel) PageDown() {
 	g.ensureVisible()
 }
 
-func (g *GraphModel) ScrollLeft()  {}
-func (g *GraphModel) ScrollRight() {}
-
 func (g *GraphModel) ensureVisible() {}
 
 func (g *GraphModel) SelectedIssue() *model.Issue {
