@@ -178,44 +178,31 @@ func TestShortcutsSidebar_MatchesRegistry(t *testing.T) {
 		Base:      lipgloss.NewStyle(),
 	}
 
-	t.Run("uses hardcoded when registry empty", func(t *testing.T) {
+	t.Run("uses hardcoded when registry nil", func(t *testing.T) {
 		sidebar := NewShortcutsSidebar(theme)
 		sidebar.SetSize(34, 40)
-		registry := NewKeyRegistry() // Empty registry
-		sidebar.SetKeyRegistry(registry)
 		sidebar.SetFocus(focusList)
 
 		view := sidebar.View()
-		// Should use hardcoded sections - expect Navigation
 		if !strings.Contains(view, "Navigation") {
-			t.Error("Expected hardcoded 'Navigation' section when registry empty")
+			t.Error("Expected hardcoded 'Navigation' section when registry nil")
 		}
 	})
 
-	t.Run("uses registry when bindings exist", func(t *testing.T) {
+	t.Run("uses doc hints when registry set", func(t *testing.T) {
 		sidebar := NewShortcutsSidebar(theme)
 		sidebar.SetSize(34, 40)
 		registry := NewKeyRegistry()
-
-		// Register test bindings with a unique category
-		registry.RegisterBinding(KeyBinding{
-			Focus:    focusList,
-			Key:      "test-key",
-			Desc:     "Test action",
-			Category: "TestCategory",
-			Handler:  func(m Model, msg tea.KeyMsg) (Model, bool) { return m, true },
-		})
-
 		sidebar.SetKeyRegistry(registry)
 		sidebar.SetFocus(focusList)
+		sidebar.SetSubjectContext(ContextList)
 
 		view := sidebar.View()
-		// Should use registry bindings - expect TestCategory
-		if !strings.Contains(view, "TestCategory") {
-			t.Error("Expected registry 'TestCategory' section when bindings registered")
+		if !strings.Contains(view, "Navigation") && !strings.Contains(view, "Filters") {
+			t.Error("Expected registry-driven sections for list context")
 		}
-		if !strings.Contains(view, "test-key") {
-			t.Error("Expected 'test-key' from registry bindings")
+		if !strings.Contains(view, "labels") && !strings.Contains(view, "Label") {
+			t.Error("Expected list label shortcut from doc hints")
 		}
 	})
 

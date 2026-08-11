@@ -43,6 +43,9 @@ func (m Model) footerSubjectContext() Context {
 	if m.focused == focusHistory && m.historyView.IsSearchActive() {
 		return ContextHistorySearch
 	}
+	if m.focused == focusHistory && m.historyView.FileTreeHasFocus() {
+		return ContextHistoryFileTree
+	}
 	return m.CurrentContext()
 }
 
@@ -72,6 +75,9 @@ func (m Model) contextFromFocus(f focus) Context {
 		}
 		return ContextInsights
 	case focusHistory:
+		if m.historyView.FileTreeHasFocus() {
+			return ContextHistoryFileTree
+		}
 		return ContextHistory
 	case focusActionable:
 		return ContextActionable
@@ -151,6 +157,8 @@ func contextToDocContext(ctx Context) string {
 		return "update-modal"
 	case ContextHistorySearch:
 		return "history-search"
+	case ContextHistoryFileTree:
+		return "history-file-tree"
 	case ContextAlerts:
 		return "alerts"
 	case ContextAgentPrompt:
@@ -220,14 +228,16 @@ func docContextsForUI(ctx Context, surface HintSurface) []string {
 				}
 			}
 		}
-		if surface == HintHelpOverlay {
+		if surface == HintHelpOverlay && ctx.AllowsGlobalFallthrough() {
 			add("all")
 		}
 		if surface == HintFooter && ctx.AllowsGlobalFallthrough() {
 			add("all")
 		}
 	case HintSidebar:
-		add("all")
+		if ctx.AllowsGlobalFallthrough() {
+			add("all")
+		}
 	}
 
 	return contexts
@@ -245,13 +255,14 @@ func docAppliesToContexts(doc KeyBindingDoc, docContexts []string) bool {
 	return false
 }
 
-func footerExcludedKey(ctx Context, key string) bool {
+func hintExcludedKey(ctx Context, key string) bool {
 	switch ctx {
 	case ContextHistory:
 		switch key {
 		case "h", "q", "esc", "tab", "enter":
 			return false
 		}
+		return true
 	case ContextInsights, ContextAttention:
 		switch key {
 		case "h", "l", "e", "enter", "?", "]", "f4", "f":
@@ -259,11 +270,13 @@ func footerExcludedKey(ctx Context, key string) bool {
 		case "ctrl+j", "ctrl+k", "x", "m":
 			return true
 		}
+		return true
 	case ContextGraph:
 		switch key {
-		case "h", "l", "j", "k", "enter", "g":
+		case "h", "l", "j", "k", "enter", "g", "pgup", "pgdown":
 			return false
 		}
+		return true
 	case ContextBoard, ContextBoardSearch:
 		switch key {
 		case "h", "l", "j", "k", "G", "enter", "b", "n", "N", "esc":
@@ -275,11 +288,13 @@ func footerExcludedKey(ctx Context, key string) bool {
 		case "j", "k", "tab", "enter", "esc", "f":
 			return false
 		}
+		return true
 	case ContextActionable:
 		switch key {
 		case "j", "k", "enter", "a", "?":
 			return false
 		}
+		return true
 	case ContextFilter:
 		switch key {
 		case "esc", "ctrl+s", "enter":
@@ -322,6 +337,12 @@ func footerExcludedKey(ctx Context, key string) bool {
 			return false
 		}
 		return true
+	case ContextHistoryFileTree:
+		switch key {
+		case "j", "k", "enter", "l", "h", "esc", "tab":
+			return false
+		}
+		return true
 	case ContextAlerts:
 		switch key {
 		case "j", "k", "enter", "d", "!", "esc", "q":
@@ -330,7 +351,7 @@ func footerExcludedKey(ctx Context, key string) bool {
 		return true
 	case ContextAgentPrompt:
 		switch key {
-		case "esc", "q", "enter", "y", "n":
+		case "esc", "q", "enter", "y", "n", "d":
 			return false
 		}
 		return true
@@ -370,11 +391,18 @@ func footerExcludedKey(ctx Context, key string) bool {
 			return false
 		}
 		return true
-	case ContextSplit, ContextDetail, ContextTimeTravel, ContextList:
+	case ContextSplit, ContextDetail, ContextTimeTravel:
 		switch key {
-		case "enter", "t", "S", "l", "L", "ctrl+r", "f5", "K", "?", "w", "tab", "C", "O", "x", "esc":
+		case "enter", "t", "S", "l", "L", "ctrl+r", "f5", "K", "?", "w", "tab", "C", "O", "x", "esc", "<", ">", "ctrl+j", "ctrl+k":
 			return false
 		}
+		return true
+	case ContextList:
+		switch key {
+		case "enter", "t", "S", "l", "L", "ctrl+r", "f5", "K", "?", "w", "C", "O", "x", "esc":
+			return false
+		}
+		return true
 	}
 
 	switch key {
@@ -386,6 +414,35 @@ func footerExcludedKey(ctx Context, key string) bool {
 	}
 }
 
+// helpHintExcludedKey removes keys from help overlay / sidebar that are documented
+// but inert in the given context (split-only chords, wrong-view actions, etc.).
+func helpHintExcludedKey(ctx Context, key string) bool {
+	switch ctx {
+	case ContextList:
+		switch key {
+		case "<", ">", "tab", "ctrl+j", "ctrl+k", "wheel":
+			return true
+		}
+	case ContextGraph:
+		switch key {
+		case "O", "alt+h", "ctrl+s", "ctrl+j", "ctrl+k", "<", ">", "tab", "wheel",
+			"o", "c", "r", "l", "L", "S", "H", "/", "a", "b", "h", "i", "E", "f", "p", "[":
+			return true
+		}
+	case ContextHistoryFileTree:
+		switch key {
+		case "v", "/", "y", "o", "g", "c", "J", "K", "F", "h", "q", "V", "U":
+			return true
+		}
+	case ContextHistorySearch:
+		switch key {
+		case "j", "k", "tab", "v", "f", "F", "y", "o", "g", "c", "h", "q":
+			return true
+		}
+	}
+	return false
+}
+
 func footerKeyPriority(ctx Context, key string) int {
 	switch ctx {
 	case ContextHistory:
@@ -394,6 +451,11 @@ func footerKeyPriority(ctx Context, key string) int {
 			return 0
 		case "tab", "enter":
 			return 1
+		}
+	case ContextHistoryFileTree:
+		switch key {
+		case "j", "k", "esc", "tab", "enter", "l", "h":
+			return 0
 		}
 	case ContextInsights, ContextAttention:
 		switch key {
@@ -551,7 +613,10 @@ func (r *KeyRegistry) HintsFor(ctx Context, surface HintSurface, limit int) []Ke
 		if !docAppliesToContexts(doc, docContexts) {
 			continue
 		}
-		if surface == HintFooter && footerExcludedKey(ctx, doc.Key) {
+		if surface == HintFooter && hintExcludedKey(ctx, doc.Key) {
+			continue
+		}
+		if (surface == HintHelpOverlay || surface == HintSidebar) && helpHintExcludedKey(ctx, doc.Key) {
 			continue
 		}
 		if surface == HintFooter && footerSkipBinding(ctx, doc) {
@@ -833,7 +898,7 @@ func (m *Model) helpOverlayPanelSpecs() []helpOverlayPanelSpec {
 		contextual = append(contextual, helpOverlayPanelSpec{title: "Board View", icon: icons.Task, colorIdx: 4, category: "Board"})
 	case ContextInsights, ContextAttention:
 		contextual = append(contextual, helpOverlayPanelSpec{title: "Insights", icon: icons.Lightbulb, colorIdx: 5, category: "Insights"})
-	case ContextHistory:
+	case ContextHistory, ContextHistoryFileTree:
 		contextual = append(contextual, helpOverlayPanelSpec{title: "History", icon: icons.HistoryScroll, colorIdx: 0, category: "History"})
 	case ContextFlowMatrix:
 		contextual = append(contextual, helpOverlayPanelSpec{title: "Flow Matrix", icon: icons.DepDiscovered, colorIdx: 3, category: "Flow"})
@@ -880,27 +945,152 @@ func (m *Model) helpOverlayShortcuts(category string, subject Context) []keyDesc
 		return nil
 	}
 
-	// Merge subject + global doc contexts for the requested category.
-	docContexts := docContextsForUI(subject, HintHelpOverlay)
 	var pairs []keyDescPair
-	seen := make(map[string]struct{})
+	for _, b := range m.keyRegistry.HintsFor(subject, HintHelpOverlay, 0) {
+		if b.Category != category {
+			continue
+		}
+		pairs = append(pairs, keyDescPair{key: b.Key, desc: b.Desc})
+	}
+	return pairs
+}
 
-	for _, doc := range GetKeyBindingDocs() {
-		if doc.Category != category {
-			continue
+// FormatContextHelpContent returns compact context help text, preferring registry hints.
+func FormatContextHelpContent(ctx Context, reg *KeyRegistry) string {
+	if reg == nil {
+		return GetContextHelp(ctx)
+	}
+	bindings := reg.HintsFor(ctx, HintHelpOverlay, 0)
+	if len(bindings) == 0 {
+		return GetContextHelp(ctx)
+	}
+	return formatRegistryHintsAsHelp(ctx, bindings)
+}
+
+func formatRegistryHintsAsHelp(ctx Context, bindings []KeyBinding) string {
+	type catBlock struct {
+		title string
+		lines []string
+	}
+	seen := map[string]int{}
+	var blocks []catBlock
+
+	appendBinding := func(b KeyBinding) {
+		title := b.Category
+		if title == "" {
+			title = "Other"
 		}
-		if !docAppliesToContexts(doc, docContexts) {
-			continue
+		line := "  " + formatKeyForHint(b.Key) + strings.Repeat(" ", max(1, 10-len(formatKeyForHint(b.Key)))) + b.Desc
+		if idx, ok := seen[title]; ok {
+			blocks[idx].lines = append(blocks[idx].lines, line)
+			return
 		}
-		if _, ok := seen[doc.Key]; ok {
-			continue
-		}
-		seen[doc.Key] = struct{}{}
-		pairs = append(pairs, keyDescPair{key: doc.Key, desc: doc.Desc})
+		seen[title] = len(blocks)
+		blocks = append(blocks, catBlock{title: title, lines: []string{line}})
 	}
 
-	sort.Slice(pairs, func(i, j int) bool {
-		return pairs[i].key < pairs[j].key
-	})
-	return pairs
+	for _, b := range bindings {
+		appendBinding(b)
+	}
+
+	var b strings.Builder
+	if title := contextHelpTitle(ctx); title != "" {
+		b.WriteString("## ")
+		b.WriteString(title)
+		b.WriteString("\n\n")
+	}
+	for i, block := range blocks {
+		if i > 0 {
+			b.WriteString("\n")
+		}
+		b.WriteString("**")
+		b.WriteString(block.title)
+		b.WriteString("**\n")
+		for _, line := range block.lines {
+			b.WriteString(line)
+			b.WriteString("\n")
+		}
+	}
+	return strings.TrimSpace(b.String())
+}
+
+func contextHelpTitle(ctx Context) string {
+	switch ctx {
+	case ContextList:
+		return "List View"
+	case ContextGraph:
+		return "Graph View"
+	case ContextBoard:
+		return "Board View"
+	case ContextInsights:
+		return "Insights Panel"
+	case ContextHistory:
+		return "History View"
+	case ContextHistoryFileTree:
+		return "History File Tree"
+	case ContextDetail:
+		return "Detail View"
+	case ContextSplit:
+		return "Split View"
+	case ContextFilter:
+		return "Filter Mode"
+	case ContextLabelPicker:
+		return "Label Picker"
+	case ContextRecipePicker:
+		return "Recipe Picker"
+	case ContextHelp:
+		return "Help Overlay"
+	case ContextTimeTravel:
+		return "Time Travel Mode"
+	case ContextLabelDashboard:
+		return "Label Dashboard"
+	case ContextAttention:
+		return "Attention View"
+	case ContextAgentPrompt:
+		return "AI Agent Prompt"
+	case ContextCassSession:
+		return "Cass Session Preview"
+	case ContextUpdateModal:
+		return "Self-Update"
+	default:
+		return ctx.Description()
+	}
+}
+
+func (m Model) helpOverlayAdvertisedKeys() []string {
+	subject := m.helpSubjectContext()
+	var keys []string
+	for _, spec := range m.helpOverlayPanelSpecs() {
+		if len(spec.static) > 0 {
+			continue
+		}
+		for _, pair := range m.helpOverlayShortcuts(spec.category, subject) {
+			keys = append(keys, expandFooterHintKeys(pair.key)...)
+		}
+	}
+	return keys
+}
+
+func (m Model) contextHelpAdvertisedKeys() []string {
+	if m.keyRegistry == nil {
+		return nil
+	}
+	ctx := m.contextFromFocus(m.focusBeforeHelp)
+	var keys []string
+	for _, b := range m.keyRegistry.HintsFor(ctx, HintHelpOverlay, 0) {
+		keys = append(keys, expandFooterHintKeys(b.Key)...)
+	}
+	return keys
+}
+
+func (m Model) sidebarAdvertisedKeys() []string {
+	if m.keyRegistry == nil {
+		return nil
+	}
+	ctx := m.footerSubjectContext()
+	var keys []string
+	for _, b := range m.keyRegistry.HintsFor(ctx, HintSidebar, 0) {
+		keys = append(keys, expandFooterHintKeys(b.Key)...)
+	}
+	return keys
 }

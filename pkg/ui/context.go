@@ -28,16 +28,17 @@ const (
 	ContextUpdateModal        Context = "update-modal"
 
 	// View submodes (override parent view for footer hints)
-	ContextHistorySearch  Context = "history-search"
-	ContextInsights       Context = "insights"
-	ContextFlowMatrix     Context = "flow-matrix"
-	ContextGraph          Context = "graph"
-	ContextBoard          Context = "board"
-	ContextActionable     Context = "actionable"
-	ContextHistory        Context = "history"
-	ContextSprint         Context = "sprint"
-	ContextLabelDashboard Context = "label-dashboard"
-	ContextAttention      Context = "attention"
+	ContextHistorySearch   Context = "history-search"
+	ContextHistoryFileTree Context = "history-file-tree"
+	ContextInsights        Context = "insights"
+	ContextFlowMatrix      Context = "flow-matrix"
+	ContextGraph           Context = "graph"
+	ContextBoard           Context = "board"
+	ContextActionable      Context = "actionable"
+	ContextHistory         Context = "history"
+	ContextSprint          Context = "sprint"
+	ContextLabelDashboard  Context = "label-dashboard"
+	ContextAttention       Context = "attention"
 
 	// Detail states
 	ContextSplit      Context = "split"
@@ -67,6 +68,7 @@ func (c Context) AllowsGlobalFallthrough() bool {
 		ContextQuitConfirm,
 		ContextUpdateModal,
 		ContextHistorySearch,
+		ContextHistoryFileTree,
 		ContextLabelHealthDetail,
 		ContextLabelDrilldown,
 		ContextLabelGraphAnalysis,
@@ -229,6 +231,9 @@ func (m Model) CurrentContext() Context {
 		if m.historyView.IsSearchActive() {
 			return ContextHistorySearch
 		}
+		if m.historyView.FileTreeHasFocus() {
+			return ContextHistoryFileTree
+		}
 		return ContextHistory
 	}
 
@@ -287,6 +292,7 @@ func (c Context) Description() string {
 		ContextCassSession:        "Cass session preview",
 		ContextUpdateModal:        "Self-update modal",
 		ContextHistorySearch:      "History search",
+		ContextHistoryFileTree:    "History file tree",
 		ContextInsights:           "Insights panel",
 		ContextFlowMatrix:         "Flow matrix",
 		ContextGraph:              "Dependency graph",
@@ -312,7 +318,7 @@ func (c Context) Description() string {
 func (c Context) IsOverlay() bool {
 	switch c {
 	case ContextTutorial, ContextLabelPicker, ContextRecipePicker, ContextHelp,
-		ContextContextHelp, ContextGlyphHelp, ContextBoardSearch, ContextHistorySearch,
+		ContextContextHelp, ContextGlyphHelp, ContextBoardSearch, ContextHistorySearch, ContextHistoryFileTree,
 		ContextQuitConfirm, ContextUpdateModal,
 		ContextLabelHealthDetail, ContextLabelDrilldown, ContextLabelGraphAnalysis,
 		ContextTimeTravelInput, ContextAlerts, ContextRepoPicker, ContextAgentPrompt,

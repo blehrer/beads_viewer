@@ -15,6 +15,7 @@ type ShortcutsSidebar struct {
 	scrollOffset int
 	theme        Theme
 	context      string       // Current context for filtering shortcuts
+	subjectCtx   Context      // UI context for registry hint filtering
 	keyRegistry  *KeyRegistry // Registry for auto-generated bindings (bv-xl6g)
 	focusHint    focus        // Current focus for registry lookup (bv-xl6g)
 }
@@ -98,14 +99,23 @@ func (s *ShortcutsSidebar) Width() int {
 	return s.width
 }
 
+// SetSubjectContext sets the UI context for registry-driven hint filtering.
+func (s *ShortcutsSidebar) SetSubjectContext(ctx Context) {
+	s.subjectCtx = ctx
+}
+
 // sectionsFromRegistry builds shortcut sections from the key registry (bv-xl6g).
-// Returns nil if registry is nil or has no bindings for current focus.
+// Returns nil if registry is nil or has no bindings for current context.
 func (s *ShortcutsSidebar) sectionsFromRegistry() []shortcutSection {
 	if s.keyRegistry == nil {
 		return nil
 	}
 
-	bindings := s.keyRegistry.AllBindingsForFocus(s.focusHint)
+	ctx := s.subjectCtx
+	if ctx == "" {
+		ctx = ContextList
+	}
+	bindings := s.keyRegistry.HintsFor(ctx, HintSidebar, 0)
 	if len(bindings) == 0 {
 		return nil
 	}

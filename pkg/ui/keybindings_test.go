@@ -8,6 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/Dicklesworthstone/beads_viewer/pkg/cass"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/drift"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/model"
 )
@@ -1587,6 +1588,31 @@ func parityContextStates() []parityContextCase {
 			m.alerts = []drift.Alert{{IssueID: "test-1", Severity: drift.SeverityWarning, Message: "test"}}
 			return m
 		}},
+		{"history_file_tree", func(m Model) Model {
+			m.focused = focusHistory
+			m.isHistoryView = true
+			m.historyView.ToggleFileTree()
+			m.historyView.SetFileTreeFocus(true)
+			return m
+		}},
+		{"update_modal", func(m Model) Model {
+			m.showUpdateModal = true
+			m.updateModal = NewUpdateModal("v2.0.0", "", m.theme)
+			m.focused = focusUpdateModal
+			return m
+		}},
+		{"cass_modal", func(m Model) Model {
+			m.showCassModal = true
+			m.cassModal = NewCassSessionModal("kd-1", cass.CorrelationResult{}, m.theme)
+			m.focused = focusCassModal
+			return m
+		}},
+		{"agent_prompt", func(m Model) Model {
+			m.showAgentPrompt = true
+			m.agentPromptModal = NewAgentPromptModal("/test/AGENTS.md", "AGENTS.md", m.theme)
+			m.focused = focusAgentPrompt
+			return m
+		}},
 	}
 }
 
@@ -1882,14 +1908,87 @@ func footerKeyWasHandled(before, after Model, key string, cmd tea.Cmd) bool {
 	// Blocking overlay/submode consumed the key even when boundary no-op (e.g. tutorial h on page 1).
 	if before.footerSubjectContext() == after.footerSubjectContext() {
 		ctx := before.footerSubjectContext()
-		if ctx.IsOverlay() || ctx == ContextFilter || ctx == ContextBoardSearch || ctx == ContextHistorySearch {
-			return !footerExcludedKey(ctx, key)
+		if ctx.IsOverlay() || ctx == ContextFilter || ctx == ContextBoardSearch || ctx == ContextHistorySearch || ctx == ContextHistoryFileTree {
+			return !hintExcludedKey(ctx, key)
 		}
 	}
 	if parityRegistryHandles(before, key) {
 		return true
 	}
 	return false
+}
+
+func TestHintSurfaces_NoInertKeys(t *testing.T) {
+	cases := []struct {
+		name    string
+		setup   func(Model) Model
+		subject func(Model) Model // state to verify keys against (overlay closed)
+		keys    func(Model) []string
+	}{
+		{
+			name: "help_overlay_list",
+			setup: func(m Model) Model {
+				m.showHelp = true
+				m.focusBeforeHelp = focusList
+				m.focused = focusHelp
+				return m
+			},
+			subject: func(m Model) Model {
+				m.showHelp = false
+				m.focused = focusList
+				if len(m.list.Items()) > 1 {
+					m.list.Select(1)
+				}
+				return m
+			},
+			keys: func(m Model) []string { return m.helpOverlayAdvertisedKeys() },
+		},
+		{
+			name: "context_help_graph",
+			setup: func(m Model) Model {
+				m.showContextHelp = true
+				m.focusBeforeHelp = focusGraph
+				m.focused = focusContextHelp
+				m.isGraphView = true
+				return m
+			},
+			subject: func(m Model) Model {
+				m.showContextHelp = false
+				m.focused = focusGraph
+				m.isGraphView = true
+				return m
+			},
+			keys: func(m Model) []string { return m.contextHelpAdvertisedKeys() },
+		},
+		{
+			name: "sidebar_history_file_tree",
+			setup: func(m Model) Model {
+				m.focused = focusHistory
+				m.isHistoryView = true
+				m.historyView.ToggleFileTree()
+				m.historyView.SetFileTreeFocus(true)
+				m.showShortcutsSidebar = true
+				return m
+			},
+			subject: func(m Model) Model { return m },
+			keys:    func(m Model) []string { return m.sidebarAdvertisedKeys() },
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			overlay := tc.setup(setupTestModel(t))
+			subject := tc.subject(overlay)
+			for _, key := range tc.keys(overlay) {
+				before := subject
+				updated, cmd := before.Update(keyMsg(key))
+				after := updated.(Model)
+				if !footerKeyWasHandled(before, after, key, cmd) {
+					t.Errorf("advertised key %q inert in context %s", key, before.footerSubjectContext())
+				}
+			}
+		})
+	}
 }
 
 func parityKeyWasHandled(before, after Model, key string) bool {

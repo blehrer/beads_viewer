@@ -154,7 +154,7 @@ func TestRenderContextHelp(t *testing.T) {
 	theme := DefaultTheme(lipgloss.NewRenderer(nil))
 	width, height := 80, 40
 
-	result := RenderContextHelp(ContextList, theme, width, height)
+	result := RenderContextHelp(ContextList, nil, theme, width, height)
 
 	// Should have modal border
 	if !strings.Contains(result, "╭") || !strings.Contains(result, "╮") {
@@ -182,7 +182,7 @@ func TestRenderContextHelpNarrowWidth(t *testing.T) {
 	narrowWidth := 50
 	height := 40
 
-	result := RenderContextHelp(ContextList, theme, narrowWidth, height)
+	result := RenderContextHelp(ContextList, nil, theme, narrowWidth, height)
 
 	// Should adapt to narrow width (modal width = width - 4)
 	// Just verify it renders without panicking
@@ -376,7 +376,7 @@ func TestRenderContextHelpVeryNarrow(t *testing.T) {
 	height := 40
 
 	// Should not panic with very narrow width
-	result := RenderContextHelp(ContextList, theme, veryNarrowWidth, height)
+	result := RenderContextHelp(ContextList, nil, theme, veryNarrowWidth, height)
 	if result == "" {
 		t.Error("RenderContextHelp should produce output for very narrow width")
 	}
@@ -388,7 +388,7 @@ func TestRenderContextHelpVeryShort(t *testing.T) {
 	veryShortHeight := 10
 
 	// Should not panic with very short height
-	result := RenderContextHelp(ContextList, theme, width, veryShortHeight)
+	result := RenderContextHelp(ContextList, nil, theme, width, veryShortHeight)
 	if result == "" {
 		t.Error("RenderContextHelp should produce output for very short height")
 	}
@@ -398,7 +398,7 @@ func TestRenderContextHelpMinimalDimensions(t *testing.T) {
 	theme := DefaultTheme(lipgloss.NewRenderer(nil))
 
 	// Test minimal dimensions without panicking
-	result := RenderContextHelp(ContextList, theme, 10, 5)
+	result := RenderContextHelp(ContextList, nil, theme, 10, 5)
 	if result == "" {
 		t.Error("RenderContextHelp should produce output for minimal dimensions")
 	}
@@ -409,7 +409,7 @@ func TestContextHelpUnicodeRendering(t *testing.T) {
 	width, height := 80, 40
 
 	// Test that unicode characters in content are preserved
-	result := RenderContextHelp(ContextBoard, theme, width, height)
+	result := RenderContextHelp(ContextBoard, nil, theme, width, height)
 
 	// Border should have unicode box drawing characters
 	if !strings.Contains(result, "╭") || !strings.Contains(result, "─") {
@@ -424,7 +424,7 @@ func TestContextHelpAllContextsRender(t *testing.T) {
 	// Verify all contexts render without error
 	for ctx := range ContextHelpContent {
 		t.Run(fmt.Sprintf("render_%s", ctx), func(t *testing.T) {
-			result := RenderContextHelp(ctx, theme, width, height)
+			result := RenderContextHelp(ctx, nil, theme, width, height)
 			if result == "" {
 				t.Errorf("RenderContextHelp(%v) should produce non-empty output", ctx)
 			}

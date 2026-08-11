@@ -40,8 +40,8 @@ func GetContextHelp(ctx Context) string {
 
 // RenderContextHelp renders the context-specific help modal.
 // This is a compact modal (~60 chars wide) that shows quick reference info.
-func RenderContextHelp(ctx Context, theme Theme, width, height int) string {
-	content := GetContextHelp(ctx)
+func RenderContextHelp(ctx Context, reg *KeyRegistry, theme Theme, width, height int) string {
+	content := FormatContextHelpContent(ctx, reg)
 
 	r := theme.Renderer
 
@@ -90,7 +90,7 @@ func RenderContextHelp(ctx Context, theme Theme, width, height int) string {
 
 func (m Model) renderContextHelpOverlay() string {
 	ctx := m.contextFromFocus(m.focusBeforeHelp)
-	content := RenderContextHelp(ctx, m.theme, m.width, m.height)
+	content := RenderContextHelp(ctx, m.keyRegistry, m.theme, m.width, m.height)
 	return lipgloss.Place(m.width, m.height-1, lipgloss.Center, lipgloss.Center, content)
 }
 

@@ -4645,6 +4645,7 @@ func (m Model) View() string {
 	if m.showShortcutsSidebar {
 		// Update sidebar focus for registry-based bindings (bv-xl6g)
 		m.shortcutsSidebar.SetFocus(m.focused)
+		m.shortcutsSidebar.SetSubjectContext(m.footerSubjectContext())
 		m.shortcutsSidebar.SetSize(m.shortcutsSidebar.Width(), m.height-2)
 		sidebar := m.shortcutsSidebar.View()
 		body = lipgloss.JoinHorizontal(lipgloss.Top, body, sidebar)

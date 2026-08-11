@@ -330,6 +330,8 @@ func focusesForBindingDoc(doc KeyBindingDoc) []focus {
 			addFocus(focusUpdateModal)
 		case "history-search":
 			addFocus(focusHistory)
+		case "history-file-tree":
+			addFocus(focusHistory)
 		case "cass-session":
 			addFocus(focusCassModal)
 		case "agent-prompt":
@@ -610,6 +612,26 @@ func GetKeyBindingDocs() []KeyBindingDoc {
 		// History search submode
 		{"esc", "Cancel history search", "History", "history-search"},
 		{"enter", "Apply history search", "History", "history-search"},
+
+		// History file-tree submode
+		{"j", "Navigate file tree down", "History", "history-file-tree"},
+		{"k", "Navigate file tree up", "History", "history-file-tree"},
+		{"enter", "Expand dir or filter by file", "History", "history-file-tree"},
+		{"l", "Expand dir or filter by file", "History", "history-file-tree"},
+		{"h", "Collapse directory", "History", "history-file-tree"},
+		{"esc", "Clear filter or leave file tree", "History", "history-file-tree"},
+		{"tab", "Switch focus from file tree", "History", "history-file-tree"},
+
+		// Agent prompt modal
+		{"y", "Accept AGENTS.md blurb", "Help", "agent-prompt"},
+		{"Y", "Accept AGENTS.md blurb", "Help", "agent-prompt"},
+		{"n", "Decline AGENTS.md blurb", "Help", "agent-prompt"},
+		{"N", "Decline AGENTS.md blurb", "Help", "agent-prompt"},
+		{"d", "Never ask again", "Help", "agent-prompt"},
+		{"D", "Never ask again", "Help", "agent-prompt"},
+		{"enter", "Confirm selection", "Help", "agent-prompt"},
+		{"esc", "Dismiss agent prompt", "Help", "agent-prompt"},
+		{"q", "Dismiss agent prompt", "Help", "agent-prompt"},
 
 		// Cass session modal
 		{"V", "Close cass session modal", "Help", "cass-session"},
