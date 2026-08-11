@@ -961,10 +961,71 @@ func TestFooterHints_MatchKeyHandlers(t *testing.T) {
 	t.Run("filtering_hides_hybrid_hint", func(t *testing.T) {
 		m.focused = focusList
 		m.semanticSearchEnabled = true
+		m.semanticHybridEnabled = true
 		m.list.SetFilterState(list.Filtering)
 		footer := m.renderFooter()
-		if strings.Contains(strings.ToLower(footer), "hybrid") {
-			t.Fatalf("filtering footer must not advertise hybrid toggle (H blocked while filtering): %q", footer)
+		if strings.Contains(footer, "H hybrid") || strings.Contains(footer, "alt+h") {
+			t.Fatalf("filtering footer must not advertise hybrid toggle keys (H blocked while filtering): %q", footer)
+		}
+		for _, hint := range []string{"esc", "ctrl+s", "select"} {
+			if !strings.Contains(strings.ToLower(footer), hint) {
+				t.Fatalf("filtering footer should document %q: %q", hint, footer)
+			}
+		}
+	})
+}
+
+// setupSplitDetailModel returns a split-view model with detail pane focused.
+func setupSplitDetailModel(t *testing.T) Model {
+	t.Helper()
+	m := setupTestModel(t)
+	updated, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 30})
+	m = updated.(Model)
+	if !m.isSplitView {
+		t.Fatal("expected split view at width 120")
+	}
+	m.focused = focusDetail
+	m.updateViewportContent()
+	return m
+}
+
+// TestKeyDispatch_SplitDetailFocusPassthrough verifies footer-advertised action
+// keys work when the detail pane is focused in split view (bv-p5kf.7).
+func TestKeyDispatch_SplitDetailFocusPassthrough(t *testing.T) {
+	t.Run("C_copies_issue", func(t *testing.T) {
+		m := setupSplitDetailModel(t)
+		updated, _ := m.Update(keyMsg("C"))
+		m = updated.(Model)
+		if !strings.Contains(m.statusMsg, "Copied") || !strings.Contains(m.statusMsg, "kd-1") {
+			t.Fatalf("expected copy status after C in detail focus, got %q", m.statusMsg)
+		}
+	})
+
+	t.Run("y_copies_id", func(t *testing.T) {
+		m := setupSplitDetailModel(t)
+		updated, _ := m.Update(keyMsg("y"))
+		m = updated.(Model)
+		if !strings.Contains(m.statusMsg, "Copied") || !strings.Contains(m.statusMsg, "kd-1") {
+			t.Fatalf("expected ID copy after y in detail focus, got %q", m.statusMsg)
+		}
+	})
+
+	t.Run("t_opens_time_travel_prompt", func(t *testing.T) {
+		m := setupSplitDetailModel(t)
+		updated, _ := m.Update(keyMsg("t"))
+		m = updated.(Model)
+		if !m.showTimeTravelPrompt || m.focused != focusTimeTravelInput {
+			t.Fatalf("expected time-travel prompt after t in detail focus, got showTimeTravelPrompt=%v focused=%v",
+				m.showTimeTravelPrompt, m.focused)
+		}
+	})
+
+	t.Run("x_exports_markdown", func(t *testing.T) {
+		m := setupSplitDetailModel(t)
+		updated, _ := m.Update(keyMsg("x"))
+		m = updated.(Model)
+		if !strings.Contains(m.statusMsg, "Exported") {
+			t.Fatalf("expected export status after x in detail focus, got %q", m.statusMsg)
 		}
 	})
 }
