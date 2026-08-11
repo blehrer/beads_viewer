@@ -4929,6 +4929,109 @@ func (m Model) renderLoadingScreen() string {
 	return lipgloss.Place(m.mainContentWidth(), m.height-1, lipgloss.Center, lipgloss.Center, content)
 }
 
+// renderBaseView is tier-0 body content: the active primary view (list, split, graph, …).
+// Sized to contentW (mainContentWidth). Overlays in renderOverlay replace this entirely;
+// Lip Gloss Canvas compositing is deferred to bv-sl44.6.
+func (m Model) renderBaseView(contentW, bodyH int) string {
+	switch {
+	case m.focused == focusInsights:
+		m.insightsPanel.SetSize(contentW, bodyH)
+		return m.insightsPanel.View()
+	case m.focused == focusFlowMatrix:
+		m.flowMatrix.SetSize(contentW, bodyH)
+		return m.flowMatrix.View()
+	case m.focused == focusTree:
+		m.tree.SetSize(contentW, bodyH)
+		return m.tree.View()
+	case m.isGraphView:
+		return m.graphView.View(contentW, bodyH)
+	case m.isBoardView:
+		return m.board.View(contentW, bodyH)
+	case m.isActionableView:
+		actionableH := bodyH - 1
+		if actionableH < 3 {
+			actionableH = 3
+		}
+		m.actionableView.SetSize(contentW, actionableH)
+		return m.actionableView.Render()
+	case m.isHistoryView:
+		m.historyView.SetSize(contentW, bodyH)
+		return m.historyView.View()
+	case m.isSprintView:
+		return m.sprintViewText
+	case m.isSplitView:
+		return m.renderSplitView()
+	case m.focused == focusLabelDashboard:
+		m.labelDashboard.SetSize(contentW, bodyH)
+		return m.labelDashboard.View()
+	default:
+		if m.showDetails {
+			return m.viewport.View()
+		}
+		return m.renderListWithHeader()
+	}
+}
+
+// joinShortcutsSidebar is tier-1: dock the shortcuts sidebar beside body when enabled.
+func (m Model) joinShortcutsSidebar(body string) string {
+	if !m.showShortcutsSidebar {
+		return body
+	}
+	m.shortcutsSidebar.SetFocus(m.focused)
+	m.shortcutsSidebar.SetSize(m.shortcutsSidebar.Width(), m.height-2)
+	return lipgloss.JoinHorizontal(lipgloss.Top, body, m.shortcutsSidebar.View())
+}
+
+// renderOverlay is tier-2 modal/overlay content. When active it replaces the base view
+// (not stacked yet — see bv-sl44.6). Priority matches the former View() if/else chain.
+func (m Model) renderOverlay(contentW, bodyH int) (string, bool) {
+	switch {
+	case m.showQuitConfirm:
+		return m.renderQuitConfirm(), true
+	case m.showAgentPrompt:
+		return m.agentPromptModal.CenterModal(contentW, bodyH), true
+	case m.showCassModal:
+		return m.cassModal.CenterModal(contentW, bodyH), true
+	case m.showUpdateModal:
+		return m.updateModal.CenterModal(contentW, bodyH), true
+	case m.showLabelHealthDetail && m.labelHealthDetail != nil:
+		return m.renderLabelHealthDetail(*m.labelHealthDetail), true
+	case m.showLabelGraphAnalysis && m.labelGraphAnalysisResult != nil:
+		return m.renderLabelGraphAnalysis(), true
+	case m.showLabelDrilldown && m.labelDrilldownLabel != "":
+		return m.renderLabelDrilldown(), true
+	case m.showAlertsPanel:
+		return m.renderAlertsPanel(), true
+	case m.showTimeTravelPrompt:
+		return m.renderTimeTravelPrompt(), true
+	case m.showRecipePicker:
+		return m.recipePicker.View(), true
+	case m.showRepoPicker:
+		return m.repoPicker.View(), true
+	case m.showLabelPicker:
+		return m.labelPicker.View(), true
+	case m.showHelp:
+		return m.renderHelpOverlay(), true
+	case m.showGlyphHelp:
+		return m.renderGlyphHelpOverlay(), true
+	case m.showTutorial:
+		return m.tutorialModel.View(), true
+	case m.snapshotInitPending && m.snapshot == nil:
+		return m.renderLoadingScreen(), true
+	default:
+		return "", false
+	}
+}
+
+// renderFramedView clamps body and footer to the terminal dimensions.
+func (m Model) renderFramedView(body, footer string) string {
+	finalStyle := lipgloss.NewStyle().
+		Width(m.width).
+		Height(m.height).
+		MaxHeight(m.height)
+	return finalStyle.Render(lipgloss.JoinVertical(lipgloss.Left, body, footer))
+}
+
 func (m Model) View() string {
 	if !m.ready {
 		return "Initializing..."
@@ -4938,103 +5041,14 @@ func (m Model) View() string {
 	bodyH := m.height - 1
 
 	var body string
-
-	// Quit confirmation overlay takes highest priority
-	if m.showQuitConfirm {
-		body = m.renderQuitConfirm()
-	} else if m.showAgentPrompt {
-		// AGENTS.md prompt modal (bv-i8dk)
-		body = m.agentPromptModal.CenterModal(cw, bodyH)
-	} else if m.showCassModal {
-		// Cass session preview modal (bv-5bqh)
-		body = m.cassModal.CenterModal(cw, bodyH)
-	} else if m.showUpdateModal {
-		// Self-update modal (bv-182)
-		body = m.updateModal.CenterModal(cw, bodyH)
-	} else if m.showLabelHealthDetail && m.labelHealthDetail != nil {
-		body = m.renderLabelHealthDetail(*m.labelHealthDetail)
-	} else if m.showLabelGraphAnalysis && m.labelGraphAnalysisResult != nil {
-		body = m.renderLabelGraphAnalysis()
-	} else if m.showLabelDrilldown && m.labelDrilldownLabel != "" {
-		body = m.renderLabelDrilldown()
-	} else if m.showAlertsPanel {
-		body = m.renderAlertsPanel()
-	} else if m.showTimeTravelPrompt {
-		body = m.renderTimeTravelPrompt()
-	} else if m.showRecipePicker {
-		body = m.recipePicker.View()
-	} else if m.showRepoPicker {
-		body = m.repoPicker.View()
-	} else if m.showLabelPicker {
-		body = m.labelPicker.View()
-	} else if m.showHelp {
-		body = m.renderHelpOverlay()
-	} else if m.showGlyphHelp {
-		body = m.renderGlyphHelpOverlay()
-	} else if m.showTutorial {
-		// Interactive tutorial (bv-8y31) - full screen overlay
-		body = m.tutorialModel.View()
-	} else if m.snapshotInitPending && m.snapshot == nil {
-		body = m.renderLoadingScreen()
-	} else if m.focused == focusInsights {
-		m.insightsPanel.SetSize(cw, bodyH)
-		body = m.insightsPanel.View()
-	} else if m.focused == focusFlowMatrix {
-		m.flowMatrix.SetSize(cw, bodyH)
-		body = m.flowMatrix.View()
-	} else if m.focused == focusTree {
-		// Hierarchical tree view (bv-gllx)
-		m.tree.SetSize(cw, bodyH)
-		body = m.tree.View()
-	} else if m.isGraphView {
-		body = m.graphView.View(cw, bodyH)
-	} else if m.isBoardView {
-		body = m.board.View(cw, bodyH)
-	} else if m.isActionableView {
-		actionableH := bodyH - 1
-		if actionableH < 3 {
-			actionableH = 3
-		}
-		m.actionableView.SetSize(cw, actionableH)
-		body = m.actionableView.Render()
-	} else if m.isHistoryView {
-		m.historyView.SetSize(cw, bodyH)
-		body = m.historyView.View()
-	} else if m.isSprintView {
-		body = m.sprintViewText
-	} else if m.isSplitView {
-		body = m.renderSplitView()
-	} else if m.focused == focusLabelDashboard {
-		m.labelDashboard.SetSize(cw, bodyH)
-		body = m.labelDashboard.View()
+	if overlay, ok := m.renderOverlay(cw, bodyH); ok {
+		body = overlay
 	} else {
-		// Mobile view
-		if m.showDetails {
-			body = m.viewport.View()
-		} else {
-			body = m.renderListWithHeader()
-		}
+		body = m.renderBaseView(cw, bodyH)
 	}
+	body = m.joinShortcutsSidebar(body)
 
-	// Add shortcuts sidebar if enabled (bv-3qi5)
-	if m.showShortcutsSidebar {
-		// Update sidebar focus for registry-based bindings (bv-xl6g)
-		m.shortcutsSidebar.SetFocus(m.focused)
-		m.shortcutsSidebar.SetSize(m.shortcutsSidebar.Width(), m.height-2)
-		sidebar := m.shortcutsSidebar.View()
-		body = lipgloss.JoinHorizontal(lipgloss.Top, body, sidebar)
-	}
-
-	footer := m.renderFooter()
-
-	// Ensure the final output fits exactly in the terminal height
-	// This prevents the header from being pushed off the top
-	finalStyle := lipgloss.NewStyle().
-		Width(m.width).
-		Height(m.height).
-		MaxHeight(m.height)
-
-	return finalStyle.Render(lipgloss.JoinVertical(lipgloss.Left, body, footer))
+	return m.renderFramedView(body, m.renderFooter())
 }
 
 func (m Model) renderQuitConfirm() string {
