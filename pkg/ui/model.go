@@ -5000,8 +5000,6 @@ func (m Model) renderOverlay(contentW, bodyH int) (string, bool) {
 		return m.renderLabelGraphAnalysis(), true
 	case m.showLabelDrilldown && m.labelDrilldownLabel != "":
 		return m.renderLabelDrilldown(), true
-	case m.showAlertsPanel:
-		return m.renderAlertsPanel(), true
 	case m.showTimeTravelPrompt:
 		return m.renderTimeTravelPrompt(), true
 	case m.showRecipePicker:
@@ -5010,8 +5008,6 @@ func (m Model) renderOverlay(contentW, bodyH int) (string, bool) {
 		return m.repoPicker.View(), true
 	case m.showLabelPicker:
 		return m.labelPicker.View(), true
-	case m.showHelp:
-		return m.renderHelpOverlay(), true
 	case m.showGlyphHelp:
 		return m.renderGlyphHelpOverlay(), true
 	case m.showTutorial:
@@ -5036,19 +5032,7 @@ func (m Model) View() string {
 	if !m.ready {
 		return "Initializing..."
 	}
-
-	cw := m.mainContentWidth()
-	bodyH := m.height - 1
-
-	var body string
-	if overlay, ok := m.renderOverlay(cw, bodyH); ok {
-		body = overlay
-	} else {
-		body = m.renderBaseView(cw, bodyH)
-	}
-	body = m.joinShortcutsSidebar(body)
-
-	return m.renderFramedView(body, m.renderFooter())
+	return m.renderFramedView(m.renderViewBody(), m.renderFooter())
 }
 
 func (m Model) renderQuitConfirm() string {
@@ -5274,7 +5258,7 @@ func (m Model) renderSplitView() string {
 	return lipgloss.JoinHorizontal(lipgloss.Top, listView, detailView)
 }
 
-func (m *Model) renderHelpOverlay() string {
+func (m *Model) renderHelpOverlayBox() string {
 	t := m.theme
 	cw := m.mainContentWidth()
 
@@ -5497,15 +5481,16 @@ func (m *Model) renderHelpOverlay() string {
 		BorderForeground(t.Primary).
 		Padding(1, 2)
 
-	helpBox := containerStyle.Render(content)
+	return containerStyle.Render(content)
+}
 
-	// Center in viewport
+func (m *Model) renderHelpOverlay() string {
 	return lipgloss.Place(
-		cw,
+		m.mainContentWidth(),
 		m.height-1,
 		lipgloss.Center,
 		lipgloss.Center,
-		helpBox,
+		m.renderHelpOverlayBox(),
 	)
 }
 
@@ -8904,8 +8889,8 @@ func alertKey(a drift.Alert) string {
 	return fmt.Sprintf("%s:%s:%s", a.Type, a.Severity, a.IssueID)
 }
 
-// renderAlertsPanel renders the alerts overlay panel
-func (m Model) renderAlertsPanel() string {
+// renderAlertsPanelBox renders the alerts overlay box without Place() fill.
+func (m Model) renderAlertsPanelBox() string {
 	t := m.theme
 
 	boxStyle := t.Renderer.NewStyle().
@@ -9006,14 +8991,17 @@ func (m Model) renderAlertsPanel() string {
 	sb.WriteString(t.Renderer.NewStyle().Foreground(t.Muted).Italic(true).Render(
 		"j/k: navigate • Enter: jump to issue • d: dismiss • Esc: close"))
 
-	content := boxStyle.Render(sb.String())
+	return boxStyle.Render(sb.String())
+}
 
+// renderAlertsPanel renders the alerts overlay panel centered via Place().
+func (m Model) renderAlertsPanel() string {
 	return lipgloss.Place(
 		m.mainContentWidth(),
 		m.height-1,
 		lipgloss.Center,
 		lipgloss.Center,
-		content,
+		m.renderAlertsPanelBox(),
 	)
 }
 

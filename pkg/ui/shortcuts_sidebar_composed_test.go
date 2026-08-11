@@ -20,19 +20,9 @@ func maxLineWidth(s string) int {
 	return mx
 }
 
-// composedBodyWidth reconstructs tier-0/2 body + tier-1 sidebar join before the
-// final View() clamp, matching the production layout pipeline (bv-sl44.4).
+// composedBodyWidth reconstructs the View() body before the final clamp.
 func composedBodyWidth(m Model) int {
-	cw := m.mainContentWidth()
-	bodyH := m.height - 1
-
-	var body string
-	if overlay, ok := m.renderOverlay(cw, bodyH); ok {
-		body = overlay
-	} else {
-		body = m.renderBaseView(cw, bodyH)
-	}
-	return maxLineWidth(m.joinShortcutsSidebar(body))
+	return maxLineWidth(m.renderViewBody())
 }
 
 func enableSidebar(t *testing.T, m Model) Model {

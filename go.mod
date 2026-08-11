@@ -7,6 +7,7 @@ go 1.25.0
 toolchain go1.25.5
 
 require (
+	charm.land/lipgloss/v2 v2.0.2
 	git.sr.ht/~sbinet/gg v0.8.0
 	github.com/Dicklesworthstone/toon-go v0.0.0-20260322013033-4564467a45fb
 	github.com/ajstarks/svgo v0.0.0-20211024235047-1546f124cd8b
@@ -35,9 +36,9 @@ require (
 require (
 	github.com/alecthomas/chroma/v2 v2.24.1 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
-	github.com/aymanbagabas/go-udiff v0.4.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/catppuccin/go v0.3.0 // indirect
+	github.com/charmbracelet/ultraviolet v0.0.0-20251205161215-1948445e3318 // indirect
 	github.com/charmbracelet/x/ansi v0.11.7 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.15 // indirect
 	github.com/charmbracelet/x/conpty v0.2.0 // indirect
@@ -45,6 +46,8 @@ require (
 	github.com/charmbracelet/x/exp/slice v0.0.0-20260511125431-fe5d686e0c99 // indirect
 	github.com/charmbracelet/x/exp/strings v0.1.0 // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
+	github.com/charmbracelet/x/termios v0.1.1 // indirect
+	github.com/charmbracelet/x/windows v0.2.2 // indirect
 	github.com/charmbracelet/x/xpty v0.1.3 // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
