@@ -669,6 +669,24 @@ func TestKeyDispatch_Regression_HistorySearchConsumesGlobalKeys(t *testing.T) {
 	}
 }
 
+// TestKeyDispatch_Regression_QInRecipePickerClosesPicker verifies that 'q' in the
+// recipe picker closes the overlay without applying a recipe, matching repo picker behavior.
+func TestKeyDispatch_Regression_QInRecipePickerClosesPicker(t *testing.T) {
+	m := setupTestModel(t)
+
+	updated, _ := m.Update(keyMsg("'"))
+	m = updated.(Model)
+	if !m.showRecipePicker || m.focused != focusRecipePicker {
+		t.Fatalf("expected recipe picker after \"'\", got focused=%v showRecipePicker=%v", m.focused, m.showRecipePicker)
+	}
+
+	updated, _ = m.Update(keyMsg("q"))
+	m = updated.(Model)
+	if m.showRecipePicker || m.focused != focusList {
+		t.Fatalf("expected 'q' to close recipe picker, got focused=%v showRecipePicker=%v", m.focused, m.showRecipePicker)
+	}
+}
+
 // TestKeyDispatch_LabelPickerUppercaseL verifies footer hints that show "L"
 // actually open the picker (Shift+L sends uppercase L in most terminals).
 func TestKeyDispatch_LabelPickerUppercaseL(t *testing.T) {

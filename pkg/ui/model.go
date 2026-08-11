@@ -4574,7 +4574,7 @@ func (m Model) handleRecipePickerKeys(msg tea.KeyMsg) Model {
 		m.recipePicker.MoveDown()
 	case "k", "up":
 		m.recipePicker.MoveUp()
-	case "esc":
+	case "esc", "q":
 		m.showRecipePicker = false
 		m.focused = focusList
 	case "enter":
