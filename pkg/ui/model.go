@@ -62,6 +62,7 @@ const (
 	focusRepoPicker
 	focusHelp
 	focusGlyphHelp
+	focusContextHelp
 	focusQuitConfirm
 	focusTimeTravelInput
 	focusHistory
@@ -481,6 +482,7 @@ type Model struct {
 	showDetails              bool
 	showHelp                 bool
 	helpScroll               int // Scroll offset for help overlay
+	showContextHelp          bool
 	showGlyphHelp            bool
 	glyphHelpScroll          int // Scroll offset for symbol reference overlay (K)
 	showQuitConfirm          bool
@@ -2781,6 +2783,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if (msg.String() == "?" || msg.String() == "f1") && m.list.FilterState() != list.Filtering {
 			m.showHelp = !m.showHelp
 			if m.showHelp {
+				m.showContextHelp = false
 				m.showGlyphHelp = false
 				m.glyphHelpScroll = 0
 				m.focusBeforeHelp = m.focused // Store current focus before switching to help
@@ -2803,6 +2806,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if !m.isHistoryView && m.focused != focusHistory {
 				m.showGlyphHelp = true
 				m.showHelp = false
+				m.showContextHelp = false
 				m.helpScroll = 0
 				m.focusBeforeHelp = m.focused
 				m.focused = focusGlyphHelp
@@ -2811,9 +2815,33 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
+		// Context help overlay (~) — compact quick reference for current view.
+		if IsContextHelpTrigger(msg) && m.list.FilterState() != list.Filtering {
+			if m.showContextHelp {
+				m.showContextHelp = false
+				m.focused = m.restoreFocusFromHelp()
+				return m, nil
+			}
+			m.showContextHelp = true
+			m.showHelp = false
+			m.showGlyphHelp = false
+			m.helpScroll = 0
+			m.glyphHelpScroll = 0
+			m.showTutorial = false
+			m.focusBeforeHelp = m.focused
+			m.focused = focusContextHelp
+			return m, nil
+		}
+
 		// Symbol reference overlay scroll/dismiss — before view handlers eat j/k/pgup.
 		if m.showGlyphHelp {
 			m = m.handleGlyphHelpKeys(msg)
+			return m, nil
+		}
+
+		// Context help overlay dismiss — before view handlers eat keys.
+		if m.showContextHelp {
+			m = m.handleContextHelpKeys(msg)
 			return m, nil
 		}
 
@@ -2828,6 +2856,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.showTutorial = !m.showTutorial
 			if m.showTutorial {
 				m.showHelp = false // Close help if open
+				m.showContextHelp = false
 				m.tutorialModel.SetSize(m.width, m.height)
 				m.focused = focusTutorial
 			} else {
@@ -5021,6 +5050,8 @@ func (m Model) View() string {
 		body = m.renderHelpOverlay()
 	} else if m.showGlyphHelp {
 		body = m.renderGlyphHelpOverlay()
+	} else if m.showContextHelp {
+		body = m.renderContextHelpOverlay()
 	} else if m.showTutorial {
 		// Interactive tutorial (bv-8y31) - full screen overlay
 		body = m.tutorialModel.View()
@@ -6476,6 +6507,8 @@ func (m *Model) renderFooter() string {
 	var keyHints []string
 	if m.showHelp {
 		keyHints = append(keyHints, "Press any key to close")
+	} else if m.showContextHelp {
+		keyHints = append(keyHints, keyStyle.Render("`")+" tutorial", keyStyle.Render("~")+"/esc/q close")
 	} else if m.showGlyphHelp {
 		keyHints = append(keyHints, keyStyle.Render("j/k")+" scroll", keyStyle.Render("K")+"/esc close")
 	} else if m.showRecipePicker {
@@ -7426,7 +7459,7 @@ func (m Model) handleLeftClick(x, y int) Model {
 		m.showUpdateModal || m.showLabelHealthDetail || m.showLabelGraphAnalysis ||
 		m.showLabelDrilldown || m.showAlertsPanel || m.showTimeTravelPrompt ||
 		m.showRecipePicker || m.showRepoPicker || m.showLabelPicker ||
-		m.showHelp || m.showGlyphHelp || m.showTutorial {
+		m.showHelp || m.showGlyphHelp || m.showContextHelp || m.showTutorial {
 		return m
 	}
 
@@ -7936,6 +7969,10 @@ func (f focus) String() string {
 		return "repo_picker"
 	case focusHelp:
 		return "help"
+	case focusGlyphHelp:
+		return "glyph_help"
+	case focusContextHelp:
+		return "context_help"
 	case focusQuitConfirm:
 		return "quit_confirm"
 	case focusTimeTravelInput:

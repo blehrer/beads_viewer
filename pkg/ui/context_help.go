@@ -3,6 +3,7 @@ package ui
 import (
 	"strings"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -85,6 +86,25 @@ func RenderContextHelp(ctx Context, theme Theme, width, height int) string {
 		Width(modalWidth)
 
 	return modalStyle.Render(b.String())
+}
+
+func (m Model) renderContextHelpOverlay() string {
+	content := RenderContextHelp(m.CurrentContext(), m.theme, m.width, m.height)
+	return lipgloss.Place(m.width, m.height-1, lipgloss.Center, lipgloss.Center, content)
+}
+
+func (m Model) handleContextHelpKeys(msg tea.KeyMsg) Model {
+	switch msg.String() {
+	case "q", "esc", "~":
+		m.showContextHelp = false
+		m.focused = m.restoreFocusFromHelp()
+	case "`":
+		m.showContextHelp = false
+		m.showTutorial = true
+		m.tutorialModel.SetSize(m.width, m.height)
+		m.focused = focusTutorial
+	}
+	return m
 }
 
 // =============================================================================

@@ -1083,3 +1083,78 @@ func TestKeyDispatch_FooterAdvertisedKeys(t *testing.T) {
 		}
 	})
 }
+
+// TestKeyDispatch_ContextHelpTilde verifies ~ opens context help and esc/q dismiss it.
+func TestKeyDispatch_ContextHelpTilde(t *testing.T) {
+	m := setupTestModel(t)
+
+	updated, _ := m.Update(keyMsg("~"))
+	m = updated.(Model)
+	if !m.showContextHelp || m.focused != focusContextHelp {
+		t.Fatalf("expected context help after ~, show=%v focus=%v", m.showContextHelp, m.focused)
+	}
+
+	view := m.View()
+	if !strings.Contains(view, "Quick Reference") {
+		t.Fatalf("expected context help modal in view")
+	}
+	if !strings.Contains(view, "List View") {
+		t.Fatalf("expected list context help content in view")
+	}
+
+	updated, _ = m.Update(keyMsg("esc"))
+	m = updated.(Model)
+	if m.showContextHelp || m.focused != focusList {
+		t.Fatalf("expected context help closed after esc, show=%v focus=%v", m.showContextHelp, m.focused)
+	}
+
+	updated, _ = m.Update(keyMsg("~"))
+	m = updated.(Model)
+	if !m.showContextHelp {
+		t.Fatal("expected context help to reopen after ~")
+	}
+
+	updated, _ = m.Update(keyMsg("q"))
+	m = updated.(Model)
+	if m.showContextHelp {
+		t.Fatal("expected context help closed after q")
+	}
+}
+
+// TestKeyDispatch_ContextHelpFromBoard verifies context help reflects the active view.
+func TestKeyDispatch_ContextHelpFromBoard(t *testing.T) {
+	m := setupTestModel(t)
+
+	updated, _ := m.Update(keyMsg("b"))
+	m = updated.(Model)
+	if m.focused != focusBoard {
+		t.Fatalf("expected board view after b, got %v", m.focused)
+	}
+
+	updated, _ = m.Update(keyMsg("~"))
+	m = updated.(Model)
+	if !m.showContextHelp {
+		t.Fatal("expected context help in board view")
+	}
+
+	view := m.View()
+	if !strings.Contains(view, "Board View") {
+		t.Fatalf("expected board context help content, view snippet: %q", view[:min(200, len(view))])
+	}
+}
+
+// TestKeyDispatch_ContextHelpConsumesKeys verifies context help modal blocks view toggles.
+func TestKeyDispatch_ContextHelpConsumesKeys(t *testing.T) {
+	m := setupTestModel(t)
+
+	updated, _ := m.Update(keyMsg("~"))
+	m = updated.(Model)
+
+	for _, key := range []string{"b", "g", "h"} {
+		updated, _ = m.Update(keyMsg(key))
+		result := updated.(Model)
+		if !result.showContextHelp {
+			t.Fatalf("key %q should not dismiss context help modal", key)
+		}
+	}
+}
