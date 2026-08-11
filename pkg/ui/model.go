@@ -592,7 +592,7 @@ type Model struct {
 	alertsCursor    int
 	dismissedAlerts map[string]bool
 
-	// Sprint view (bv-161)
+	// Sprint view (bv-161). Test-only until a view-toggle entry key is wired.
 	sprints        []model.Sprint
 	selectedSprint *model.Sprint
 	isSprintView   bool

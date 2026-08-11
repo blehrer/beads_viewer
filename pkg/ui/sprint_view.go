@@ -11,6 +11,9 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// Sprint view (bv-161): implemented and tested, but no production entry key yet —
+// isSprintView is only set in tests until a view-toggle key is wired.
+
 // renderSprintDashboard renders the sprint view with progress, burndown, and at-risk items (bv-161)
 func (m Model) renderSprintDashboard() string {
 	t := m.theme

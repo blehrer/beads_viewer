@@ -249,8 +249,6 @@ func focusesForBindingDoc(doc KeyBindingDoc) []focus {
 			addFocus(focusTree)
 		case "flow", "flow-matrix":
 			addFocus(focusFlowMatrix)
-		case "sprint":
-			addFocus(focusSprint)
 		}
 	}
 
@@ -269,7 +267,6 @@ func allDocumentedFocuses() []focus {
 		focusLabelDashboard,
 		focusTree,
 		focusFlowMatrix,
-		focusSprint,
 	}
 }
 
@@ -305,7 +302,7 @@ func GetKeyBindingDocs() []KeyBindingDoc {
 		{"h", "History view", "Views", "list,detail"},
 		{"i", "Insights panel", "Views", "list,detail"},
 		{"?", "Help overlay", "Views", "all"},
-		{"K", "Symbol reference (glyph glossary)", "Views", "list,detail,board,graph,insights,actionable,tree,flow-matrix,sprint,label-dashboard"},
+		{"K", "Symbol reference (glyph glossary)", "Views", "list,detail,board,graph,insights,actionable,tree,flow-matrix,label-dashboard"},
 		{";", "Shortcuts sidebar", "Views", "all"},
 		{"p", "Priority hints", "Views", "list,detail"},
 
