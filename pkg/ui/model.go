@@ -13,10 +13,10 @@ import (
 	"time"
 
 	"github.com/Dicklesworthstone/beads_viewer/internal/datasource"
-	"github.com/Dicklesworthstone/beads_viewer/pkg/beadscli"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/agents"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/analysis"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/baseline"
+	"github.com/Dicklesworthstone/beads_viewer/pkg/beadscli"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/cass"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/correlation"
 	"github.com/Dicklesworthstone/beads_viewer/pkg/debug"
@@ -1244,6 +1244,7 @@ func NewModel(issues []model.Issue, activeRecipe *recipe.Recipe, beadsPath strin
 	}
 
 	m.registerKeyBindings()
+	m.registerKeyHandlers()
 	return m
 }
 
@@ -3237,495 +3238,42 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			// ═══════════════════════════════════════════════════════════════
-			// Focus-specific key handling — runs BEFORE list-level view
-			// toggles so that views like board/graph/tree/history receive
-			// keys (h, l, g, f, etc.) for their own navigation first.
-			//
-			// Each case dispatches to its handler for keys the handler
-			// actually uses, then falls through to the view-toggle block
-			// for unhandled keys (like view-switch keys b/g/a/i/E/etc.)
-			// so cross-view switching still works.
+			// Registry-driven key dispatch (bv-p5kf.16)
 			// ═══════════════════════════════════════════════════════════════
 			keyStr := msg.String()
-			viewToggleHandled := false
 
-			switch m.focused {
-			case focusRecipePicker:
-				m = m.handleRecipePickerKeys(msg)
-				return m, nil
-
-			case focusRepoPicker:
-				m = m.handleRepoPickerKeys(msg)
-				return m, nil
-
-			case focusLabelPicker:
-				m = m.handleLabelPickerKeys(msg)
-				return m, nil
-
-			case focusInsights:
-				// Insights uses h/l for panel nav — intercept those.
-				// Let other view-toggle keys (b/g/a/E/f/etc.) fall through.
-				switch keyStr {
-				case "h", "l",
-					"j", "k", "up", "down", "left", "right",
-					"ctrl+j", "ctrl+k", "tab",
-					"e", "x", "m", "enter", "esc":
-					m = m.handleInsightsKeys(msg)
-					viewToggleHandled = true
-				}
-
-			case focusBoard:
-				// Board uses h/l for nav — intercept those.
-				// "g" handled via gg-combo (bv-6fm0): gg jumps to top, single g -> graph.
-				switch keyStr {
-				case "g":
-					// gg-combo logic (bv-6fm0)
-					if m.pendingComboKey == "g" && m.pendingComboFocus == focusBoard && time.Since(m.pendingComboTime) < comboTimeout {
-						// Second g within window: gg-combo (jump to top)
-						m.board.MoveToTop()
-						m.pendingComboKey = ""
-						m.pendingComboTime = time.Time{}
-						viewToggleHandled = true
-					} else {
-						// First g: start combo timer
-						m.pendingComboKey = "g"
-						m.pendingComboTime = time.Now()
-						m.pendingComboFocus = focusBoard
-						cmds = append(cmds, comboTickCmd("g"))
-						viewToggleHandled = true
-					}
-				case "h", "l",
-					"j", "k", "left", "right", "up", "down",
-					"home", "end", "G", "ctrl+d", "ctrl+u",
-					"1", "2", "3", "4", "H", "L", "0", "$",
-					"/", "n", "N", "y", "o", "c", "r", "s", "e", "d",
-					"tab", "enter", "ctrl+j", "ctrl+k":
-					// Cancel any pending combo when pressing other keys
-					m.pendingComboKey = ""
-					m = m.handleBoardKeys(msg)
-					viewToggleHandled = true
-				}
-
-			case focusLabelDashboard:
-				if selectedLabel, cmd := m.labelDashboard.Update(msg); selectedLabel != "" {
-					// Filter list by selected label and jump back to list view
-					m.currentFilter = "label:" + selectedLabel
-					m.applyFilter()
-					m.focused = focusList
-					return m, cmd
-				}
-				// Open detail modal on 'h'
-				if keyStr == "h" && len(m.labelDashboard.labels) > 0 {
-					idx := m.labelDashboard.cursor
-					if idx >= 0 && idx < len(m.labelDashboard.labels) {
-						lh := m.labelDashboard.labels[idx]
-						m.showLabelHealthDetail = true
-						m.labelHealthDetail = &lh
-						// Precompute cross-label flows for this label
-						m.labelHealthDetailFlow = m.getCrossFlowsForLabel(lh.Label)
-						return m, nil
-					}
-				}
-				// Open drilldown overlay on 'd'
-				if keyStr == "d" && len(m.labelDashboard.labels) > 0 {
-					idx := m.labelDashboard.cursor
-					if idx >= 0 && idx < len(m.labelDashboard.labels) {
-						lh := m.labelDashboard.labels[idx]
-						m.labelDrilldownLabel = lh.Label
-						m.labelDrilldownIssues = m.filterIssuesByLabel(lh.Label)
-						m.showLabelDrilldown = true
-						return m, nil
-					}
-				}
-				return m, nil
-
-			case focusGraph:
-				// Graph uses h/l for nav — intercept those.
-				// Let other view-toggle keys (b/a/i/E/f/etc.) fall through.
-				switch keyStr {
-				case "h", "l",
-					"j", "k", "left", "right", "up", "down",
-					"H", "L", "ctrl+d", "ctrl+u", "pgup", "pgdown",
-					"enter":
-					m = m.handleGraphKeys(msg)
-					viewToggleHandled = true
-				}
-
-			case focusTree:
-				// Tree uses h/l for nav — intercept those.
-				// "g" handled via gg-combo (bv-6fm0): gg jumps to top, single g -> graph.
-				// Let other view-toggle keys (b/a/i/f/etc.) fall through.
-				switch keyStr {
-				case "g":
-					// gg-combo logic (bv-6fm0)
-					if m.pendingComboKey == "g" && m.pendingComboFocus == focusTree && time.Since(m.pendingComboTime) < comboTimeout {
-						// Second g within window: gg-combo (jump to top)
-						m.tree.JumpToTop()
-						m.pendingComboKey = ""
-						m.pendingComboTime = time.Time{}
-						viewToggleHandled = true
-					} else {
-						// First g: start combo timer
-						m.pendingComboKey = "g"
-						m.pendingComboTime = time.Now()
-						m.pendingComboFocus = focusTree
-						cmds = append(cmds, comboTickCmd("g"))
-						viewToggleHandled = true
-					}
-				case "h", "l",
-					"j", "k", "left", "right", "up", "down",
-					"G", "o", "O", "E", "esc",
-					"enter", " ", "tab",
-					"ctrl+d", "ctrl+u", "pgup", "pgdown":
-					// Cancel any pending combo when pressing other keys
-					m.pendingComboKey = ""
-					m = m.handleTreeKeys(msg)
-					viewToggleHandled = true
-				}
-
-			case focusActionable:
-				// Actionable uses j/k/enter — no conflicts with view-toggles.
-				switch keyStr {
-				case "j", "k", "up", "down", "enter":
-					m = m.handleActionableKeys(msg)
-					viewToggleHandled = true
-				}
-
-			case focusHistory:
-				// History uses h/f/g for nav — intercept those.
-				// Let other view-toggle keys (b/a/i/E/etc.) fall through.
-				// In search or file-tree mode, all keys go to the handler.
-				if m.historyView.IsSearchActive() || m.historyView.FileTreeHasFocus() {
-					m = m.handleHistoryKeys(msg)
-					viewToggleHandled = true
-				} else {
-					switch keyStr {
-					case "h", "f", "g",
-						"j", "k", "up", "down",
-						"J", "K", "v", "tab", "enter",
-						"y", "c", "F", "o", "/":
-						m = m.handleHistoryKeys(msg)
-						viewToggleHandled = true
-					}
-				}
-
-			case focusSprint:
-				// Sprint uses only P/esc/j/k — no conflicts with view-toggles.
-				switch keyStr {
-				case "P", "esc", "j", "k", "up", "down":
-					m = m.handleSprintKeys(msg)
-					viewToggleHandled = true
-				}
-
-			case focusFlowMatrix:
-				// Flow matrix uses f/g for close/go-to-start — intercept those.
-				// Let other view-toggle keys fall through.
-				switch keyStr {
-				case "f", "g",
-					"j", "k", "up", "down",
-					"G", "end", "home",
-					"tab", "enter", "esc", "q":
-					m = m.handleFlowMatrixKeys(msg)
-					viewToggleHandled = true
-				}
-
-			case focusDetail:
-				// Intercept "O" in detail view for editor dispatch (bv-134)
-				if keyStr == "O" {
-					if editorCmd := m.openInEditor(); editorCmd != nil {
-						return m, editorCmd
-					}
-					return m, nil
-				}
-				// Label picker is advertised in the footer as l/L; detail pane
-				// consumes keys before the list-level view-toggle block runs.
-				if keyStr == "l" || keyStr == "L" {
-					if m, ok := m.openLabelPicker(); ok {
-						return m, nil
-					}
-					return m, nil
-				}
-				// Footer-advertised action keys (C/y/t/x/etc.) must reach
-				// list-level handlers, not the detail viewport (bv-p5kf.7).
-				if detailPassthroughKey(keyStr) {
-					break
-				}
-				m.viewport, cmd = m.viewport.Update(msg)
-				cmds = append(cmds, cmd)
-				return m, tea.Batch(cmds...)
-
-			case focusList:
-				// Fall through to list-level view toggles below
-			}
-
-			if viewToggleHandled {
-				if len(cmds) > 0 {
-					return m, tea.Batch(cmds...)
-				}
-				return m, nil
-			}
-
-			// ═══════════════════════════════════════════════════════════════
-			// View toggle keys — reachable from focusList and also from
-			// other views when the key isn't claimed by their handler
-			// (enabling cross-view switching, e.g. 'g' from board -> graph).
-			// ═══════════════════════════════════════════════════════════════
-			switch msg.String() {
-			case "b":
-				m.clearAttentionOverlay()
-				m.isBoardView = !m.isBoardView
-				m.isGraphView = false
-				m.isActionableView = false
-				m.isHistoryView = false
-				if m.isBoardView {
-					m.focused = focusBoard
-					m.refreshBoardAndGraphForCurrentFilter()
-				} else {
-					m.focused = focusList
-				}
-				return m, nil
-
-			case "g":
-				// Toggle graph view
-				m.clearAttentionOverlay()
-				m.isGraphView = !m.isGraphView
-				m.isBoardView = false
-				m.isActionableView = false
-				m.isHistoryView = false
-				if m.isGraphView {
-					m.focused = focusGraph
-					m.refreshBoardAndGraphForCurrentFilter()
-				} else {
-					m.focused = focusList
-				}
-				return m, nil
-
-			case "a":
-				// Toggle actionable view
-				m.clearAttentionOverlay()
-				m.isActionableView = !m.isActionableView
-				m.isGraphView = false
-				m.isBoardView = false
-				m.isHistoryView = false
-				if m.isActionableView {
-					// Build execution plan
-					analyzer := analysis.NewAnalyzer(m.issues)
-					plan := analyzer.GetExecutionPlan()
-					m.actionableView = NewActionableModel(plan, m.theme)
-					m.actionableView.SetSize(m.width, m.height-2)
-					m.focused = focusActionable
-				} else {
-					m.focused = focusList
-				}
-				return m, nil
-
-			case "E":
-				// Toggle hierarchical tree view (bv-gllx)
-				m.clearAttentionOverlay()
-				if m.focused == focusTree {
-					m.focused = focusList
-				} else {
-					m.isGraphView = false
-					m.isBoardView = false
-					m.isActionableView = false
-					m.isHistoryView = false
-					// Build tree from snapshot when available (bv-t435)
-					if m.snapshot != nil {
-						m.tree.BuildFromSnapshot(m.snapshot)
-					} else {
-						m.tree.Build(m.issues)
-					}
-					m.tree.SetSize(m.width, m.height-2)
-					m.focused = focusTree
-				}
-				return m, nil
-
-			case "i":
-				m.clearAttentionOverlay()
-				if m.focused == focusInsights {
-					m.focused = focusList
-				} else {
-					m.isGraphView = false
-					m.isBoardView = false
-					m.isActionableView = false
-					m.isHistoryView = false
-					m.focused = focusInsights
-					m.rebuildInsightsPanel()
-				}
-				return m, nil
-
-			case "p":
-				// Toggle priority hints
-				m.showPriorityHints = !m.showPriorityHints
-				// Update delegate with new state
-				m.updateListDelegate()
-				// Show explanatory status message
-				if m.showPriorityHints {
-					count := len(m.priorityHints)
-					if count > 0 {
-						m.statusMsg = fmt.Sprintf("Priority hints: ↑ increase ↓ decrease (%d suggestions)", count)
-					} else {
-						m.statusMsg = "Priority hints: No misalignments detected (analysis ongoing)"
-					}
-				} else {
-					m.statusMsg = ""
-				}
-				return m, nil
-
-			case "h":
-				// Toggle history view
-				m.clearAttentionOverlay()
-				m.isHistoryView = !m.isHistoryView
-				m.isGraphView = false
-				m.isBoardView = false
-				m.isActionableView = false
-				if m.isHistoryView {
-					// Ensure history model has latest sizing
-					bodyHeight := m.height - 1
-					if bodyHeight < 5 {
-						bodyHeight = 5
-					}
-					m.historyView.SetSize(m.width, bodyHeight)
-					m.focused = focusHistory
-				} else {
-					m.focused = focusList
-				}
-				return m, nil
-
-			case "[", "f3":
-				// Open label dashboard (phase 1: table view)
-				m.clearAttentionOverlay()
-				m.isGraphView = false
-				m.isBoardView = false
-				m.isActionableView = false
-				m.isHistoryView = false
-				m.focused = focusLabelDashboard
-				// Compute label health (fast; phase1 metrics only needed) with caching
-				if !m.labelHealthCached {
-					cfg := analysis.DefaultLabelHealthConfig()
-					m.labelHealthCache = analysis.ComputeAllLabelHealth(m.issues, cfg, time.Now().UTC(), m.analysis)
-					m.labelHealthCached = true
-				}
-				m.labelDashboard.SetData(m.labelHealthCache.Labels)
-				m.labelDashboard.SetSize(m.width, m.height-1)
-				m.statusMsg = fmt.Sprintf("Labels: %d total • critical %d • warning %d", m.labelHealthCache.TotalLabels, m.labelHealthCache.CriticalCount, m.labelHealthCache.WarningCount)
-				m.statusIsError = false
-				return m, nil
-
-			case "]", "f4":
-				// Attention view: compute attention scores (cached) and render as text
-				if !m.attentionCached {
-					cfg := analysis.DefaultLabelHealthConfig()
-					m.attentionCache = analysis.ComputeLabelAttentionScores(m.issues, cfg, time.Now().UTC())
-					m.attentionCached = true
-				}
-				attText, _ := ComputeAttentionView(m.issues, max(40, m.width-4))
-				m.isGraphView = false
-				m.isBoardView = false
-				m.isActionableView = false
-				m.isHistoryView = false
-				m.focused = focusInsights
-				m.showAttentionView = true
-				m.rebuildInsightsPanel()
-				m.insightsPanel.labelAttention = m.attentionCache.Labels
-				m.insightsPanel.extraText = attText
-				panelHeight := m.height - 2
-				if panelHeight < 3 {
-					panelHeight = 3
-				}
-				m.insightsPanel.SetSize(m.width, panelHeight)
-				return m, nil
-
-			case "f":
-				// Flow matrix view (cross-label dependencies)
-				m.clearAttentionOverlay()
-				cfg := analysis.DefaultLabelHealthConfig()
-				flow := analysis.ComputeCrossLabelFlow(m.issues, cfg)
-				m.isGraphView = false
-				m.isBoardView = false
-				m.isActionableView = false
-				m.isHistoryView = false
-				m.focused = focusFlowMatrix
-				m.flowMatrix = NewFlowMatrixModel(m.theme)
-				m.flowMatrix.SetData(&flow, m.issues)
-				panelHeight := m.height - 2
-				if panelHeight < 3 {
-					panelHeight = 3
-				}
-				m.flowMatrix.SetSize(m.width, panelHeight)
-				return m, nil
-
-			case "!":
-				// Toggle alerts panel (bv-168)
-				// Only show if there are active alerts
-				activeCount := 0
-				for _, a := range m.alerts {
-					if !m.dismissedAlerts[alertKey(a)] {
-						activeCount++
-					}
-				}
-				if activeCount > 0 {
-					m.showAlertsPanel = !m.showAlertsPanel
-					m.alertsCursor = 0 // Reset cursor when opening
-				} else {
-					m.statusMsg = "No active alerts"
-					m.statusIsError = false
-				}
-				return m, nil
-
-			case "'":
-				// Toggle recipe picker overlay
-				m.showRecipePicker = !m.showRecipePicker
-				if m.showRecipePicker {
-					m.recipePicker.SetSize(m.width, m.height-1)
-					m.focused = focusRecipePicker
-				} else {
-					m.focused = focusList
-				}
-				return m, nil
-
-			case "w":
-				// Toggle repo picker overlay (workspace mode)
-				if !m.workspaceMode || len(m.availableRepos) == 0 {
-					m.statusMsg = "Repo filter available only in workspace mode"
-					m.statusIsError = false
-					return m, nil
-				}
-				m.showRepoPicker = !m.showRepoPicker
-				if m.showRepoPicker {
-					m.repoPicker = NewRepoPickerModel(m.availableRepos, m.theme)
-					m.repoPicker.SetActiveRepos(m.activeRepos)
-					m.repoPicker.SetSize(m.width, m.height-1)
-					m.focused = focusRepoPicker
-				} else {
-					m.focused = focusList
-				}
-				return m, nil
-
-			case "x":
-				// Export to Markdown file
-				m.exportToMarkdown()
-				return m, nil
-
-			case "l", "L":
-				// Open label picker for quick filter (bv-126).
-				// Accept uppercase too — footer/tutorial show "L" and Shift+L
-				// is the natural muscle memory for a capital hint.
-				if m, ok := m.openLabelPicker(); ok {
-					return m, nil
-				}
-				return m, nil
-
-			case "O":
-				// Open in terminal editor (bv-134)
+			// Editor launch needs tea.Cmd — handle before registry (bv-134).
+			if keyStr == "O" && (m.focused == focusDetail || m.focused == focusList) {
 				if editorCmd := m.openInEditor(); editorCmd != nil {
 					return m, editorCmd
 				}
 				return m, nil
 			}
 
-			// Remaining list-level keys handled by handleListKeys
-			m = m.handleListKeys(msg)
+			if updated, comboCmd, comboHandled := m.tryGGCombo(msg); comboHandled {
+				m = updated
+				if comboCmd != nil {
+					return m, comboCmd
+				}
+				return m, nil
+			}
+
+			updated, handled, dispatchCmd := m.dispatchRegistryKeys(msg)
+			if handled {
+				m = updated
+				if dispatchCmd != nil {
+					return m, dispatchCmd
+				}
+				return m, nil
+			}
+			m = updated
+
+			// Detail viewport consumes unhandled keys (scroll).
+			if m.focused == focusDetail && !detailPassthroughKey(keyStr) && keyStr != "O" {
+				m.viewport, cmd = m.viewport.Update(msg)
+				cmds = append(cmds, cmd)
+				return m, tea.Batch(cmds...)
+			}
 		}
 
 	case tea.MouseMsg:

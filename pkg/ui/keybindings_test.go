@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/bubbles/list"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/Dicklesworthstone/beads_viewer/pkg/model"
@@ -271,6 +271,27 @@ func TestKeyRegistryRegisterView(t *testing.T) {
 		if b.Focus != focusList {
 			t.Errorf("RegisterView: expected focus=%v, got %v", focusList, b.Focus)
 		}
+	}
+}
+
+// TestKeyRegistryDispatchStack verifies stack walk and fallthrough behavior.
+func TestKeyRegistryDispatchStack(t *testing.T) {
+	r := NewKeyRegistry()
+	r.RegisterBinding(KeyBinding{Focus: focusDetail, Key: "C", Desc: "doc only"})
+	r.RegisterBinding(KeyBinding{
+		Focus:   focusList,
+		Key:     "C",
+		Handler: func(m Model, msg tea.KeyMsg) (Model, bool) { m.statusMsg = "handled"; return m, true },
+	})
+
+	m := Model{focused: focusDetail}
+	stack := []focus{focusDetail, focusList}
+	updated, handled, _ := r.DispatchStack(stack, "C", m, keyMsg("C"))
+	if !handled {
+		t.Fatal("expected C to fall through from detail to list handler")
+	}
+	if updated.statusMsg != "handled" {
+		t.Fatalf("expected list handler to run, got statusMsg=%q", updated.statusMsg)
 	}
 }
 

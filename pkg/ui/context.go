@@ -45,6 +45,52 @@ const (
 	ContextList Context = "list"
 )
 
+// AllowsGlobalFallthrough reports whether unhandled keys in this context may
+// fall through to global list-level handlers (view toggles, filters, etc.).
+// Label dashboard and modal overlays swallow keys instead.
+func (c Context) AllowsGlobalFallthrough() bool {
+	switch c {
+	case ContextLabelDashboard,
+		ContextLabelPicker,
+		ContextRecipePicker,
+		ContextRepoPicker,
+		ContextHelp,
+		ContextQuitConfirm,
+		ContextLabelHealthDetail,
+		ContextLabelDrilldown,
+		ContextLabelGraphAnalysis,
+		ContextTimeTravelInput,
+		ContextAlerts,
+		ContextAgentPrompt,
+		ContextCassSession:
+		return false
+	default:
+		return true
+	}
+}
+
+// DispatchFocusStack returns focus contexts to consult for registry dispatch,
+// most specific first. When global fallthrough is allowed, focusList is appended
+// so cross-view toggles (b/g/h/…) still work from specialized views.
+//
+// Resolution order: primary focus (view/submode) → global list fallthrough.
+// Modal overlays are handled before registry dispatch in Update().
+func (m Model) DispatchFocusStack() []focus {
+	primary := m.focused
+	if m.showDetails && !m.isSplitView && primary == focusList {
+		primary = focusDetail
+	}
+
+	stack := []focus{primary}
+	if !m.CurrentContext().AllowsGlobalFallthrough() {
+		return stack
+	}
+	if primary != focusList {
+		stack = append(stack, focusList)
+	}
+	return stack
+}
+
 // CurrentContext returns the current UI context identifier.
 // This is used for context-sensitive help (e.g., double-tap CapsLock).
 // Priority order: overlays → views → detail states → filter → default

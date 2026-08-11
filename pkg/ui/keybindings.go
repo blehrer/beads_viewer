@@ -15,11 +15,12 @@ type KeyHandler func(m Model, msg tea.KeyMsg) (Model, bool)
 
 // KeyBinding associates a key with a handler for a specific focus context.
 type KeyBinding struct {
-	Focus    focus      // Which view/focus context this binding applies to
-	Key      string     // Key string (e.g., "j", "ctrl+d", "enter")
-	Desc     string     // Human-readable description for help display
-	Category string     // Grouping category (e.g., "Navigation", "Actions")
-	Handler  KeyHandler // The handler function to call
+	Focus            focus      // Which view/focus context this binding applies to
+	Key              string     // Key string (e.g., "j", "ctrl+d", "enter")
+	Desc             string     // Human-readable description for help display
+	Category         string     // Grouping category (e.g., "Navigation", "Actions")
+	Handler          KeyHandler // The handler function to call
+	AllowFallthrough bool       // If true, continue down the stack when Handler returns handled=false
 }
 
 // KeyRegistry manages key bindings organized by focus context. It provides
@@ -50,8 +51,10 @@ func (r *KeyRegistry) RegisterBinding(b KeyBinding) {
 		r.handlers[b.Focus] = make(map[string]KeyHandler)
 	}
 
-	// Register the handler
-	r.handlers[b.Focus][b.Key] = b.Handler
+	// Register the handler (doc-only bindings omit Handler)
+	if b.Handler != nil {
+		r.handlers[b.Focus][b.Key] = b.Handler
+	}
 
 	// Track binding for help generation (replace if exists)
 	existingBindings := r.bindings[b.Focus]
@@ -101,6 +104,38 @@ func (r *KeyRegistry) Dispatch(f focus, key string, m Model, msg tea.KeyMsg) (Mo
 
 	updatedModel, handled := handler(m, msg)
 	return updatedModel, handled, nil
+}
+
+// DispatchStack walks the focus stack until a handler reports handled=true.
+// Bindings with AllowFallthrough continue to the next focus when handled=false.
+func (r *KeyRegistry) DispatchStack(stack []focus, key string, m Model, msg tea.KeyMsg) (Model, bool, tea.Cmd) {
+	for i, f := range stack {
+		updated, handled, cmd := r.Dispatch(f, key, m, msg)
+		if handled {
+			return updated, true, cmd
+		}
+		m = updated
+		if i < len(stack)-1 {
+			binding := r.lookupBinding(f, key)
+			if binding != nil && binding.Handler != nil && !binding.AllowFallthrough {
+				break
+			}
+			continue
+		}
+	}
+	return m, false, nil
+}
+
+func (r *KeyRegistry) lookupBinding(f focus, key string) *KeyBinding {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	for _, b := range r.bindings[f] {
+		if b.Key == key {
+			copy := b
+			return &copy
+		}
+	}
+	return nil
 }
 
 // AllBindingsForFocus returns all registered bindings for a specific focus,
@@ -161,12 +196,17 @@ func (r *KeyRegistry) HasBinding(f focus, key string) bool {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	focusHandlers := r.handlers[f]
-	if focusHandlers == nil {
-		return false
+	if focusHandlers := r.handlers[f]; focusHandlers != nil {
+		if _, exists := focusHandlers[key]; exists {
+			return true
+		}
 	}
-	_, exists := focusHandlers[key]
-	return exists
+	for _, b := range r.bindings[f] {
+		if b.Key == key {
+			return true
+		}
+	}
+	return false
 }
 
 // BindingsCount returns the total number of registered bindings.

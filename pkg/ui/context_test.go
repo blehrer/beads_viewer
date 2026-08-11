@@ -206,6 +206,79 @@ func TestCurrentContext_FilterState(t *testing.T) {
 	}
 }
 
+func TestDispatchFocusStack(t *testing.T) {
+	tests := []struct {
+		name     string
+		setup    func(*Model)
+		expected []focus
+	}{
+		{
+			name:     "list default",
+			setup:    func(m *Model) {},
+			expected: []focus{focusList},
+		},
+		{
+			name: "board falls through to list",
+			setup: func(m *Model) {
+				m.focused = focusBoard
+				m.isBoardView = true
+			},
+			expected: []focus{focusBoard, focusList},
+		},
+		{
+			name: "label dashboard swallows",
+			setup: func(m *Model) {
+				m.focused = focusLabelDashboard
+			},
+			expected: []focus{focusLabelDashboard},
+		},
+		{
+			name: "detail falls through to list",
+			setup: func(m *Model) {
+				m.showDetails = true
+				m.focused = focusDetail
+			},
+			expected: []focus{focusDetail, focusList},
+		},
+		{
+			name: "fullscreen detail uses detail focus",
+			setup: func(m *Model) {
+				m.showDetails = true
+				m.focused = focusList
+			},
+			expected: []focus{focusDetail, focusList},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := newTestModel()
+			tt.setup(&m)
+			stack := m.DispatchFocusStack()
+			if len(stack) != len(tt.expected) {
+				t.Fatalf("stack len=%d want %d: %v", len(stack), len(tt.expected), stack)
+			}
+			for i := range stack {
+				if stack[i] != tt.expected[i] {
+					t.Errorf("stack[%d]=%v want %v (full=%v)", i, stack[i], tt.expected[i], stack)
+				}
+			}
+		})
+	}
+}
+
+func TestContext_AllowsGlobalFallthrough(t *testing.T) {
+	if ContextLabelDashboard.AllowsGlobalFallthrough() {
+		t.Error("label dashboard should not allow global fallthrough")
+	}
+	if !ContextBoard.AllowsGlobalFallthrough() {
+		t.Error("board should allow global fallthrough")
+	}
+	if !ContextDetail.AllowsGlobalFallthrough() {
+		t.Error("detail should allow global fallthrough")
+	}
+}
+
 func TestCurrentContext_Priority(t *testing.T) {
 	// Test that overlays take priority over views
 	m := newTestModel()
